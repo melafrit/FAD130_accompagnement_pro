@@ -1,0 +1,16 @@
+# === Documents de référence du cours — NON versionnés ===
+# Droits d'auteur (Cnam, Maela Paul, etc.) : supports de cours,
+# transcriptions et fiche module ne sont pas publiés sur le dépôt.
+Doc_references/
+
+# === Fichiers système / éditeur ===
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+*~
+.vscode/
+.idea/
+
+# === Fichiers temporaires Office (verrous ~$) ===
+~$*
