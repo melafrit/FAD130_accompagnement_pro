@@ -7,6 +7,7 @@ import authRouter from './auth'
 import questionnaireRouter from './questionnaire'
 import rdvRouter from './rdv'
 import entretienRouter from './entretien'
+import crRouter from './cr'
 import { seed } from './seed'
 
 const app = express()
@@ -26,6 +27,9 @@ app.use('/api/rdv', rdvRouter)
 
 // Entretien guidé (6 phases + suggestions IA)
 app.use('/api/entretien', entretienRouter)
+
+// Comptes rendus (génération DOCX, téléchargement, ré-import)
+app.use('/api/cr', crRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

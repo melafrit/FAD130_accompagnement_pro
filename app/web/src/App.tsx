@@ -14,6 +14,7 @@ import Questionnaire from './pages/Questionnaire'
 import Creneaux from './pages/Creneaux'
 import RendezVous from './pages/RendezVous'
 import Entretien from './pages/Entretien'
+import ComptesRendus from './pages/ComptesRendus'
 import Protected from './components/Protected'
 
 function Header() {
@@ -86,6 +87,7 @@ export default function App() {
             <Route path="/mes-creneaux" element={<Protected role="accompagnateur"><Creneaux /></Protected>} />
             <Route path="/rendez-vous" element={<Protected role="accompagne"><RendezVous /></Protected>} />
             <Route path="/entretien" element={<Protected role="accompagnateur"><Entretien /></Protected>} />
+            <Route path="/mes-comptes-rendus" element={<Protected role="accompagne"><ComptesRendus /></Protected>} />
           </Routes>
         </main>
         <Footer />

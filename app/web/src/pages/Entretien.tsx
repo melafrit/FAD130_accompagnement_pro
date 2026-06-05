@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useSpeechToText } from '../hooks/useSpeechToText'
@@ -16,6 +16,8 @@ export default function Entretien() {
   const [sugg, setSugg] = useState<Suggestion | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
+  const [crId, setCrId] = useState<number | null>(null)
+  const [crBusy, setCrBusy] = useState(false)
   const nav = useNavigate()
 
   const { listening, supported, toggle } = useSpeechToText((t) => {
@@ -73,12 +75,44 @@ export default function Entretien() {
     setDone(true)
   }
 
+  async function genererCR() {
+    if (sessionId == null) return
+    setCrBusy(true)
+    try {
+      const r = await api<{ id: number }>('/cr/generer', { method: 'POST', body: JSON.stringify({ sessionId }) })
+      setCrId(r.id)
+    } finally {
+      setCrBusy(false)
+    }
+  }
+
+  async function reimport(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f || crId == null) return
+    const fd = new FormData()
+    fd.append('fichier', f)
+    await fetch(`/api/cr/${crId}/reimport`, { method: 'POST', credentials: 'include', body: fd })
+    alert('Compte rendu mis à jour.')
+  }
+
   if (done) {
     return (
       <div className="page">
         <h1 className="page-title">Entretien terminé ✅</h1>
-        <p className="lead">Tes notes sont enregistrées. La génération du compte rendu arrivera au prochain lot.</p>
-        <button className="btn btn-primary" onClick={() => nav('/espace')}>Retour à mon espace</button>
+        <p className="lead">Tes notes sont enregistrées. Tu peux générer le compte rendu (Word).</p>
+        {crId == null ? (
+          <button className="btn btn-primary" disabled={crBusy} onClick={genererCR}>{crBusy ? 'Génération…' : '📄 Générer le compte rendu'}</button>
+        ) : (
+          <div className="cr-done">
+            <p className="form-success">Compte rendu généré ✅ et publié dans l’espace de l’accompagné.</p>
+            <p><a className="btn btn-primary" href={`/api/cr/${crId}/download`}>⬇ Télécharger (.docx)</a></p>
+            <p className="muted">Tu peux le modifier dans Word puis le ré-importer :</p>
+            <input type="file" accept=".docx" onChange={reimport} />
+          </div>
+        )}
+        <p style={{ marginTop: 20 }}>
+          <button className="btn btn-ghost" onClick={() => nav('/espace')}>Retour à mon espace</button>
+        </p>
       </div>
     )
   }

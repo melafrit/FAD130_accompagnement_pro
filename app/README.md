@@ -66,7 +66,7 @@ docker compose up -d
 - [x] Auth (inscription + validation email Brevo + reset MDP + consentement RGPD), comptes seed, pages connexion/inscription/reset, mentions légales
 - [x] Questionnaire initial adaptatif (Claude + parcours de secours), espace personnel par rôle, garde d'authentification, **prise de RDV** (créneaux accompagnateur, réservation accompagné, confirmations email + notifications)
 - [x] Entretien guidé (6 phases) + transcription vocale (Web Speech) + suggestions IA (Claude + parcours de secours)
-- [ ] Génération du compte rendu DOCX (download / modif / ré-import)
+- [x] Génération du compte rendu DOCX (Claude + repli), téléchargement, ré-import, publication à l'accompagné
 - [ ] Tableau de bord, suivi du plan d'action + notifications, recherche par tags
 - [x] Page Méthode (arbre de décision : 6 phases + 8 principes + garde-fous IA) + Onglet Aide (transparence + synthèse du cahier des charges)
 - [ ] Pages légales (mentions, CGU, politique de confidentialité)

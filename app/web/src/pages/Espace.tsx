@@ -24,8 +24,8 @@ export default function Espace() {
           </div>
           <div className="card">
             <h3>Mes comptes rendus</h3>
-            <p>Tu retrouveras ici, datés, les comptes rendus de tes entretiens et ton plan d’action.</p>
-            <span className="nav-soon">Bientôt</span>
+            <p>Retrouve ici, datés, les comptes rendus de tes entretiens (téléchargeables en Word).</p>
+            <Link className="btn btn-primary" to="/mes-comptes-rendus">Voir mes comptes rendus</Link>
           </div>
         </div>
       )}
