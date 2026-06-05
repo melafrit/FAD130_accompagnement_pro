@@ -14,3 +14,22 @@ Desktop.ini
 
 # === Fichiers temporaires Office (verrous ~$) ===
 ~$*
+
+# === Application Boussole : secrets, dépendances, build, données ===
+# Secrets et variables d'environnement (JAMAIS sur GitHub)
+.env
+*.env
+!*.env.example
+# Dépendances et build
+node_modules/
+dist/
+build/
+# Base de données (contient des données personnelles — JAMAIS sur GitHub)
+*.sqlite
+*.sqlite3
+*.db
+# Données runtime, sauvegardes et certificats TLS
+app/data/
+backups/
+acme.json
+letsencrypt/
