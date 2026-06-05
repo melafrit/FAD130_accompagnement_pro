@@ -1,7 +1,20 @@
-import { Routes, Route, Link, NavLink } from 'react-router-dom'
+import { Routes, Route, Link, NavLink, useNavigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './auth/AuthContext'
 import Home from './pages/Home'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import VerifyEmail from './pages/VerifyEmail'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import MentionsLegales from './pages/MentionsLegales'
 
 function Header() {
+  const { user, logout } = useAuth()
+  const nav = useNavigate()
+  async function onLogout() {
+    await logout()
+    nav('/')
+  }
   return (
     <header className="header">
       <Link to="/" className="brand" aria-label="Boussole — accueil">
@@ -12,7 +25,14 @@ function Header() {
         <NavLink to="/" end>Accueil</NavLink>
         <a className="nav-soon" aria-disabled="true" title="Bientôt">Méthode</a>
         <a className="nav-soon" aria-disabled="true" title="Bientôt">Aide</a>
-        <a className="btn btn-ghost nav-soon" aria-disabled="true" title="Bientôt">Connexion</a>
+        {user ? (
+          <>
+            <span className="nav-user">{user.email}</span>
+            <button className="btn btn-ghost" onClick={onLogout}>Déconnexion</button>
+          </>
+        ) : (
+          <Link className="btn btn-ghost" to="/connexion">Connexion</Link>
+        )}
       </nav>
     </header>
   )
@@ -21,9 +41,16 @@ function Header() {
 function Footer() {
   return (
     <footer className="footer">
+      <nav className="footer-links" aria-label="Liens légaux">
+        <Link to="/mentions-legales">Mentions légales</Link>
+        <span aria-hidden="true">·</span>
+        <a href="mailto:dpo@elafrit.com">dpo@elafrit.com</a>
+      </nav>
       <p>
-        <strong>Boussole</strong> — application développée dans le cadre de l'UE <strong>FAD130</strong> (Cnam).
-        © Mohamed El Afrit. · <a href="mailto:dpo@elafrit.com">dpo@elafrit.com</a>
+        <strong>Boussole</strong> — application développée dans le cadre de l'UE <strong>FAD130</strong> (Cnam).<br />
+        Auteur : <strong>Mohamed&nbsp;EL&nbsp;AFRIT</strong> —{' '}
+        <a href="https://www.mohamedelafrit.com" target="_blank" rel="noopener noreferrer">www.mohamedelafrit.com</a>{' '}
+        · © 2026
       </p>
     </footer>
   )
@@ -31,14 +58,22 @@ function Footer() {
 
 export default function App() {
   return (
-    <div className="app">
-      <Header />
-      <main className="main" id="main">
-        <Routes>
-          <Route path="/" element={<Home />} />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
+    <AuthProvider>
+      <div className="app">
+        <Header />
+        <main className="main" id="main">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/connexion" element={<Login />} />
+            <Route path="/inscription" element={<Register />} />
+            <Route path="/verifier-email" element={<VerifyEmail />} />
+            <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
+            <Route path="/reinitialiser" element={<ResetPassword />} />
+            <Route path="/mentions-legales" element={<MentionsLegales />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </AuthProvider>
   )
 }

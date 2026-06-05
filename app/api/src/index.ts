@@ -1,30 +1,29 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import { initDb } from './db'
+import cookieParser from 'cookie-parser'
+import { db } from './db'
+import authRouter from './auth'
+import { seed } from './seed'
 
 const app = express()
 app.use(helmet())
-app.use(cors())
+app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({ limit: '1mb' }))
+app.use(cookieParser())
 
-const db = initDb()
+// Authentification
+app.use('/api/auth', authRouter)
 
-// Santé du service (utilisé pour les checks de déploiement)
+// Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {
   const tables = db
     .prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table'")
     .get() as { n: number }
-  res.json({
-    status: 'ok',
-    service: 'boussole-api',
-    version: '0.1.0',
-    tables: tables.n,
-    time: new Date().toISOString(),
-  })
+  res.json({ status: 'ok', service: 'boussole-api', version: '0.1.0', tables: tables.n, time: new Date().toISOString() })
 })
 
-// Contexte public (alimente la page d'accueil / l'onglet Aide)
+// Contexte public (page d'accueil / onglet Aide)
 app.get('/api/context', (_req, res) => {
   res.json({
     nom: 'Boussole',
@@ -35,6 +34,9 @@ app.get('/api/context', (_req, res) => {
     publicCible: ['accompagnateurs', 'personnes accompagnées (étudiants, alternants)'],
   })
 })
+
+// Comptes initiaux (admin + accompagnateur)
+seed().catch((e) => console.error('[seed] échec :', e))
 
 const port = Number(process.env.PORT) || 3000
 app.listen(port, () => {
