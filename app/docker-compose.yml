@@ -1,0 +1,46 @@
+# Boussole — orchestration des containers.
+#
+# ⚠️ COEXISTENCE : d'autres apps tournent déjà sur le VPS (formaplanne, etc.).
+# Boussole NE prend PAS les ports 80/443 : elle s'attache au reverse proxy EXISTANT
+# via un réseau Docker externe (PROXY_NETWORK) et des labels Traefik.
+# Le nom exact du réseau et du certresolver sera confirmé au déploiement
+# (voir livrables/Guide_deploiement_Boussole.md §2 : `docker network ls`, `docker ps`).
+
+services:
+  boussole-api:
+    build: ./api
+    container_name: boussole-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - PORT=3000
+      - DB_PATH=/app/data/boussole.sqlite
+    volumes:
+      - ./data:/app/data
+    networks:
+      - interne
+
+  boussole-web:
+    build: ./web
+    container_name: boussole-web
+    restart: unless-stopped
+    depends_on:
+      - boussole-api
+    networks:
+      - interne
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${PROXY_NETWORK}"
+      - "traefik.http.routers.boussole.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.boussole.entrypoints=websecure"
+      - "traefik.http.routers.boussole.tls=true"
+      - "traefik.http.routers.boussole.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.services.boussole.loadbalancer.server.port=80"
+
+networks:
+  interne:
+    driver: bridge
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK}

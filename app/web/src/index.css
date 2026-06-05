@@ -1,0 +1,104 @@
+:root {
+  /* Palette « apaisant & confiance » */
+  --bleu-profond: #16324f;   /* bleu nuit "boussole" */
+  --bleu: #2f5d7c;
+  --sauge: #7c9a85;          /* vert sauge */
+  --sauge-clair: #e7eee8;
+  --sable: #f5efe4;          /* fond chaud */
+  --sable-2: #faf6ee;
+  --texte: #1f2a33;
+  --texte-doux: #4c5a64;
+  --bordure: #e3dccd;
+  --blanc: #ffffff;
+  --radius: 16px;
+  --ombre: 0 6px 24px rgba(22, 50, 79, 0.08);
+  --maxw: 1080px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--texte);
+  background: var(--sable);
+  line-height: 1.6;
+}
+
+a { color: var(--bleu); }
+
+.app { display: flex; flex-direction: column; min-height: 100%; }
+
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  padding: 16px clamp(16px, 4vw, 40px);
+  background: var(--sable-2);
+  border-bottom: 1px solid var(--bordure);
+  position: sticky; top: 0; z-index: 10;
+  backdrop-filter: blur(6px);
+}
+.brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-weight: 800; font-size: 20px; color: var(--bleu-profond);
+  text-decoration: none; letter-spacing: 0.2px;
+}
+.brand-mark {
+  display: inline-grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 9px;
+  background: var(--bleu-profond); color: var(--sable);
+  font-size: 15px;
+}
+.nav { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.nav a { text-decoration: none; color: var(--texte-doux); font-weight: 600; }
+.nav a[aria-current="page"] { color: var(--bleu-profond); }
+.nav-soon { opacity: 0.5; cursor: default; }
+
+/* Layout */
+.main { flex: 1; width: 100%; max-width: var(--maxw); margin: 0 auto; padding: clamp(24px, 5vw, 56px) clamp(16px, 4vw, 40px); }
+
+/* Hero */
+.hero { text-align: center; margin-bottom: 40px; }
+.kicker {
+  text-transform: uppercase; letter-spacing: 1.5px; font-size: 12px; font-weight: 700;
+  color: var(--sauge); margin: 0 0 12px;
+}
+.hero h1 { font-size: clamp(28px, 5vw, 46px); line-height: 1.15; margin: 0 auto 16px; max-width: 18ch; color: var(--bleu-profond); }
+.accent { color: var(--sauge); }
+.lead { font-size: clamp(16px, 2.2vw, 19px); color: var(--texte-doux); max-width: 60ch; margin: 0 auto; }
+
+/* Cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin: 32px 0; }
+.card {
+  background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius);
+  padding: 24px; box-shadow: var(--ombre);
+}
+.card h2 { margin: 0 0 10px; font-size: 19px; color: var(--bleu-profond); }
+.card p { margin: 0; color: var(--texte-doux); }
+.list { margin: 0; padding-left: 18px; color: var(--texte-doux); }
+.list li { margin-bottom: 8px; }
+
+/* Steps */
+.steps { background: var(--sauge-clair); border: 1px solid #d6e2d9; border-radius: var(--radius); padding: 28px; margin: 8px 0 32px; }
+.steps-title { margin: 0 0 18px; color: var(--bleu-profond); font-size: 20px; text-align: center; }
+.steps-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.steps-list li { display: flex; gap: 12px; align-items: flex-start; color: var(--texte-doux); }
+.step-num {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bleu-profond); color: var(--sable); font-weight: 700; font-size: 14px;
+}
+
+/* Note */
+.note { border-left: 4px solid var(--sauge); background: var(--sable-2); border-radius: 10px; padding: 16px 20px; }
+.note p { margin: 0; color: var(--texte-doux); font-size: 15px; }
+
+/* Buttons */
+.btn { display: inline-block; padding: 9px 16px; border-radius: 10px; font-weight: 700; text-decoration: none; }
+.btn-ghost { border: 1px solid var(--bordure); color: var(--bleu-profond); }
+
+/* Footer */
+.footer { border-top: 1px solid var(--bordure); background: var(--sable-2); padding: 20px clamp(16px, 4vw, 40px); }
+.footer p { margin: 0; color: var(--texte-doux); font-size: 14px; text-align: center; }

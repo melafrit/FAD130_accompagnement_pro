@@ -33,6 +33,8 @@ curl -6 ifconfig.me ; echo        # IPv6 (si le VPS en a une, ex. 2001:41d0:...)
 ```
 *(Ou : OVH Manager → univers « Bare Metal Cloud / VPS » → ton VPS → l'IP est affichée.)*
 
+> ✅ **IP du VPS : `217.182.67.124`** → l'enregistrement à créer est : sous-domaine `boussole` → type **A** → cible **`217.182.67.124`**.
+
 ### 1.2 Créer l'enregistrement DNS dans le Manager OVH
 1. Va sur **https://www.ovh.com/manager/** et connecte-toi.
 2. En haut à gauche, choisis l'univers **« Web Cloud »**.
@@ -65,22 +67,17 @@ docker --version
 docker compose version     # (plugin v2)  — ou: docker-compose --version
 ```
 
-### 2.2 Vérifier que les ports 80 et 443 sont libres (pas de reverse proxy déjà en place)
+### 2.2 Identifier le reverse proxy existant — ⚠️ d'autres apps tournent déjà (formaplanne…)
+**Important :** d'autres applications tournent déjà sur ce VPS et **doivent continuer à fonctionner**. Boussole ne doit donc **pas** accaparer les ports 80/443 : elle s'**intègre au reverse proxy déjà en place**.
 ```bash
-# Qui écoute sur 80 et 443 ? (vide = libre)
+# Qu'est-ce qui écoute sur 80/443 (quel proxy) ?
 sudo ss -tlnp | grep -E ':80 |:443 '
-
-# Y a-t-il déjà des containers (un Traefik/Nginx/Caddy) ?
+# Containers en cours (repérer traefik / nginx-proxy / caddy + formaplanne)
 docker ps
-
-# Services web système éventuels
-sudo systemctl status nginx   2>/dev/null | head -3
-sudo systemctl status apache2 2>/dev/null | head -3
-sudo systemctl status caddy   2>/dev/null | head -3
+# Réseaux Docker (repérer le réseau partagé du proxy)
+docker network ls
 ```
-**Interprétation :**
-- **Rien ne s'affiche** pour `ss` et **aucun** container/service web → ✅ les ports sont libres, **Traefik partira de zéro** (cas attendu).
-- **Quelque chose écoute** sur 80/443 → soit on **réutilise** ce reverse proxy (autre option de déploiement), soit on **libère** le port (`sudo systemctl stop nginx && sudo systemctl disable nginx`, après vérification que rien d'important ne l'utilise). On en discute avant d'agir.
+> ⏳ **À FAIRE AU MOMENT DU DÉPLOIEMENT** : Mohamed exécute ces 3 commandes et m'en donne le résultat. On en déduit le **type de reverse proxy** (Traefik ? nginx-proxy ? autre ?) et le **nom du réseau Docker partagé**, puis on règle `PROXY_NETWORK` / `CERT_RESOLVER` et les labels du `app/docker-compose.yml` en conséquence. **On ne touche pas** aux applications existantes (formaplanne, etc.).
 
 ### 2.3 Ouvrir les ports dans le pare-feu (si `ufw` est actif)
 ```bash
