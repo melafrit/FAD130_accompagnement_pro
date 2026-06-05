@@ -167,3 +167,22 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 @media (max-width: 560px) {
   .phase-grid { grid-template-columns: 1fr; }
 }
+
+/* Succès de formulaire */
+.form-success { color: #1b7a43; background: #e6f4ea; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-size: 14px; }
+
+/* Questionnaire initial */
+.qa-history { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.qa-item { background: var(--blanc); border: 1px solid var(--bordure); border-radius: 12px; padding: 12px 16px; }
+.qa-q { margin: 0 0 4px; font-weight: 600; color: var(--bleu-profond); font-size: 14px; }
+.qa-a { margin: 0; color: var(--texte-doux); }
+.qa-current { background: var(--sauge-clair); border: 1px solid #d6e2d9; border-radius: var(--radius); padding: 20px; }
+.qa-q-active { font-size: 17px; }
+.qa-props { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.qa-prop { background: var(--blanc); }
+.qa-form { display: flex; gap: 10px; margin-top: 8px; }
+.qa-form input { flex: 1; padding: 10px 12px; border: 1px solid var(--bordure); border-radius: 10px; font-size: 15px; background: var(--blanc); }
+.qa-loading { color: var(--texte-doux); font-size: 22px; letter-spacing: 3px; }
+.qa-recap { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); padding: 22px; box-shadow: var(--ombre); }
+.qa-recap h2 { margin-top: 0; color: var(--bleu-profond); }
+.recap-text { white-space: pre-wrap; font-family: inherit; background: var(--sable-2); border-radius: 10px; padding: 14px; color: var(--texte); font-size: 14px; line-height: 1.6; }

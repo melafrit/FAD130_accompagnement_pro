@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import { db } from './db'
 import authRouter from './auth'
+import questionnaireRouter from './questionnaire'
 import { seed } from './seed'
 
 const app = express()
@@ -14,6 +15,9 @@ app.use(cookieParser())
 
 // Authentification
 app.use('/api/auth', authRouter)
+
+// Questionnaire initial (Claude)
+app.use('/api/questionnaire', questionnaireRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

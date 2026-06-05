@@ -18,7 +18,7 @@ export default function Login() {
     try {
       await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
       await refresh()
-      nav('/')
+      nav('/espace')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur')
     } finally {

@@ -9,6 +9,9 @@ import ResetPassword from './pages/ResetPassword'
 import MentionsLegales from './pages/MentionsLegales'
 import Methode from './pages/Methode'
 import Aide from './pages/Aide'
+import Espace from './pages/Espace'
+import Questionnaire from './pages/Questionnaire'
+import Protected from './components/Protected'
 
 function Header() {
   const { user, logout } = useAuth()
@@ -29,6 +32,7 @@ function Header() {
         <NavLink to="/aide">Aide</NavLink>
         {user ? (
           <>
+            <NavLink to="/espace">Mon espace</NavLink>
             <span className="nav-user">{user.email}</span>
             <button className="btn btn-ghost" onClick={onLogout}>Déconnexion</button>
           </>
@@ -74,6 +78,8 @@ export default function App() {
             <Route path="/mentions-legales" element={<MentionsLegales />} />
             <Route path="/methode" element={<Methode />} />
             <Route path="/aide" element={<Aide />} />
+            <Route path="/espace" element={<Protected><Espace /></Protected>} />
+            <Route path="/questionnaire" element={<Protected role="accompagne"><Questionnaire /></Protected>} />
           </Routes>
         </main>
         <Footer />

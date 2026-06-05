@@ -64,7 +64,7 @@ docker compose up -d
 ## État d'avancement
 - [x] Squelette monorepo (web + api), page d'accueil contextuelle, schéma SQLite, Docker/compose
 - [x] Auth (inscription + validation email Brevo + reset MDP + consentement RGPD), comptes seed, pages connexion/inscription/reset, mentions légales
-- [ ] Questionnaire initial adaptatif (Claude) + prise de RDV
+- [x] Questionnaire initial adaptatif (Claude + parcours de secours sans clé), espace personnel par rôle, garde d'authentification · [ ] prise de RDV (lot 3b)
 - [ ] Entretien guidé (6 phases) + transcription + suggestions IA
 - [ ] Génération du compte rendu DOCX (download / modif / ré-import)
 - [ ] Tableau de bord, suivi du plan d'action + notifications, recherche par tags
