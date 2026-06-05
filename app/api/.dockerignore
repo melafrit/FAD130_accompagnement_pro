@@ -1,0 +1,11 @@
+# Ne JAMAIS copier ces éléments de l'hôte dans l'image (build natif fait dans le conteneur).
+node_modules
+dist
+data
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
+.env
+*.log
+npm-debug.log*
