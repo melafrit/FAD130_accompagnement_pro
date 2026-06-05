@@ -17,6 +17,7 @@ services:
       - APP_URL=http://localhost:8080
       - ADMIN_EMAIL=mohamed@elafrit.com
       - ACCOMPAGNATEUR_EMAIL=elafrit.mohamed@gmail.com
+      - SEED_PASSWORD=BoussoleDemo2026   # comptes de démo prêts à l'emploi (LOCAL uniquement)
       # ANTHROPIC_API_KEY / BREVO_API_KEY : optionnels en local (laisser vides).
       # Sans clé Brevo, les liens d'email sont journalisés dans les logs de l'API.
     volumes:

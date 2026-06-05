@@ -53,6 +53,17 @@ docker compose -f docker-compose.local.yml down            # arrêter
 
 > Les clés **Anthropic / Brevo** ne sont pas nécessaires pour tester l'inscription/connexion (emails journalisés). Elles le deviendront pour le questionnaire IA et l'envoi réel d'emails.
 
+### Comptes de démo (local)
+Avec `SEED_PASSWORD` défini (déjà le cas dans `docker-compose.local.yml`), trois comptes sont **prêts à l'emploi** — mot de passe : **`BoussoleDemo2026`** :
+
+| Rôle | Email | Mot de passe |
+|---|---|---|
+| Admin | `mohamed@elafrit.com` | `BoussoleDemo2026` |
+| Accompagnateur | `elafrit.mohamed@gmail.com` | `BoussoleDemo2026` |
+| Accompagné (démo) | `demo.accompagne@elafrit.com` | `BoussoleDemo2026` |
+
+> En **production**, laisse `SEED_PASSWORD` vide : les comptes seed s'activent alors via le lien reçu par email.
+
 ## Production (Docker)
 ```bash
 cp .env.example .env   # puis remplir (clés, domaine, réseau du proxy)
