@@ -42,7 +42,8 @@ router.get('/dashboard', requireAuth, requireRole('accompagnateur'), (req: Reque
               (SELECT COUNT(*) FROM sessions s WHERE s.dossier_id = d.id) AS nb_sessions,
               (SELECT COUNT(*) FROM actions a WHERE a.dossier_id = d.id AND a.statut != 'fait') AS actions_ouvertes,
               (SELECT COUNT(*) FROM questionnaires_initiaux q WHERE q.dossier_id = d.id) AS questionnaire,
-              (SELECT COUNT(*) FROM comptes_rendus cr JOIN sessions s2 ON s2.id = cr.session_id WHERE s2.dossier_id = d.id) AS nb_cr
+              (SELECT COUNT(*) FROM comptes_rendus cr JOIN sessions s2 ON s2.id = cr.session_id WHERE s2.dossier_id = d.id) AS nb_cr,
+              (SELECT GROUP_CONCAT(t.id || '|' || t.nom, ',') FROM dossier_tags dt JOIN tags t ON t.id = dt.tag_id WHERE dt.dossier_id = d.id) AS tags
        FROM dossiers d JOIN users u ON u.id = d.accompagne_id
        WHERE d.accompagnateur_id = ? ORDER BY d.cree_le DESC`,
     )

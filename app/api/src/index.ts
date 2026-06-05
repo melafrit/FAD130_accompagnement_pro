@@ -10,6 +10,7 @@ import entretienRouter from './entretien'
 import crRouter from './cr'
 import notificationsRouter from './notifications'
 import actionsRouter from './actions'
+import tagsRouter from './tags'
 import { seed } from './seed'
 
 const app = express()
@@ -36,6 +37,9 @@ app.use('/api/cr', crRouter)
 // Notifications & plan d'action
 app.use('/api/notifications', notificationsRouter)
 app.use('/api/actions', actionsRouter)
+
+// Étiquettes (tags) sur les dossiers
+app.use('/api/tags', tagsRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

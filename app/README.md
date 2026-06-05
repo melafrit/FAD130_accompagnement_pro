@@ -67,6 +67,6 @@ docker compose up -d
 - [x] Questionnaire initial adaptatif (Claude + parcours de secours), espace personnel par rôle, garde d'authentification, **prise de RDV** (créneaux accompagnateur, réservation accompagné, confirmations email + notifications)
 - [x] Entretien guidé (6 phases) + transcription vocale (Web Speech) + suggestions IA (Claude + parcours de secours)
 - [x] Génération du compte rendu DOCX (Claude + repli), téléchargement, ré-import, publication à l'accompagné
-- [x] Tableau de bord (accompagnateur) + plan d'action (accompagnateur & accompagné) + notifications in-app · [ ] recherche par tags
+- [x] Tableau de bord (accompagnateur) + plan d'action (accompagnateur & accompagné) + notifications in-app + recherche par étiquettes (tags)
 - [x] Page Méthode (arbre de décision : 6 phases + 8 principes + garde-fous IA) + Onglet Aide (transparence + synthèse du cahier des charges)
 - [x] Pages légales : mentions légales, CGU, politique de confidentialité (RGPD)
