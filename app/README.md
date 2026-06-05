@@ -2,7 +2,7 @@
 
 Compagnon d'entretien pour accompagner les personnes en transition professionnelle.
 Projet développé dans le cadre de l'UE **FAD130** (Cnam). Voir le
-[cahier des charges](../livrables/Cahier_des_charges_application_V1.md) et le
+[cahier des charges](../livrables/Cahier_des_charges_application_V2.md) et le
 [guide de déploiement](../livrables/Guide_deploiement_Boussole.md).
 
 ## Structure (monorepo)
