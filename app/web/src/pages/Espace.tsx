@@ -38,9 +38,9 @@ export default function Espace() {
             <Link className="btn btn-primary" to="/mes-creneaux">Gérer mes créneaux</Link>
           </div>
           <div className="card">
-            <h3>Mes accompagnés</h3>
-            <p>Dossiers, questionnaires initiaux et historique des entretiens.</p>
-            <span className="nav-soon">Bientôt</span>
+            <h3>Mener un entretien</h3>
+            <p>Conduis un entretien guidé (6 phases) avec un accompagné, avec transcription et appui de l’IA.</p>
+            <Link className="btn btn-primary" to="/entretien">Démarrer un entretien</Link>
           </div>
         </div>
       )}

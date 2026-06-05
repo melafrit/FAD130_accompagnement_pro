@@ -1,0 +1,62 @@
+import { useEffect, useRef, useState } from 'react'
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Transcription vocale via l'API Web Speech (webkitSpeechRecognition).
+// Non typée par le DOM standard : on utilise `any` de façon contrôlée.
+export function useSpeechToText(onText: (t: string) => void) {
+  const [listening, setListening] = useState(false)
+  const [supported] = useState<boolean>(() => {
+    const w = window as any
+    return typeof window !== 'undefined' && !!(w.SpeechRecognition || w.webkitSpeechRecognition)
+  })
+  const recRef = useRef<any>(null)
+  const onTextRef = useRef(onText)
+  onTextRef.current = onText
+
+  useEffect(() => {
+    const w = window as any
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition
+    if (!SR) return
+    const rec = new SR()
+    rec.lang = 'fr-FR'
+    rec.continuous = true
+    rec.interimResults = false
+    rec.onresult = (e: any) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) onTextRef.current(e.results[i][0].transcript + ' ')
+      }
+    }
+    rec.onend = () => setListening(false)
+    rec.onerror = () => setListening(false)
+    recRef.current = rec
+    return () => {
+      try {
+        rec.stop()
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [])
+
+  function toggle() {
+    const rec = recRef.current
+    if (!rec) return
+    if (listening) {
+      try {
+        rec.stop()
+      } catch {
+        /* ignore */
+      }
+      setListening(false)
+    } else {
+      try {
+        rec.start()
+        setListening(true)
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  return { listening, supported, toggle }
+}

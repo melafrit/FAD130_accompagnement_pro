@@ -196,3 +196,18 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .slot-tag { font-size: 13px; color: var(--sauge); font-weight: 700; }
 .page section h2 { font-size: 19px; }
 .muted { color: var(--texte-doux); font-style: italic; }
+
+/* Entretien guidé */
+.phase-steps { display: flex; gap: 8px; margin: 8px 0 18px; flex-wrap: wrap; }
+.phase-step { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--bordure); background: var(--blanc); color: var(--texte-doux); font-weight: 700; cursor: pointer; }
+.phase-step.active { background: var(--bleu-profond); color: var(--sable); border-color: var(--bleu-profond); }
+.notes-block { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--ombre); margin-top: 16px; }
+.notes-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.notes-head h3 { margin: 0; color: var(--bleu-profond); }
+.notes-area { width: 100%; min-height: 140px; padding: 12px; border: 1px solid var(--bordure); border-radius: 10px; font: inherit; font-size: 15px; resize: vertical; background: var(--sable-2); }
+.notes-actions { margin-top: 10px; }
+.mic.mic-on { background: #fdecea; border-color: #b3261e; color: #b3261e; }
+.sugg { margin-top: 14px; background: var(--sauge-clair); border: 1px solid #d6e2d9; border-radius: 12px; padding: 14px 16px; }
+.sugg ul { margin: 4px 0 0; padding-left: 18px; }
+.sugg-watch { margin: 10px 0 0; color: var(--sauge); font-weight: 600; font-size: 14px; }
+.entretien-nav { display: flex; justify-content: space-between; margin-top: 18px; gap: 12px; }

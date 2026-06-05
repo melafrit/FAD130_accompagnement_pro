@@ -13,6 +13,7 @@ import Espace from './pages/Espace'
 import Questionnaire from './pages/Questionnaire'
 import Creneaux from './pages/Creneaux'
 import RendezVous from './pages/RendezVous'
+import Entretien from './pages/Entretien'
 import Protected from './components/Protected'
 
 function Header() {
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="/questionnaire" element={<Protected role="accompagne"><Questionnaire /></Protected>} />
             <Route path="/mes-creneaux" element={<Protected role="accompagnateur"><Creneaux /></Protected>} />
             <Route path="/rendez-vous" element={<Protected role="accompagne"><RendezVous /></Protected>} />
+            <Route path="/entretien" element={<Protected role="accompagnateur"><Entretien /></Protected>} />
           </Routes>
         </main>
         <Footer />
