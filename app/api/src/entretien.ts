@@ -33,6 +33,23 @@ router.get('/dossiers', requireAuth, requireRole('accompagnateur'), (req: Reques
   res.json({ dossiers })
 })
 
+// Tableau de bord de l'accompagnateur (vue d'ensemble des accompagnés)
+router.get('/dashboard', requireAuth, requireRole('accompagnateur'), (req: Request, res: Response) => {
+  const me = getUser(req)
+  const dossiers = db
+    .prepare(
+      `SELECT d.id, u.prenom AS accompagne_prenom, u.email AS accompagne_email,
+              (SELECT COUNT(*) FROM sessions s WHERE s.dossier_id = d.id) AS nb_sessions,
+              (SELECT COUNT(*) FROM actions a WHERE a.dossier_id = d.id AND a.statut != 'fait') AS actions_ouvertes,
+              (SELECT COUNT(*) FROM questionnaires_initiaux q WHERE q.dossier_id = d.id) AS questionnaire,
+              (SELECT COUNT(*) FROM comptes_rendus cr JOIN sessions s2 ON s2.id = cr.session_id WHERE s2.dossier_id = d.id) AS nb_cr
+       FROM dossiers d JOIN users u ON u.id = d.accompagne_id
+       WHERE d.accompagnateur_id = ? ORDER BY d.cree_le DESC`,
+    )
+    .all(me.id)
+  res.json({ dossiers })
+})
+
 // Démarrer (ou reprendre) une session d'entretien pour un dossier
 router.post('/sessions', requireAuth, requireRole('accompagnateur'), (req: Request, res: Response) => {
   const me = getUser(req)

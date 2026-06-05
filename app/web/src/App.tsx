@@ -15,6 +15,10 @@ import Creneaux from './pages/Creneaux'
 import RendezVous from './pages/RendezVous'
 import Entretien from './pages/Entretien'
 import ComptesRendus from './pages/ComptesRendus'
+import Dashboard from './pages/Dashboard'
+import PlanAction from './pages/PlanAction'
+import MonPlanAction from './pages/MonPlanAction'
+import NotificationsBell from './components/NotificationsBell'
 import Protected from './components/Protected'
 
 function Header() {
@@ -37,6 +41,7 @@ function Header() {
         {user ? (
           <>
             <NavLink to="/espace">Mon espace</NavLink>
+            <NotificationsBell />
             <span className="nav-user">{user.email}</span>
             <button className="btn btn-ghost" onClick={onLogout}>Déconnexion</button>
           </>
@@ -88,6 +93,9 @@ export default function App() {
             <Route path="/rendez-vous" element={<Protected role="accompagne"><RendezVous /></Protected>} />
             <Route path="/entretien" element={<Protected role="accompagnateur"><Entretien /></Protected>} />
             <Route path="/mes-comptes-rendus" element={<Protected role="accompagne"><ComptesRendus /></Protected>} />
+            <Route path="/tableau-de-bord" element={<Protected role="accompagnateur"><Dashboard /></Protected>} />
+            <Route path="/plan-action/:dossierId" element={<Protected role="accompagnateur"><PlanAction /></Protected>} />
+            <Route path="/mon-plan-action" element={<Protected role="accompagne"><MonPlanAction /></Protected>} />
           </Routes>
         </main>
         <Footer />

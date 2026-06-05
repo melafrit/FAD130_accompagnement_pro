@@ -8,6 +8,8 @@ import questionnaireRouter from './questionnaire'
 import rdvRouter from './rdv'
 import entretienRouter from './entretien'
 import crRouter from './cr'
+import notificationsRouter from './notifications'
+import actionsRouter from './actions'
 import { seed } from './seed'
 
 const app = express()
@@ -30,6 +32,10 @@ app.use('/api/entretien', entretienRouter)
 
 // Comptes rendus (génération DOCX, téléchargement, ré-import)
 app.use('/api/cr', crRouter)
+
+// Notifications & plan d'action
+app.use('/api/notifications', notificationsRouter)
+app.use('/api/actions', actionsRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

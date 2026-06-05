@@ -23,6 +23,11 @@ export default function Espace() {
             <Link className="btn btn-primary" to="/rendez-vous">Voir les créneaux</Link>
           </div>
           <div className="card">
+            <h3>Mon plan d'action</h3>
+            <p>Suis les prochaines étapes décidées en entretien et marque-les comme faites.</p>
+            <Link className="btn btn-primary" to="/mon-plan-action">Voir mon plan d'action</Link>
+          </div>
+          <div className="card">
             <h3>Mes comptes rendus</h3>
             <p>Retrouve ici, datés, les comptes rendus de tes entretiens (téléchargeables en Word).</p>
             <Link className="btn btn-primary" to="/mes-comptes-rendus">Voir mes comptes rendus</Link>
@@ -32,6 +37,11 @@ export default function Espace() {
 
       {user.role === 'accompagnateur' && (
         <div className="cards">
+          <div className="card">
+            <h3>Tableau de bord</h3>
+            <p>Vue d'ensemble de tes accompagnés : entretiens, comptes rendus et plans d'action.</p>
+            <Link className="btn btn-primary" to="/tableau-de-bord">Ouvrir le tableau de bord</Link>
+          </div>
           <div className="card">
             <h3>Mes disponibilités</h3>
             <p>Définis les créneaux où tes accompagnés peuvent réserver un rendez-vous.</p>
