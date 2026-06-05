@@ -27,9 +27,14 @@ build/
 # Base de données (contient des données personnelles — JAMAIS sur GitHub)
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
 *.db
 # Données runtime, sauvegardes et certificats TLS
+data/
 app/data/
+app/api/data/
 backups/
 acme.json
 letsencrypt/
