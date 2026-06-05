@@ -27,7 +27,7 @@ export default function MentionsLegales() {
       <h2>Propriété intellectuelle</h2>
       <p>Les contenus de cette application sont la propriété de leur auteur, sauf mention contraire.</p>
 
-      <p className="legal-note">Les CGU et la politique de confidentialité détaillées seront publiées prochainement.</p>
+      <p className="legal-note">Voir aussi les <a href="/cgu">CGU</a> et la <a href="/confidentialite">politique de confidentialité</a>.</p>
     </article>
   )
 }

@@ -62,7 +62,7 @@ export default function Register() {
         </label>
         <label className="checkbox">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
-          <span>J'accepte les CGU et la <Link to="/mentions-legales">politique de confidentialité</Link>.</span>
+          <span>J'accepte les <Link to="/cgu">CGU</Link> et la <Link to="/confidentialite">politique de confidentialité</Link>.</span>
         </label>
         {error && <p className="form-error">{error}</p>}
         <button className="btn btn-primary" disabled={busy || !consent}>{busy ? '…' : 'Créer mon compte'}</button>

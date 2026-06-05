@@ -69,4 +69,4 @@ docker compose up -d
 - [x] Génération du compte rendu DOCX (Claude + repli), téléchargement, ré-import, publication à l'accompagné
 - [x] Tableau de bord (accompagnateur) + plan d'action (accompagnateur & accompagné) + notifications in-app · [ ] recherche par tags
 - [x] Page Méthode (arbre de décision : 6 phases + 8 principes + garde-fous IA) + Onglet Aide (transparence + synthèse du cahier des charges)
-- [ ] Pages légales (mentions, CGU, politique de confidentialité)
+- [x] Pages légales : mentions légales, CGU, politique de confidentialité (RGPD)

@@ -7,6 +7,8 @@ import VerifyEmail from './pages/VerifyEmail'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import MentionsLegales from './pages/MentionsLegales'
+import CGU from './pages/CGU'
+import Confidentialite from './pages/Confidentialite'
 import Methode from './pages/Methode'
 import Aide from './pages/Aide'
 import Espace from './pages/Espace'
@@ -59,6 +61,10 @@ function Footer() {
       <nav className="footer-links" aria-label="Liens légaux">
         <Link to="/mentions-legales">Mentions légales</Link>
         <span aria-hidden="true">·</span>
+        <Link to="/cgu">CGU</Link>
+        <span aria-hidden="true">·</span>
+        <Link to="/confidentialite">Confidentialité</Link>
+        <span aria-hidden="true">·</span>
         <a href="mailto:dpo@elafrit.com">dpo@elafrit.com</a>
       </nav>
       <p>
@@ -85,6 +91,8 @@ export default function App() {
             <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
             <Route path="/reinitialiser" element={<ResetPassword />} />
             <Route path="/mentions-legales" element={<MentionsLegales />} />
+            <Route path="/cgu" element={<CGU />} />
+            <Route path="/confidentialite" element={<Confidentialite />} />
             <Route path="/methode" element={<Methode />} />
             <Route path="/aide" element={<Aide />} />
             <Route path="/espace" element={<Protected><Espace /></Protected>} />
