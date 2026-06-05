@@ -47,9 +47,27 @@ export default function Home() {
       <section className="steps">
         <h2 className="steps-title">Comment ça marche</h2>
         <ol className="steps-list">
-          <li><span className="step-num">1</span> L'accompagné remplit un <strong>questionnaire initial</strong> et réserve un rendez-vous.</li>
-          <li><span className="step-num">2</span> L'entretien est <strong>guidé</strong> (6 étapes), avec transcription et suggestions de l'IA.</li>
-          <li><span className="step-num">3</span> Un <strong>compte rendu</strong> daté et un <strong>plan d'action</strong> sont déposés dans l'espace de l'accompagné.</li>
+          <li className="step">
+            <span className="step-num">1</span>
+            <div className="step-body">
+              <h3>Questionnaire initial</h3>
+              <p>L'accompagné cadre son besoin (stage, mémoire, problématique) et réserve un rendez-vous.</p>
+            </div>
+          </li>
+          <li className="step">
+            <span className="step-num">2</span>
+            <div className="step-body">
+              <h3>Entretien guidé</h3>
+              <p>Un entretien en 6 étapes, avec transcription au micro et suggestions de l'IA.</p>
+            </div>
+          </li>
+          <li className="step">
+            <span className="step-num">3</span>
+            <div className="step-body">
+              <h3>Compte rendu &amp; plan d'action</h3>
+              <p>Un compte rendu daté, déposé dans l'espace de l'accompagné.</p>
+            </div>
+          </li>
         </ol>
       </section>
 
