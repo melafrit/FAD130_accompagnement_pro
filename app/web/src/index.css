@@ -256,3 +256,21 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .admin-table tr:last-child td { border-bottom: none; }
 .admin-table select { padding: 4px 8px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--sable-2); }
 .row-inactif { opacity: 0.5; }
+
+/* Dossier / parcours */
+.badge-statut { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; vertical-align: middle; margin-left: 8px; }
+.st-encours { background: var(--sauge-clair); color: var(--sauge); }
+.st-cloture { background: #e6f4ea; color: #1b7a43; }
+.dossier-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 24px; }
+.timeline { list-style: none; margin: 0 0 24px; padding: 0; }
+.tl-item { display: flex; gap: 14px; align-items: flex-start; padding-bottom: 18px; position: relative; }
+.tl-item::before { content: ''; position: absolute; left: 17px; top: 38px; bottom: -2px; width: 2px; background: var(--bordure); }
+.tl-item:last-child::before { display: none; }
+.tl-dot { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--bleu-profond); color: var(--sable); font-weight: 700; font-size: 14px; z-index: 1; }
+.tl-rdv { background: var(--sauge); }
+.tl-body { background: var(--blanc); border: 1px solid var(--bordure); border-radius: 12px; padding: 12px 16px; flex: 1; box-shadow: var(--ombre); }
+.tl-body h3 { margin: 0 0 4px; color: var(--bleu-profond); font-size: 16px; }
+.tl-body .btn { margin: 6px 6px 0 0; }
+.tl-body details { margin: 6px 0; }
+.tl-body summary { cursor: pointer; color: var(--bleu); font-size: 14px; }
+.entretien-nav-right { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }

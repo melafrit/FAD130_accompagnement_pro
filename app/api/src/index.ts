@@ -13,6 +13,7 @@ import notificationsRouter from './notifications'
 import actionsRouter from './actions'
 import tagsRouter from './tags'
 import adminRouter from './admin'
+import dossierRouter from './dossier'
 import { seed } from './seed'
 
 const app = express()
@@ -45,6 +46,9 @@ app.use('/api/tags', tagsRouter)
 
 // Administration (gestion des comptes)
 app.use('/api/admin', adminRouter)
+
+// Dossier / parcours (détail, clôture)
+app.use('/api/dossiers', dossierRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

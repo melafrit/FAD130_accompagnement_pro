@@ -92,8 +92,7 @@ export default function Dashboard() {
                 <input value={nouveauTag[d.id] || ''} onChange={(e) => setNouveauTag((n) => ({ ...n, [d.id]: e.target.value }))} placeholder="+ ajouter un tag (Entrée)" />
               </form>
               <div className="dash-actions">
-                <Link className="btn btn-ghost" to={`/plan-action/${d.id}`}>Plan d'action</Link>
-                <Link className="btn btn-primary" to="/entretien">Entretien</Link>
+                <Link className="btn btn-primary" to={`/dossier/${d.id}`}>Ouvrir le dossier</Link>
               </div>
             </div>
           )

@@ -159,3 +159,15 @@ db.exec(`
     horodatage TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `)
+
+// Migrations légères (ajout de colonnes si la base existe déjà)
+for (const stmt of [
+  "ALTER TABLE dossiers ADD COLUMN statut TEXT NOT NULL DEFAULT 'en_cours'",
+  'ALTER TABLE dossiers ADD COLUMN synthese TEXT',
+]) {
+  try {
+    db.exec(stmt)
+  } catch {
+    /* colonne déjà présente */
+  }
+}

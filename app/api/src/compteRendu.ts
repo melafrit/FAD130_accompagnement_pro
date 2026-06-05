@@ -113,3 +113,21 @@ export async function construireDocx(content: CRContent, meta: CRMeta): Promise<
   })
   return Packer.toBuffer(doc)
 }
+
+/** DOCX simple à partir d'un texte (ex. récapitulatif du questionnaire initial). */
+export async function docxFromText(titre: string, sousTitre: string, texte: string): Promise<Buffer> {
+  const doc = new Document({
+    styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
+    sections: [
+      {
+        properties: { page: { size: { width: 11906, height: 16838 } } },
+        children: [
+          new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(titre)] }),
+          new Paragraph({ children: [new TextRun({ text: sousTitre, italics: true })] }),
+          ...paras(texte),
+        ],
+      },
+    ],
+  })
+  return Packer.toBuffer(doc)
+}
