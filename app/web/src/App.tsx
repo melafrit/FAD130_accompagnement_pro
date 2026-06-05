@@ -20,6 +20,7 @@ import ComptesRendus from './pages/ComptesRendus'
 import Dashboard from './pages/Dashboard'
 import PlanAction from './pages/PlanAction'
 import MonPlanAction from './pages/MonPlanAction'
+import Admin from './pages/Admin'
 import NotificationsBell from './components/NotificationsBell'
 import Protected from './components/Protected'
 
@@ -104,6 +105,7 @@ export default function App() {
             <Route path="/tableau-de-bord" element={<Protected role="accompagnateur"><Dashboard /></Protected>} />
             <Route path="/plan-action/:dossierId" element={<Protected role="accompagnateur"><PlanAction /></Protected>} />
             <Route path="/mon-plan-action" element={<Protected role="accompagne"><MonPlanAction /></Protected>} />
+            <Route path="/admin" element={<Protected role="admin"><Admin /></Protected>} />
           </Routes>
         </main>
         <Footer />

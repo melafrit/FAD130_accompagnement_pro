@@ -58,8 +58,8 @@ export default function Espace() {
       {user.role === 'admin' && (
         <div className="card">
           <h3>Administration</h3>
-          <p>Gestion des comptes (accompagnateurs et accompagnés).</p>
-          <span className="nav-soon">Bientôt</span>
+          <p>Gestion des comptes : créer, activer/désactiver, changer de rôle, rattacher les accompagnés.</p>
+          <Link className="btn btn-primary" to="/admin">Gérer les comptes</Link>
         </div>
       )}
     </div>

@@ -11,6 +11,7 @@ import crRouter from './cr'
 import notificationsRouter from './notifications'
 import actionsRouter from './actions'
 import tagsRouter from './tags'
+import adminRouter from './admin'
 import { seed } from './seed'
 
 const app = express()
@@ -40,6 +41,9 @@ app.use('/api/actions', actionsRouter)
 
 // Étiquettes (tags) sur les dossiers
 app.use('/api/tags', tagsRouter)
+
+// Administration (gestion des comptes)
+app.use('/api/admin', adminRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

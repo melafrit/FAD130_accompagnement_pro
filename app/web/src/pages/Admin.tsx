@@ -1,0 +1,135 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import { api } from '../lib/api'
+
+interface User {
+  id: number
+  email: string
+  role: string
+  nom: string | null
+  prenom: string | null
+  actif: number
+  email_verifie: number
+}
+
+export default function Admin() {
+  const [users, setUsers] = useState<User[]>([])
+  const [form, setForm] = useState({ email: '', role: 'accompagne', nom: '', prenom: '' })
+  const [lien, setLien] = useState({ accompagnateurId: '', accompagneId: '' })
+  const [msg, setMsg] = useState('')
+
+  async function load() {
+    const d = await api<{ users: User[] }>('/admin/users')
+    setUsers(d.users)
+  }
+  useEffect(() => {
+    void load()
+  }, [])
+
+  async function setRole(id: number, role: string) {
+    await api(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ role }) })
+    await load()
+  }
+  async function toggleActif(u: User) {
+    await api(`/admin/users/${u.id}`, { method: 'PATCH', body: JSON.stringify({ actif: u.actif ? 0 : 1 }) })
+    await load()
+  }
+
+  async function createUser(e: FormEvent) {
+    e.preventDefault()
+    setMsg('')
+    try {
+      await api('/admin/users', { method: 'POST', body: JSON.stringify(form) })
+      setForm({ email: '', role: 'accompagne', nom: '', prenom: '' })
+      setMsg("Compte créé, email d'activation envoyé.")
+      await load()
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Erreur')
+    }
+  }
+  async function createLien(e: FormEvent) {
+    e.preventDefault()
+    setMsg('')
+    try {
+      await api('/admin/lien', { method: 'POST', body: JSON.stringify({ accompagnateurId: Number(lien.accompagnateurId), accompagneId: Number(lien.accompagneId) }) })
+      setMsg('Rattachement effectué.')
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Erreur')
+    }
+  }
+
+  const accompagnateurs = users.filter((u) => u.role === 'accompagnateur')
+  const accompagnes = users.filter((u) => u.role === 'accompagne')
+
+  return (
+    <div className="page">
+      <p className="kicker">Administration</p>
+      <h1 className="page-title">Gestion des comptes</h1>
+      {msg && <p className="form-success">{msg}</p>}
+
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr><th>Email</th><th>Nom</th><th>Rôle</th><th>Validé</th><th>Statut</th></tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className={u.actif ? '' : 'row-inactif'}>
+                <td>{u.email}</td>
+                <td>{[u.prenom, u.nom].filter(Boolean).join(' ') || '—'}</td>
+                <td>
+                  <select value={u.role} onChange={(e) => setRole(u.id, e.target.value)}>
+                    <option value="accompagne">Accompagné</option>
+                    <option value="accompagnateur">Accompagnateur</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </td>
+                <td>{u.email_verifie ? '✓' : '—'}</td>
+                <td><button className="btn btn-ghost" onClick={() => toggleActif(u)}>{u.actif ? 'Désactiver' : 'Activer'}</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid-2" style={{ marginTop: 24 }}>
+        <div className="card">
+          <h3>Créer un compte</h3>
+          <form className="form" onSubmit={createUser}>
+            <label className="field"><span>Email</span><input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required /></label>
+            <div className="field-row">
+              <label className="field"><span>Prénom</span><input value={form.prenom} onChange={(e) => setForm((f) => ({ ...f, prenom: e.target.value }))} /></label>
+              <label className="field"><span>Nom</span><input value={form.nom} onChange={(e) => setForm((f) => ({ ...f, nom: e.target.value }))} /></label>
+            </div>
+            <label className="field"><span>Rôle</span>
+              <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
+                <option value="accompagne">Accompagné</option>
+                <option value="accompagnateur">Accompagnateur</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+            <button className="btn btn-primary" type="submit">Créer et envoyer l'activation</button>
+          </form>
+        </div>
+
+        <div className="card">
+          <h3>Rattacher un accompagné</h3>
+          <form className="form" onSubmit={createLien}>
+            <label className="field"><span>Accompagnateur</span>
+              <select value={lien.accompagnateurId} onChange={(e) => setLien((l) => ({ ...l, accompagnateurId: e.target.value }))}>
+                <option value="">—</option>
+                {accompagnateurs.map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}
+              </select>
+            </label>
+            <label className="field"><span>Accompagné</span>
+              <select value={lien.accompagneId} onChange={(e) => setLien((l) => ({ ...l, accompagneId: e.target.value }))}>
+                <option value="">—</option>
+                {accompagnes.map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}
+              </select>
+            </label>
+            <button className="btn btn-primary" type="submit">Rattacher</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}

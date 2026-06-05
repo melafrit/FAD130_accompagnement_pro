@@ -70,3 +70,4 @@ docker compose up -d
 - [x] Tableau de bord (accompagnateur) + plan d'action (accompagnateur & accompagné) + notifications in-app + recherche par étiquettes (tags)
 - [x] Page Méthode (arbre de décision : 6 phases + 8 principes + garde-fous IA) + Onglet Aide (transparence + synthèse du cahier des charges)
 - [x] Pages légales : mentions légales, CGU, politique de confidentialité (RGPD)
+- [x] Espace administrateur (gestion des comptes : création, rôle, activation/désactivation, rattachement accompagné↔accompagnateur)
