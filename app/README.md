@@ -21,15 +21,37 @@ app/
 - **IA** : Claude API (Sonnet en temps réel, Opus pour les comptes rendus)
 - **Emails** : Brevo · **Déploiement** : Docker + Traefik (HTTPS) sur VPS OVH
 
-## Développement local
-```bash
-# API (port 3000)
-cd api && npm install && npm run dev
+## Lancer en local (pour tester)
 
-# Front (port 5173, proxifie /api vers 3000)
-cd web && npm install && npm run dev
+### Option A — Mode développement (Node)
+Dans **deux terminaux** :
+```bash
+# Terminal 1 — API (port 3000)
+cd app/api
+npm install
+npm run dev        # → http://localhost:3000/api/health
+
+# Terminal 2 — Front (port 5173, proxifie /api vers 3000)
+cd app/web
+npm install
+npm run dev        # → http://localhost:5173
 ```
-Front : http://localhost:5173 · Santé API : http://localhost:3000/api/health
+Ouvre **http://localhost:5173**.
+
+**Tester l'inscription sans clé email** : crée un compte → le lien d'activation s'affiche dans les **logs de l'API** (Terminal 1, ligne `[mailer:DEV] …`) → ouvre ce lien → connecte-toi.
+
+> 🪟 **Windows** : si `npm install` de l'API échoue à compiler `better-sqlite3`, installe les outils de build C++ (Visual Studio Build Tools → « Desktop development with C++ »), **ou** utilise l'option B (Docker — aucune compilation locale).
+
+### Option B — Docker en local (recommandé, comme en prod)
+Aucune compilation native ; tout tourne en conteneurs Linux :
+```bash
+cd app
+docker compose -f docker-compose.local.yml up --build      # → http://localhost:8080
+docker compose -f docker-compose.local.yml logs -f boussole-api   # voir les liens d'email
+docker compose -f docker-compose.local.yml down            # arrêter
+```
+
+> Les clés **Anthropic / Brevo** ne sont pas nécessaires pour tester l'inscription/connexion (emails journalisés). Elles le deviendront pour le questionnaire IA et l'envoi réel d'emails.
 
 ## Production (Docker)
 ```bash

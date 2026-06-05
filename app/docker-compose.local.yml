@@ -1,0 +1,40 @@
+# Boussole — déploiement LOCAL (pour tester sur ta machine).
+# Publie le front sur http://localhost:8080 ; l'API reste interne (proxifiée par Nginx).
+# Aucune dépendance au reverse proxy (contrairement au docker-compose.yml de production).
+#
+#   cd app
+#   docker compose -f docker-compose.local.yml up --build
+#   → http://localhost:8080
+
+services:
+  boussole-api:
+    build: ./api
+    container_name: boussole-api-local
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - DB_PATH=/app/data/boussole.sqlite
+      - APP_URL=http://localhost:8080
+      - ADMIN_EMAIL=mohamed@elafrit.com
+      - ACCOMPAGNATEUR_EMAIL=elafrit.mohamed@gmail.com
+      # ANTHROPIC_API_KEY / BREVO_API_KEY : optionnels en local (laisser vides).
+      # Sans clé Brevo, les liens d'email sont journalisés dans les logs de l'API.
+    volumes:
+      - ./data:/app/data
+    networks:
+      - interne
+
+  boussole-web:
+    build: ./web
+    container_name: boussole-web-local
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - boussole-api
+    networks:
+      - interne
+
+networks:
+  interne:
+    driver: bridge
