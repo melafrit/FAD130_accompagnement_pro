@@ -132,3 +132,38 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .legal h2 { color: var(--bleu-profond); font-size: 18px; margin: 22px 0 6px; }
 .legal p { color: var(--texte-doux); margin: 0 0 8px; }
 .legal-note { font-style: italic; color: var(--sauge); }
+
+/* Pages Méthode / Aide */
+.page { max-width: 860px; margin: 0 auto; }
+.page-title { color: var(--bleu-profond); font-size: clamp(24px, 4vw, 34px); margin: 6px 0 12px; }
+.page h2 { color: var(--bleu-profond); font-size: 21px; margin: 32px 0 14px; }
+.page h3 { color: var(--bleu-profond); }
+.page section { margin-bottom: 8px; }
+
+.principes { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.principes li { display: flex; gap: 10px; align-items: flex-start; background: var(--sauge-clair); border: 1px solid #d6e2d9; border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--texte); }
+.principe-num { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--sauge); color: #fff; font-weight: 700; font-size: 13px; }
+
+.phases { display: flex; flex-direction: column; gap: 16px; }
+.phase { background: var(--blanc); border: 1px solid var(--bordure); border-left: 5px solid var(--bleu-profond); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--ombre); }
+.phase-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.phase-head h3 { margin: 0; font-size: 18px; }
+.phase-num { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--bleu-profond); color: var(--sable); font-weight: 800; }
+.phase-obj { color: var(--texte-doux); margin: 0 0 12px; }
+.phase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.phase-grid h4 { margin: 0 0 6px; font-size: 14px; color: var(--bleu-profond); }
+.phase-grid ul { margin: 0; padding-left: 18px; color: var(--texte-doux); font-size: 14px; }
+.phase-grid li { margin-bottom: 5px; }
+.phase-porter { margin: 12px 0 0; padding-top: 10px; border-top: 1px dashed var(--bordure); color: var(--texte-doux); font-size: 14px; }
+
+.flow { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.flow li { display: flex; gap: 14px; align-items: flex-start; }
+.flow-num { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--sauge); color: #fff; font-weight: 700; }
+.flow li p { margin: 2px 0 0; color: var(--texte-doux); font-size: 14px; }
+
+.ia-section { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: var(--radius); padding: 18px 22px; margin-top: 24px; }
+.ia-section h2 { margin-top: 6px; }
+
+@media (max-width: 560px) {
+  .phase-grid { grid-template-columns: 1fr; }
+}

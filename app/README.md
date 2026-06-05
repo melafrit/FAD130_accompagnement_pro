@@ -46,5 +46,5 @@ docker compose up -d
 - [ ] Entretien guidé (6 phases) + transcription + suggestions IA
 - [ ] Génération du compte rendu DOCX (download / modif / ré-import)
 - [ ] Tableau de bord, suivi du plan d'action + notifications, recherche par tags
-- [ ] Onglet Aide (transparence + cahier des charges + arbre de décision)
+- [x] Page Méthode (arbre de décision : 6 phases + 8 principes + garde-fous IA) + Onglet Aide (transparence + synthèse du cahier des charges)
 - [ ] Pages légales (mentions, CGU, politique de confidentialité)

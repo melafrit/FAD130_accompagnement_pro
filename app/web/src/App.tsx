@@ -7,6 +7,8 @@ import VerifyEmail from './pages/VerifyEmail'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import MentionsLegales from './pages/MentionsLegales'
+import Methode from './pages/Methode'
+import Aide from './pages/Aide'
 
 function Header() {
   const { user, logout } = useAuth()
@@ -23,8 +25,8 @@ function Header() {
       </Link>
       <nav className="nav" aria-label="Navigation principale">
         <NavLink to="/" end>Accueil</NavLink>
-        <a className="nav-soon" aria-disabled="true" title="Bientôt">Méthode</a>
-        <a className="nav-soon" aria-disabled="true" title="Bientôt">Aide</a>
+        <NavLink to="/methode">Méthode</NavLink>
+        <NavLink to="/aide">Aide</NavLink>
         {user ? (
           <>
             <span className="nav-user">{user.email}</span>
@@ -70,6 +72,8 @@ export default function App() {
             <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
             <Route path="/reinitialiser" element={<ResetPassword />} />
             <Route path="/mentions-legales" element={<MentionsLegales />} />
+            <Route path="/methode" element={<Methode />} />
+            <Route path="/aide" element={<Aide />} />
           </Routes>
         </main>
         <Footer />
