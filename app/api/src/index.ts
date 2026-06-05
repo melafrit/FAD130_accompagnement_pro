@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser'
 import { db } from './db'
 import authRouter from './auth'
 import questionnaireRouter from './questionnaire'
+import rdvRouter from './rdv'
 import { seed } from './seed'
 
 const app = express()
@@ -18,6 +19,9 @@ app.use('/api/auth', authRouter)
 
 // Questionnaire initial (Claude)
 app.use('/api/questionnaire', questionnaireRouter)
+
+// Rendez-vous (créneaux & réservation)
+app.use('/api/rdv', rdvRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

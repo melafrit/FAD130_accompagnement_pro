@@ -186,3 +186,13 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .qa-recap { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); padding: 22px; box-shadow: var(--ombre); }
 .qa-recap h2 { margin-top: 0; color: var(--bleu-profond); }
 .recap-text { white-space: pre-wrap; font-family: inherit; background: var(--sable-2); border-radius: 10px; padding: 14px; color: var(--texte); font-size: 14px; line-height: 1.6; }
+
+/* Rendez-vous / créneaux */
+.slot-form { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); padding: 16px 18px; margin: 8px 0 16px; }
+.slot-form .field { min-width: 180px; }
+.slots { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 24px; }
+.slot { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--blanc); border: 1px solid var(--bordure); border-radius: 12px; padding: 12px 16px; }
+.slot-reserved { background: var(--sable-2); }
+.slot-tag { font-size: 13px; color: var(--sauge); font-weight: 700; }
+.page section h2 { font-size: 19px; }
+.muted { color: var(--texte-doux); font-style: italic; }

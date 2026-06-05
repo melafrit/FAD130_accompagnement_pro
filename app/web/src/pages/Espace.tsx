@@ -18,6 +18,11 @@ export default function Espace() {
             <Link className="btn btn-primary" to="/questionnaire">Commencer le questionnaire</Link>
           </div>
           <div className="card">
+            <h3>Prendre rendez-vous</h3>
+            <p>Choisis un créneau parmi les disponibilités de ton accompagnateur.</p>
+            <Link className="btn btn-primary" to="/rendez-vous">Voir les créneaux</Link>
+          </div>
+          <div className="card">
             <h3>Mes comptes rendus</h3>
             <p>Tu retrouveras ici, datés, les comptes rendus de tes entretiens et ton plan d’action.</p>
             <span className="nav-soon">Bientôt</span>
@@ -30,7 +35,7 @@ export default function Espace() {
           <div className="card">
             <h3>Mes disponibilités</h3>
             <p>Définis les créneaux où tes accompagnés peuvent réserver un rendez-vous.</p>
-            <span className="nav-soon">Bientôt (lot 3b)</span>
+            <Link className="btn btn-primary" to="/mes-creneaux">Gérer mes créneaux</Link>
           </div>
           <div className="card">
             <h3>Mes accompagnés</h3>
