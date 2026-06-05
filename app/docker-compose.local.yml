@@ -18,8 +18,11 @@ services:
       - ADMIN_EMAIL=mohamed@elafrit.com
       - ACCOMPAGNATEUR_EMAIL=elafrit.mohamed@gmail.com
       - SEED_PASSWORD=BoussoleDemo2026   # comptes de démo prêts à l'emploi (LOCAL uniquement)
-      # ANTHROPIC_API_KEY / BREVO_API_KEY : optionnels en local (laisser vides).
-      # Sans clé Brevo, les liens d'email sont journalisés dans les logs de l'API.
+      # Clés optionnelles : si tu crées un fichier app/.env avec ces variables, elles sont injectées ici.
+      # Sans clé, l'IA bascule sur le parcours de secours et les emails sont journalisés dans les logs.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - MAIL_FROM=${MAIL_FROM:-contact@elafrit.com}
     volumes:
       - ./data:/app/data
     networks:
