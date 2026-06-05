@@ -274,3 +274,34 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .tl-body details { margin: 6px 0; }
 .tl-body summary { cursor: pointer; color: var(--bleu); font-size: 14px; }
 .entretien-nav-right { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Méthode — présentation interactive */
+.methode .hint { color: var(--sauge); font-size: 13px; font-style: italic; margin: 0 0 10px; }
+.triptyque { display: flex; align-items: stretch; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 18px 0 28px; }
+.tri-block { background: var(--bleu-profond); color: var(--sable); border-radius: 14px; padding: 14px 22px; font-weight: 800; font-size: 17px; text-align: center; display: flex; flex-direction: column; }
+.tri-block span { font-weight: 500; font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.tri-arrow { display: grid; place-items: center; color: var(--sauge); font-size: 24px; font-weight: 700; }
+.anchors { display: flex; flex-wrap: wrap; gap: 8px; }
+.anchor-chip { background: var(--blanc); border: 1px solid var(--bordure); border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 14px; color: var(--bleu-profond); cursor: pointer; transition: all .15s; }
+.anchor-chip:hover { border-color: var(--sauge); }
+.anchor-chip.active { background: var(--bleu-profond); color: var(--sable); border-color: var(--bleu-profond); }
+.anchor-desc { margin: 12px 0 0; background: var(--sauge-clair); border-left: 4px solid var(--sauge); border-radius: 8px; padding: 12px 16px; color: var(--texte); font-size: 14px; }
+.principe-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.principe-card { text-align: left; background: var(--blanc); border: 1px solid var(--bordure); border-radius: 12px; padding: 14px 16px; cursor: pointer; font: inherit; transition: all .15s; display: flex; flex-direction: column; }
+.principe-card:hover { border-color: var(--sauge); box-shadow: var(--ombre); }
+.principe-card.open { border-color: var(--sauge); background: var(--sable-2); }
+.principe-head { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--bleu-profond); }
+.principe-detail { margin-top: 10px; color: var(--texte-doux); font-size: 14px; line-height: 1.5; font-weight: 400; }
+.phase-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 16px; }
+.phase-tab { display: flex; align-items: center; gap: 8px; background: var(--blanc); border: 1px solid var(--bordure); border-radius: 10px; padding: 8px 10px; cursor: pointer; font: inherit; text-align: left; transition: all .15s; }
+.phase-tab:hover { border-color: var(--sauge); }
+.phase-tab.active { background: var(--bleu-profond); border-color: var(--bleu-profond); }
+.phase-tab.active .phase-tab-titre { color: var(--sable); }
+.phase-tab.active .phase-tab-num { background: var(--sable); color: var(--bleu-profond); }
+.phase-tab.done .phase-tab-num { background: var(--sauge); color: #fff; }
+.phase-tab-num { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--bordure); color: var(--bleu-profond); font-weight: 700; font-size: 13px; }
+.phase-tab-titre { font-size: 12px; font-weight: 600; color: var(--texte-doux); line-height: 1.2; }
+.phase-panel { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--ombre); }
+.phase-exemple { margin-top: 12px; background: var(--sauge-clair); border-radius: 10px; padding: 12px 14px; font-style: italic; color: var(--texte); font-size: 14px; }
+.phase-panel-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
+.phase-counter { color: var(--texte-doux); font-weight: 700; font-size: 14px; }
