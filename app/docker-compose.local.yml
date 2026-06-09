@@ -6,9 +6,12 @@
 #   docker compose -f docker-compose.local.yml up --build
 #   → http://localhost:8080
 
+name: boussole
+
 services:
   boussole-api:
     build: ./api
+    image: boussole-api
     container_name: boussole-api-local
     restart: unless-stopped
     environment:
@@ -30,6 +33,7 @@ services:
 
   boussole-web:
     build: ./web
+    image: boussole-web
     container_name: boussole-web-local
     restart: unless-stopped
     ports:
