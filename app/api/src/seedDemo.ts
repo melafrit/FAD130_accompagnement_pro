@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import { db } from './db'
 import { construireDocx, type CRContent } from './compteRendu'
@@ -90,8 +90,24 @@ function noteFromScores(scores: number[]): number {
 
 /** Crée un jeu de données de démonstration complet et cohérent (idempotent). */
 export async function seedDemoData(accId: number, amineId: number): Promise<void> {
-  if (db.prepare('SELECT id FROM dossiers WHERE accompagne_id=? AND accompagnateur_id=?').get(amineId, accId)) return
+  // (Ré)initialise le parcours de démo d'Amine à CHAQUE démarrage, pour repartir d'un état COMPLET et propre.
+  // (Mode démo/local : ne s'exécute que lorsque SEED_PASSWORD est défini — voir seed().)
+  const anciensCr = db
+    .prepare(
+      `SELECT cr.chemin FROM comptes_rendus cr JOIN sessions s ON s.id=cr.session_id JOIN dossiers d ON d.id=s.dossier_id
+       WHERE d.accompagne_id=? AND d.accompagnateur_id=? AND cr.chemin IS NOT NULL`,
+    )
+    .all(amineId, accId) as { chemin: string }[]
+  db.transaction(() => {
+    db.prepare('DELETE FROM dossiers WHERE accompagne_id=? AND accompagnateur_id=?').run(amineId, accId) // cascade : entretiens, CR, plan d'action, grille…
+    db.prepare('DELETE FROM creneaux WHERE accompagnateur_id=?').run(accId) // cascade : les RDV liés
+    db.prepare('DELETE FROM notifications WHERE user_id=?').run(amineId)
+    db.prepare("DELETE FROM notifications WHERE user_id=? AND texte LIKE 'Amine %'").run(accId)
+  })()
   mkdirSync(CR_DIR, { recursive: true })
+  anciensCr.forEach((c) => {
+    try { unlinkSync(join(CR_DIR, c.chemin)) } catch { /* fichier déjà absent */ }
+  })
 
   const dossierId = Number(
     db.prepare("INSERT INTO dossiers (accompagne_id, accompagnateur_id, titre, contexte, statut, cree_le) VALUES (?,?,?,?, 'en_cours', ?)")
