@@ -92,9 +92,9 @@ open "$URL" 2>/dev/null || true
 # ---------------------------------------------------------------------
 echo
 vert "Comptes de démo — mot de passe : BoussoleDemo2026"
-echo "  • Accompagnateur : elafrit.mohamed@gmail.com"
-echo "  • Accompagné     : demo.accompagne@elafrit.com"
-echo "  • Admin          : mohamed@elafrit.com"
+echo "  • Accompagnateur (Mohamed) : elafrit.mohamed@gmail.com"
+echo "  • Accompagné (Amine)       : afrit_mohamed@yahoo.fr"
+echo "  • Admin                    : mohamed@elafrit.com"
 echo
 echo "Voir les logs :  cd app && docker compose -f docker-compose.local.yml logs -f"
 echo "Arrêter       :  cd app && docker compose -f docker-compose.local.yml down"

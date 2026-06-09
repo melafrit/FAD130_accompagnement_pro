@@ -42,6 +42,10 @@ async function ensureDevUser(email: string, role: Role, password: string, prenom
 
 /** Comptes initiaux. En local, SEED_PASSWORD prépare des comptes de démo prêts à l'emploi. */
 export async function seed(): Promise<void> {
+  // Retire l'ancien compte de démo (remplacé par afrit_mohamed@yahoo.fr / Amine) s'il traîne encore.
+  // Les données liées (dossier, entretiens…) partent en cascade (ON DELETE CASCADE).
+  db.prepare("DELETE FROM users WHERE email = 'demo.accompagne@elafrit.com'").run()
+
   const devPwd = process.env.SEED_PASSWORD
   if (devPwd) {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@boussole.local'
