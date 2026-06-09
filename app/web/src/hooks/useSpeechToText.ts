@@ -3,8 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Transcription vocale via l'API Web Speech (webkitSpeechRecognition).
 // Non typée par le DOM standard : on utilise `any` de façon contrôlée.
+// `interim` expose la transcription EN COURS (résultats intermédiaires) pour un affichage temps réel ;
+// le texte finalisé est, lui, transmis via onText (comportement inchangé).
 export function useSpeechToText(onText: (t: string) => void) {
   const [listening, setListening] = useState(false)
+  const [interim, setInterim] = useState('')
   const [supported] = useState<boolean>(() => {
     const w = window as any
     return typeof window !== 'undefined' && !!(w.SpeechRecognition || w.webkitSpeechRecognition)
@@ -20,14 +23,18 @@ export function useSpeechToText(onText: (t: string) => void) {
     const rec = new SR()
     rec.lang = 'fr-FR'
     rec.continuous = true
-    rec.interimResults = false
+    rec.interimResults = true
     rec.onresult = (e: any) => {
+      let inter = ''
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) onTextRef.current(e.results[i][0].transcript + ' ')
+        const res = e.results[i]
+        if (res.isFinal) onTextRef.current(res[0].transcript + ' ')
+        else inter += res[0].transcript
       }
+      setInterim(inter)
     }
-    rec.onend = () => setListening(false)
-    rec.onerror = () => setListening(false)
+    rec.onend = () => { setListening(false); setInterim('') }
+    rec.onerror = () => { setListening(false); setInterim('') }
     recRef.current = rec
     return () => {
       try {
@@ -48,6 +55,7 @@ export function useSpeechToText(onText: (t: string) => void) {
         /* ignore */
       }
       setListening(false)
+      setInterim('')
     } else {
       try {
         rec.start()
@@ -58,5 +66,5 @@ export function useSpeechToText(onText: (t: string) => void) {
     }
   }
 
-  return { listening, supported, toggle }
+  return { listening, supported, interim, toggle }
 }

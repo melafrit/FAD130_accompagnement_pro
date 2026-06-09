@@ -1,7 +1,8 @@
 export interface EvoPoint { label: string; value: number }
 
-/** Courbe d'évolution de la note globale (/20) au fil des versions validées. */
-export default function EvolutionLine({ points }: { points: EvoPoint[] }) {
+/** Courbe d'évolution de la note globale (/20) au fil des versions validées.
+ *  `reveal` : le tracé se redessine à chaque changement de cette clé. */
+export default function EvolutionLine({ points, reveal = 0 }: { points: EvoPoint[]; reveal?: number }) {
   if (points.length < 2) {
     return <p className="muted">Valide au moins deux versions pour visualiser ta progression dans le temps.</p>
   }
@@ -24,7 +25,7 @@ export default function EvolutionLine({ points }: { points: EvoPoint[] }) {
           <text x={padL - 6} y={y(g)} textAnchor="end" dominantBaseline="middle" className="evo-axis">{g}</text>
         </g>
       ))}
-      <path d={d} fill="none" stroke="#1f3a5f" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+      <path key={reveal} className="evo-draw" d={d} fill="none" stroke="#1f3a5f" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" pathLength={1} />
       {points.map((p, i) => (
         <g key={i}>
           <circle cx={x(i)} cy={y(p.value)} r={4} fill="#1f3a5f" />

@@ -30,6 +30,7 @@ export default function AutoEvaluation() {
   const [busy, setBusy] = useState(false)
   const [aiBusy, setAiBusy] = useState(false)
   const [aiApplied, setAiApplied] = useState<Record<string, boolean>>({})
+  const [reveal, setReveal] = useState(0) // clé d'animation des graphiques (montée + pré-remplissage IA)
 
   async function load() {
     setAiApplied({}) // les badges « suggéré par l'IA » ne valent que pour la dernière suggestion non encore enregistrée
@@ -43,6 +44,7 @@ export default function AutoEvaluation() {
     setCommentaireGlobal(e.eval.commentaire_global || '')
     setAnalyseQuestions(e.eval.analyse_questions || '')
     setHisto(e.historique)
+    setReveal((r) => r + 1)
   }
   useEffect(() => {
     void load().catch(() => setMsg('Chargement impossible.'))
@@ -111,6 +113,7 @@ export default function AutoEvaluation() {
       if (r.commentaire_global) setCommentaireGlobal(r.commentaire_global)
       if (r.analyse_questions) setAnalyseQuestions(r.analyse_questions)
       setAiApplied(applied)
+      setReveal((rv) => rv + 1) // rejoue l'animation des graphiques sur le pré-remplissage IA
       setMsg('Suggestions de l’IA appliquées — à toi de relire, ajuster, puis valider.')
     } catch { setMsg('Erreur lors de l’appel à l’IA.') } finally { setAiBusy(false) }
   }
@@ -137,15 +140,15 @@ export default function AutoEvaluation() {
       <section className="ae-charts">
         <div className="ae-chart-card">
           <h3>Score global</h3>
-          <Gauge value={globalPct} />
+          <Gauge value={globalPct} reveal={reveal} />
         </div>
         <div className="ae-chart-card">
           <h3>Radar par critère</h3>
-          <RadarChart axes={radarAxes} />
+          <RadarChart axes={radarAxes} reveal={reveal} />
         </div>
         <div className="ae-chart-card ae-evo">
           <h3>Évolution (note /20)</h3>
-          <EvolutionLine points={evoPoints} />
+          <EvolutionLine points={evoPoints} reveal={reveal} />
         </div>
       </section>
 

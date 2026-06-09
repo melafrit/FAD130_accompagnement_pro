@@ -2,12 +2,23 @@ import { useEffect, useState, type ChangeEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useSpeechToText } from '../hooks/useSpeechToText'
+import { useTypewriter } from '../hooks/useTypewriter'
 import AiProgress from '../components/AiProgress'
 
 interface Phase { id: number; titre: string; objectif: string; vigilance: string[]; questions: string[] }
 interface Dossier { id: number; titre: string | null; accompagne_prenom: string | null; accompagne_email: string; recap: string | null }
 interface Suggestion { questions: string[]; reformulation: string | null; a_surveiller: string | null }
 interface Question { id: number; phase: string; texte: string }
+
+// Ancrage théorique incarné par les suggestions, selon la phase (mapping front, défendable à l'oral).
+const PHASE_ANCRAGE: Record<number, { nom: string; pourquoi: string }> = {
+  0: { nom: 'Rogers', pourquoi: 'Alliance et non-jugement : créer la « bulle » de confiance.' },
+  1: { nom: 'Porter', pourquoi: 'Reformuler et clarifier la demande avant d’agir.' },
+  2: { nom: 'Brémond', pourquoi: 'Le geste écologique : faire raconter l’expérience, le moins d’induction possible.' },
+  3: { nom: 'Maela Paul', pourquoi: 'Une relation « avec » : structurer ensemble, sans imposer mon plan.' },
+  4: { nom: 'Bandura', pourquoi: 'Renforcer le sentiment d’efficacité : micro-objectifs et critères.' },
+  5: { nom: 'Deci & Ryan', pourquoi: 'Soutenir l’autonomie et accueillir l’émotion-boussole à la clôture.' },
+}
 
 export default function Entretien() {
   const [phases, setPhases] = useState<Phase[]>([])
@@ -26,9 +37,10 @@ export default function Entretien() {
   const nav = useNavigate()
   const [params] = useSearchParams()
 
-  const { listening, supported, toggle } = useSpeechToText((t) => {
+  const { listening, supported, interim, toggle } = useSpeechToText((t) => {
     setNotes((n) => ({ ...n, [current]: (n[current] ? n[current] + ' ' : '') + t }))
   })
+  const typed = useTypewriter(sugg ? [sugg.reformulation || '', ...sugg.questions] : [])
 
   async function startSession(dId: number) {
     setDossierId(dId)
@@ -164,6 +176,9 @@ export default function Entretien() {
   const phase = phases[current]
   if (!phase) return null
   const qPosees = questionsByPhase[current] || []
+  const segs = sugg ? [sugg.reformulation || '', ...sugg.questions] : []
+  const activeIdx = segs.findIndex((s, i) => (typed[i] ?? s.length) < s.length)
+  const lastVisible = activeIdx === -1 ? segs.length - 1 : activeIdx
   return (
     <div className="page">
       <p className="kicker">Entretien guidé · Phase {current + 1}/6</p>
@@ -205,13 +220,28 @@ export default function Entretien() {
           ) : <span className="muted">(dictée non supportée par ce navigateur)</span>}
         </div>
         <textarea className="notes-area" value={notes[current] || ''} onChange={(e) => setNotes((n) => ({ ...n, [current]: e.target.value }))} onBlur={saveCurrent} placeholder="Saisis ou dicte les propos de la personne…" />
+        {interim && <p className="interim"><span className="listening-dot" aria-hidden="true" />{interim}</p>}
         <div className="notes-actions"><button className="btn btn-primary" disabled={busy} onClick={askIA}>✨ Suggestions de l’IA</button></div>
         {busy && <AiProgress steps={['Lecture de tes notes…', 'Analyse de la phase…', 'Préparation des suggestions…']} />}
         {sugg && (
           <div className="sugg">
-            {sugg.reformulation && <p><strong>Reformulation :</strong> {sugg.reformulation}</p>}
+            {PHASE_ANCRAGE[current] && (
+              <p className="sugg-ancrage">Posture incarnée : <span className="anchor-chip ancrage-badge">🎓 {PHASE_ANCRAGE[current].nom}</span> <span className="muted">— {PHASE_ANCRAGE[current].pourquoi}</span></p>
+            )}
+            {sugg.reformulation && (
+              <p><strong>Reformulation :</strong> {sugg.reformulation.slice(0, typed[0] ?? sugg.reformulation.length)}{activeIdx === 0 && <span className="tw-caret">▌</span>}</p>
+            )}
             <p style={{ margin: '4px 0' }}><strong>Questions d’approfondissement</strong> <span className="muted">(clique pour ajouter à tes questions posées)</span> :</p>
-            <ul className="sugg-q">{sugg.questions.map((q, i) => <li key={i}><button className="sugg-q-btn" onClick={() => addQuestion(q)} title="Ajouter à mes questions posées">{q} <span className="phase-q-plus">＋</span></button></li>)}</ul>
+            <ul className="sugg-q">
+              {sugg.questions.map((q, i) => {
+                if (i + 1 > lastVisible) return null
+                const shown = typed[i + 1] ?? q.length
+                if (shown >= q.length) {
+                  return <li key={i}><button className="sugg-q-btn" onClick={() => addQuestion(q)} title="Ajouter à mes questions posées">{q} <span className="phase-q-plus">＋</span></button></li>
+                }
+                return <li key={i}><span className="sugg-q-typing">{q.slice(0, shown)}{activeIdx === i + 1 && <span className="tw-caret">▌</span>}</span></li>
+              })}
+            </ul>
             {sugg.a_surveiller && <p className="sugg-watch">À surveiller : {sugg.a_surveiller}</p>}
           </div>
         )}

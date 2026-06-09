@@ -1,7 +1,9 @@
 export interface RadarAxis { label: string; value: number }
 
-/** Radar SVG : un axe par critère (valeurs 0–100). */
-export default function RadarChart({ axes, color = '#1f3a5f', size = 300 }: { axes: RadarAxis[]; color?: string; size?: number }) {
+/** Radar SVG : un axe par critère (valeurs 0–100).
+ *  `reveal` : la zone-valeur se déploie depuis le centre à chaque changement de cette clé (révélation),
+ *  mais suit instantanément les éditions de curseurs (reveal inchangé → pas de remontage, pas d'animation). */
+export default function RadarChart({ axes, color = '#1f3a5f', size = 300, reveal = 0 }: { axes: RadarAxis[]; color?: string; size?: number; reveal?: number }) {
   const n = axes.length
   if (n < 3) return null
   const pad = 64
@@ -23,11 +25,13 @@ export default function RadarChart({ axes, color = '#1f3a5f', size = 300 }: { ax
         const [x, y] = pt(i, R)
         return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#dcd6c6" strokeWidth={1} />
       })}
-      <polygon points={valuePts} fill={color} fillOpacity={0.22} stroke={color} strokeWidth={2} />
-      {axes.map((a, i) => {
-        const [x, y] = pt(i, (R * clamp(a.value)) / 100)
-        return <circle key={`d${i}`} cx={x} cy={y} r={3.5} fill={color} />
-      })}
+      <g key={reveal} className="radar-grow" style={{ transformOrigin: `${cx}px ${cy}px`, transformBox: 'view-box' }}>
+        <polygon points={valuePts} fill={color} fillOpacity={0.22} stroke={color} strokeWidth={2} />
+        {axes.map((a, i) => {
+          const [x, y] = pt(i, (R * clamp(a.value)) / 100)
+          return <circle key={`d${i}`} cx={x} cy={y} r={3.5} fill={color} />
+        })}
+      </g>
       {axes.map((a, i) => {
         const [x, y] = pt(i, R + 20)
         const anchor = Math.abs(x - cx) < 8 ? 'middle' : x > cx ? 'start' : 'end'
