@@ -305,3 +305,8 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .phase-exemple { margin-top: 12px; background: var(--sauge-clair); border-radius: 10px; padding: 12px 14px; font-style: italic; color: var(--texte); font-size: 14px; }
 .phase-panel-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
 .phase-counter { color: var(--texte-doux); font-weight: 700; font-size: 14px; }
+
+/* Petits boutons / lien agenda (.ics) */
+.btn-sm { padding: 5px 10px; font-size: 13px; }
+.slot-ics { font-size: 13px; color: var(--bleu-profond); text-decoration: none; border: 1px solid var(--bordure); border-radius: 8px; padding: 4px 10px; white-space: nowrap; transition: border-color .15s; }
+.slot-ics:hover { border-color: var(--sauge); }

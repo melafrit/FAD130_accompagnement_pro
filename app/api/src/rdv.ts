@@ -127,4 +127,56 @@ router.get('/mine', requireAuth, requireRole('accompagne'), (req: Request, res: 
   res.json({ rdv })
 })
 
+// === Export iCalendar (.ics) d'un rendez-vous ===
+function icsStamp(iso: string): string {
+  const m = String(iso).match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/)
+  return m ? `${m[1]}${m[2]}${m[3]}T${m[4]}${m[5]}${m[6] || '00'}` : ''
+}
+function icsEscape(s: string): string {
+  return String(s || '').replace(/([\\,;])/g, '\\$1').replace(/\r?\n/g, '\\n')
+}
+function icsNowUtc(): string {
+  return new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+}
+
+router.get('/:id/ics', requireAuth, (req: Request, res: Response) => {
+  const me = getUser(req)
+  const id = Number(req.params.id)
+  const r = db
+    .prepare(
+      `SELECT r.id, r.statut, r.accompagne_id, c.debut, c.fin, c.accompagnateur_id,
+              ua.prenom AS acc_prenom, ua.email AS acc_email
+       FROM rdv r JOIN creneaux c ON c.id=r.creneau_id JOIN users ua ON ua.id=c.accompagnateur_id
+       WHERE r.id=?`,
+    )
+    .get(id) as
+    | { id: number; statut: string; accompagne_id: number; debut: string; fin: string; accompagnateur_id: number; acc_prenom: string | null; acc_email: string }
+    | undefined
+  if (!r) {
+    res.status(404).json({ error: 'Rendez-vous introuvable' })
+    return
+  }
+  const allowed =
+    (me.role === 'accompagne' && r.accompagne_id === me.id) ||
+    (me.role === 'accompagnateur' && r.accompagnateur_id === me.id)
+  if (!allowed) {
+    res.status(403).json({ error: 'Accès refusé' })
+    return
+  }
+  const ics = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Boussole//Accompagnement//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:boussole-rdv-${r.id}@boussole.elafrit.com`,
+    `DTSTAMP:${icsNowUtc()}`,
+    `DTSTART:${icsStamp(r.debut)}`,
+    `DTEND:${icsStamp(r.fin)}`,
+    `SUMMARY:${icsEscape('Rendez-vous d’accompagnement — Boussole')}`,
+    `DESCRIPTION:${icsEscape(`Accompagnement avec ${r.acc_prenom || r.acc_email}. Statut : ${r.statut}.`)}`,
+    'END:VEVENT', 'END:VCALENDAR', '',
+  ].join('\r\n')
+  res.setHeader('Content-Disposition', `attachment; filename="rdv-boussole-${id}.ics"`)
+  res.type('text/calendar')
+  res.send(ics)
+})
+
 export default router

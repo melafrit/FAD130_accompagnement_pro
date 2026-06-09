@@ -56,6 +56,7 @@ export default function RendezVous() {
               <div key={r.id} className="slot slot-reserved">
                 <span>{formatSlot(r.debut)}</span>
                 <span className="slot-tag">{r.statut}</span>
+                <a className="slot-ics" href={`/api/rdv/${r.id}/ics`}>📅 Agenda</a>
               </div>
             ))}
           </div>

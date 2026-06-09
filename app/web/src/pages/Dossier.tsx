@@ -55,6 +55,7 @@ export default function Dossier() {
         {!cloture && enCours && <button className="btn btn-primary" onClick={() => nav(`/entretien?dossier=${id}`)}>Reprendre l'entretien en cours</button>}
         {!cloture && !enCours && <button className="btn btn-primary" onClick={() => nav(`/entretien?dossier=${id}`)}>Nouvel entretien</button>}
         <Link className="btn btn-ghost" to="/mes-creneaux">Mes créneaux / RDV</Link>
+        <a className="btn btn-ghost" href={`/api/dossiers/${id}/synthese.docx`}>⬇ Synthèse du parcours (.docx)</a>
       </div>
 
       <ol className="timeline">
@@ -75,7 +76,9 @@ export default function Dossier() {
         {rdvs.map((r) => (
           <li key={`rdv-${r.id}`} className="tl-item">
             <span className="tl-dot tl-rdv">📅</span>
-            <div className="tl-body"><h3>Rendez-vous</h3><p className="muted">{fslot(r.debut)} — {r.statut}</p></div>
+            <div className="tl-body"><h3>Rendez-vous</h3><p className="muted">{fslot(r.debut)} — {r.statut}</p>
+              <a className="btn btn-ghost btn-sm" href={`/api/rdv/${r.id}/ics`}>📅 Ajouter à l'agenda</a>
+            </div>
           </li>
         ))}
 

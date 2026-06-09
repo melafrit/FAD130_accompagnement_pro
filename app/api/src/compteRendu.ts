@@ -131,3 +131,106 @@ export async function docxFromText(titre: string, sousTitre: string, texte: stri
   })
   return Packer.toBuffer(doc)
 }
+
+// ---- Synthèse du parcours (dossier complet) ----
+export interface SyntheseEntretien {
+  date: string
+  phase_atteinte: string | null
+  statut: string
+  reponses: { phase: string; texte: string }[]
+}
+export interface SyntheseData {
+  titre: string
+  accompagne: string
+  statut: string
+  creeLe: string
+  editeLe: string
+  contexte: string
+  questionnaire: { cr_recap: string; complete_le: string | null } | null
+  entretiens: SyntheseEntretien[]
+  actions: { libelle: string; echeance: string | null; critere: string | null; statut: string }[]
+  rdvs: { debut: string; fin: string; statut: string }[]
+  synthese: string | null
+}
+
+const STATUT_FR: Record<string, string> = {
+  en_cours: 'En cours', cloture: 'Clôturé', terminee: 'Terminé', a_faire: 'À faire', fait: 'Fait',
+}
+function statutFr(s: string): string {
+  return STATUT_FR[s] || s || '—'
+}
+function frDate(iso: string): string {
+  if (!iso) return '—'
+  const [d, t] = String(iso).split('T')
+  const [y, m, day] = (d || '').split('-')
+  if (!y) return String(iso)
+  return t ? `${day}/${m}/${y} à ${t.slice(0, 5)}` : `${day}/${m}/${y}`
+}
+function phaseTitre(phaseId: string | null): string {
+  const p = PHASES.find((x) => String(x.id) === String(phaseId))
+  return p ? p.titre : `Phase ${Number(phaseId) + 1}`
+}
+function h3(t: string): Paragraph {
+  return new Paragraph({ heading: HeadingLevel.HEADING_3, children: [new TextRun(t)] })
+}
+
+/** Construit le .docx récapitulant tout le parcours (questionnaire → entretiens → plan d'action → clôture). */
+export async function construireSyntheseDocx(d: SyntheseData): Promise<Buffer> {
+  const cell = (t: string, header = false) =>
+    new TableCell({
+      width: { size: 2340, type: WidthType.DXA },
+      margins: { top: 60, bottom: 60, left: 100, right: 100 },
+      shading: header ? { fill: 'E7EEE8', type: ShadingType.CLEAR } : undefined,
+      children: [new Paragraph({ children: [new TextRun({ text: t || '—', bold: header })] })],
+    })
+
+  const body: (Paragraph | Table)[] = [
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun('Synthèse du parcours d’accompagnement — Boussole')] }),
+    new Paragraph({ children: [new TextRun({ text: d.titre, bold: true })] }),
+    new Paragraph({ children: [new TextRun({ text: `Accompagné : ${d.accompagne}  ·  Statut : ${statutFr(d.statut)}  ·  Ouvert le ${frDate(d.creeLe)}  ·  Édité le ${frDate(d.editeLe)}`, italics: true })] }),
+    h2('1. Contexte'), ...paras(d.contexte),
+    h2('2. Questionnaire initial'),
+    ...(d.questionnaire
+      ? [new Paragraph({ children: [new TextRun({ text: `Complété le ${frDate(d.questionnaire.complete_le || '')}`, italics: true })] }), ...paras(d.questionnaire.cr_recap)]
+      : [new Paragraph({ children: [new TextRun('Non complété par l’accompagné.')] })]),
+    h2('3. Entretiens'),
+  ]
+
+  if (d.entretiens.length === 0) {
+    body.push(new Paragraph({ children: [new TextRun('Aucun entretien pour l’instant.')] }))
+  } else {
+    d.entretiens.forEach((e, i) => {
+      body.push(h3(`Entretien ${i + 1} — ${frDate(e.date)} · phase atteinte : ${phaseTitre(e.phase_atteinte)} · ${statutFr(e.statut)}`))
+      if (e.reponses.length === 0) {
+        body.push(new Paragraph({ children: [new TextRun({ text: '(pas de notes saisies)', italics: true })] }))
+      } else {
+        e.reponses.forEach((r) => {
+          body.push(new Paragraph({ children: [new TextRun({ text: phaseTitre(r.phase), bold: true })] }))
+          paras(r.texte).forEach((p) => body.push(p))
+        })
+      }
+    })
+  }
+
+  body.push(h2('4. Plan d’action'))
+  const arows: TableRow[] = [
+    new TableRow({ children: [cell('Étape', true), cell('Échéance', true), cell('Critère', true), cell('Statut', true)] }),
+    ...(d.actions.length ? d.actions : [{ libelle: '—', echeance: '', critere: '', statut: '' }]).map(
+      (a) => new TableRow({ children: [cell(a.libelle), cell(a.echeance || ''), cell(a.critere || ''), cell(statutFr(a.statut))] }),
+    ),
+  ]
+  body.push(new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: [2340, 2340, 2340, 2340], rows: arows }))
+
+  body.push(h2('5. Rendez-vous'))
+  if (d.rdvs.length === 0) body.push(new Paragraph({ children: [new TextRun('Aucun rendez-vous.')] }))
+  else d.rdvs.forEach((r) => body.push(new Paragraph({ children: [new TextRun(`• ${frDate(r.debut)} → ${String(r.fin || '').slice(11, 16)}  (${statutFr(r.statut)})`)] })))
+
+  body.push(h2('6. Synthèse finale'))
+  paras(d.synthese || (d.statut === 'cloture' ? '—' : 'Démarche en cours.')).forEach((p) => body.push(p))
+
+  const doc = new Document({
+    styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 } } }, children: body }],
+  })
+  return Packer.toBuffer(doc)
+}
