@@ -387,6 +387,19 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
   .ae-col-grille { max-height: none; }
 }
 
+/* Page LARGE : seulement l'auto-évaluation occupe ~3/4 de l'écran (les pages de texte restent étroites). */
+body.ae-wide .main { max-width: min(1400px, 93vw); }
+body.ae-wide .page { max-width: 100%; }
+.ae-2col { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); }
+.ae-col-grille { max-height: 82vh; }
+/* Graphiques : jauge + radar côte à côte ; évolution et détail en pleine largeur de la colonne. */
+.ae-col-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: start; }
+.ae-col-charts > .ae-chart-card:nth-child(3),
+.ae-col-charts > .ae-chart-card:nth-child(4) { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+  .ae-col-charts { grid-template-columns: 1fr; }
+}
+
 /* === Barre de progression IA === */
 .aiprog { margin: 12px 0; }
 .aiprog-track { position: relative; height: 8px; border-radius: 999px; background: var(--sable-2); overflow: hidden; border: 1px solid var(--bordure); }
