@@ -84,7 +84,8 @@ router.get('/sessions/:id', requireAuth, requireRole('accompagnateur'), (req: Re
   }
   const session = db.prepare('SELECT id, dossier_id, phase_atteinte, statut FROM sessions WHERE id=?').get(id)
   const reponses = db.prepare('SELECT phase, texte_reponse FROM reponses WHERE session_id=? ORDER BY phase').all(id)
-  res.json({ session, reponses })
+  const questions = db.prepare('SELECT id, phase, texte FROM questions_entretien WHERE session_id=? ORDER BY id').all(id)
+  res.json({ session, reponses, questions })
 })
 
 // Enregistrer les notes d'une phase
@@ -106,6 +107,37 @@ router.post('/sessions/:id/reponses', requireAuth, requireRole('accompagnateur')
     texte,
   )
   db.prepare('UPDATE sessions SET phase_atteinte=? WHERE id=?').run(phase, id)
+  res.json({ ok: true })
+})
+
+// Ajouter une question posée pendant l'entretien (par phase)
+router.post('/sessions/:id/questions', requireAuth, requireRole('accompagnateur'), (req: Request, res: Response) => {
+  const me = getUser(req)
+  const id = Number(req.params.id)
+  if (!ownsSession(me.id, id)) {
+    res.status(404).json({ error: 'Session introuvable' })
+    return
+  }
+  const phase = String(req.body?.phase ?? '')
+  const texte = String(req.body?.texte ?? '').trim()
+  if (!texte) {
+    res.status(400).json({ error: 'Question vide' })
+    return
+  }
+  const info = db.prepare('INSERT INTO questions_entretien (session_id, phase, texte) VALUES (?,?,?)').run(id, phase, texte)
+  res.status(201).json({ id: Number(info.lastInsertRowid), phase, texte })
+})
+
+// Supprimer une question posée
+router.delete('/sessions/:id/questions/:qid', requireAuth, requireRole('accompagnateur'), (req: Request, res: Response) => {
+  const me = getUser(req)
+  const id = Number(req.params.id)
+  const qid = Number(req.params.qid)
+  if (!ownsSession(me.id, id)) {
+    res.status(404).json({ error: 'Session introuvable' })
+    return
+  }
+  db.prepare('DELETE FROM questions_entretien WHERE id=? AND session_id=?').run(qid, id)
   res.json({ ok: true })
 })
 

@@ -77,8 +77,8 @@ export default function Aide() {
       <section className="ia-section">
         <h2>Pour l’évaluation FAD130</h2>
         <p>
-          Cette application illustre ma <Link to="/methode">méthode d’accompagnement et son arbre de
-          décision</Link>. Les livrables de l’UE (grille d’auto-évaluation, support de l’oral, cahier
+          Cette application illustre ma <Link to="/methode">méthode d’accompagnement et ses
+          6 phases</Link>. Les livrables de l’UE (grille d’auto-évaluation, support de l’oral, cahier
           des charges complet) accompagnent cette démonstration.
         </p>
       </section>

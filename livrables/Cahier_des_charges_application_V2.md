@@ -8,7 +8,7 @@
 ## 1. Présentation & objectifs
 
 **Boussole** est une application web (mobile-friendly) à **double finalité** :
-1. **Livrable FAD130** — illustre et rend public (onglet *Aide*) ma méthode d'accompagnement et l'arbre de décision, pour l'évaluation.
+1. **Livrable FAD130** — illustre et rend public (onglet *Aide*) ma méthode d'accompagnement et ses 6 phases, pour l'évaluation.
 2. **Outil opérationnel** — un assistant que j'utilise réellement pour accompagner mes étudiants.
 
 **Principe directeur :** l'application est **utilisée principalement par l'accompagnateur** ; l'IA **assiste** (suggère questions et reformulations, aide à rédiger le compte rendu) mais **ne décide jamais à sa place** et **ne s'adresse pas** directement à l'accompagné pendant l'entretien. Garde-fous = les 8 principes de la [méthode d'entretien](Methode_entretien_accompagnement_V1.md). Finalité : **faire croître l'autonomie** de l'accompagné.
@@ -90,7 +90,7 @@ Rappelle le **contexte** (app développée dans le cadre du **Cnam / FAD130** po
 - **Email** (Brevo) + **centre de notifications in-app** (cloche).
 
 ### 4.11 Onglet Aide / transparence *(pour la prof FAD130)*
-- Explique le **fonctionnement** de l'app en toute transparence ; affiche le **cahier des charges** ; présente **l'arbre de décision** (les 6 phases) et la **méthode d'accompagnement assistée par IA** (dont les prompts §7).
+- Explique le **fonctionnement** de l'app en toute transparence ; affiche le **cahier des charges** ; présente **les phases de l'entretien** (les 6 phases) et la **méthode d'accompagnement assistée par IA** (dont les prompts §7).
 
 ### 4.12 Administration
 - CRUD comptes, rattachements, export/suppression de données (droits RGPD).

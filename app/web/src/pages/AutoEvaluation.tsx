@@ -6,12 +6,13 @@ import RadarChart from '../components/charts/RadarChart'
 import BarsChart from '../components/charts/BarsChart'
 import Gauge from '../components/charts/Gauge'
 import EvolutionLine from '../components/charts/EvolutionLine'
+import AiProgress from '../components/AiProgress'
 
 interface Indicateur { id: string; texte: string }
 interface Critere { id: number; titre: string; resume: string; indicateurs: Indicateur[] }
 interface Zone { label: string; min: number; couleur: string }
 interface ScoreVal { score: number | null; commentaire: string | null }
-interface EvalData { id: number; statut: string; note_globale: number | null; commentaire_global: string | null; maj_le: string; scores: Record<string, ScoreVal> }
+interface EvalData { id: number; statut: string; note_globale: number | null; commentaire_global: string | null; analyse_questions: string | null; maj_le: string; scores: Record<string, ScoreVal> }
 interface HistoItem { id: number; note_globale: number | null; maj_le: string }
 
 const COURT: Record<number, string> = { 1: 'Relation', 2: 'Mise en œuvre', 3: 'Posture pro' }
@@ -22,6 +23,7 @@ export default function AutoEvaluation() {
   const [zones, setZones] = useState<Zone[]>([])
   const [scores, setScores] = useState<Record<string, ScoreVal>>({})
   const [commentaireGlobal, setCommentaireGlobal] = useState('')
+  const [analyseQuestions, setAnalyseQuestions] = useState('')
   const [histo, setHisto] = useState<HistoItem[]>([])
   const [nom, setNom] = useState('')
   const [msg, setMsg] = useState('')
@@ -30,6 +32,7 @@ export default function AutoEvaluation() {
   const [aiApplied, setAiApplied] = useState<Record<string, boolean>>({})
 
   async function load() {
+    setAiApplied({}) // les badges « suggéré par l'IA » ne valent que pour la dernière suggestion non encore enregistrée
     const [g, e] = await Promise.all([
       api<{ criteres: Critere[]; zones: Zone[] }>('/autoeval/grille'),
       api<{ eval: EvalData; historique: HistoItem[] }>(`/autoeval/${id}`),
@@ -38,6 +41,7 @@ export default function AutoEvaluation() {
     setZones(g.zones)
     setScores(e.eval.scores)
     setCommentaireGlobal(e.eval.commentaire_global || '')
+    setAnalyseQuestions(e.eval.analyse_questions || '')
     setHisto(e.historique)
   }
   useEffect(() => {
@@ -73,12 +77,12 @@ export default function AutoEvaluation() {
 
   async function save() {
     setBusy(true); setMsg('')
-    try { await api(`/autoeval/${id}`, { method: 'POST', body: JSON.stringify({ scores: scoresArray(), commentaire_global: commentaireGlobal }) }); setMsg('Enregistré ✅'); await load() }
+    try { await api(`/autoeval/${id}`, { method: 'POST', body: JSON.stringify({ scores: scoresArray(), commentaire_global: commentaireGlobal, analyse_questions: analyseQuestions }) }); setMsg('Enregistré ✅'); await load() }
     catch { setMsg('Erreur à l’enregistrement.') } finally { setBusy(false) }
   }
   async function valider() {
     setBusy(true); setMsg('')
-    try { await api(`/autoeval/${id}/valider`, { method: 'POST', body: JSON.stringify({ scores: scoresArray(), commentaire_global: commentaireGlobal }) }); setMsg('Version validée et archivée dans l’historique ✅'); await load() }
+    try { await api(`/autoeval/${id}/valider`, { method: 'POST', body: JSON.stringify({ scores: scoresArray(), commentaire_global: commentaireGlobal, analyse_questions: analyseQuestions }) }); setMsg('Version validée et archivée dans l’historique ✅'); await load() }
     catch { setMsg('Erreur à la validation.') } finally { setBusy(false) }
   }
   async function appelIA() {
@@ -86,7 +90,7 @@ export default function AutoEvaluation() {
     if (dejaSaisi && !window.confirm('L’IA va proposer un score et un commentaire pour les 21 indicateurs et remplacer ta saisie actuelle (tu pourras tout réajuster avant de valider). Continuer ?')) return
     setAiBusy(true); setMsg('')
     try {
-      const r = await api<{ available: boolean; message?: string; scores?: { indicateur: string; score: number | null; commentaire: string | null }[]; commentaire_global?: string }>(`/autoeval/${id}/ia`, { method: 'POST' })
+      const r = await api<{ available: boolean; message?: string; scores?: { indicateur: string; score: number | null; commentaire: string | null }[]; commentaire_global?: string; analyse_questions?: string }>(`/autoeval/${id}/ia`, { method: 'POST' })
       if (!r.available) { setMsg(r.message || 'IA indisponible.'); return }
       const applied: Record<string, boolean> = {}
       ;(r.scores || []).forEach((s) => { applied[s.indicateur] = true })
@@ -105,6 +109,7 @@ export default function AutoEvaluation() {
         return next
       })
       if (r.commentaire_global) setCommentaireGlobal(r.commentaire_global)
+      if (r.analyse_questions) setAnalyseQuestions(r.analyse_questions)
       setAiApplied(applied)
       setMsg('Suggestions de l’IA appliquées — à toi de relire, ajuster, puis valider.')
     } catch { setMsg('Erreur lors de l’appel à l’IA.') } finally { setAiBusy(false) }
@@ -151,10 +156,9 @@ export default function AutoEvaluation() {
 
       {/* Appel IA */}
       <section className="ae-ia">
-        <button className="btn btn-primary" onClick={appelIA} disabled={aiBusy}>
-          {aiBusy ? '… L’IA analyse le dossier' : '✨ Pré-remplir avec l’IA (Claude Opus)'}
-        </button>
-        <p className="hint">L’IA lit tout le dossier (questionnaire, entretiens, plan d’action) et propose un score + un commentaire par indicateur. <strong>Elle suggère, tu décides</strong> : tu peux tout éditer avant de valider.</p>
+        <button className="btn btn-primary" onClick={appelIA} disabled={aiBusy}>✨ Pré-remplir avec l’IA (Claude Opus)</button>
+        <p className="hint">L’IA lit tout le dossier (questionnaire, entretiens et <strong>questions posées</strong>, plan d’action) et propose un score + un commentaire par indicateur, ainsi qu’une analyse du type de tes questions. <strong>Elle suggère, tu décides</strong> : tu peux tout éditer avant de valider.</p>
+        {aiBusy && <AiProgress steps={['Lecture du dossier (questionnaire, entretiens, questions)…', 'Évaluation des 21 indicateurs…', 'Analyse du type de tes questions…', 'Rédaction des commentaires…']} />}
       </section>
 
       {/* Grille */}
@@ -181,6 +185,13 @@ export default function AutoEvaluation() {
           </div>
         </section>
       ))}
+
+      {/* Analyse des questions */}
+      <section className="ae-critere">
+        <h2>Analyse de mes questions</h2>
+        <p className="muted">Retour de l’IA sur le <strong>type et la variété</strong> de tes questions (ouvertes/fermées, reformulation, faire émerger…). À éditer librement.</p>
+        <textarea className="notes-area" value={analyseQuestions} onChange={(e) => setAnalyseQuestions(e.target.value)} placeholder="Qualité et variété de mes questions…" />
+      </section>
 
       {/* Synthèse + actions */}
       <section className="ae-critere">

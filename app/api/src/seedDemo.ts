@@ -79,6 +79,11 @@ const GRILLE_GLOBAL =
   'l’émotionnel (1.5), rendre mes filtres conscients (3.1). Ce contraste — forces sur le cadre, progrès sur l’émergence — ' +
   'est le cœur de mon positionnement d’accompagnateur des transitions.'
 
+const GRILLE_ANALYSE_Q =
+  'Mes questions sont majoritairement ouvertes et bien posées pour faire raconter l’expérience (« Raconte-moi une mission dont tu es fier… »). ' +
+  'En phase de structuration, je glisse parfois vers des questions un peu orientées qui suggèrent ma propre lecture (induction). ' +
+  'Axe de progrès : transformer davantage mes propositions en questions ouvertes pour faire émerger le plan d’Amine plutôt que de l’induire.'
+
 function noteFromScores(scores: number[]): number {
   return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length / 5) * 10) / 10
 }
@@ -120,12 +125,16 @@ export async function seedDemoData(accId: number, amineId: number): Promise<void
   ]
 
   const insSession = db.prepare('INSERT INTO sessions (dossier_id, date, phase_atteinte, statut) VALUES (?,?,?, ?)')
-  const insRep = db.prepare("INSERT INTO reponses (session_id, phase, question, texte_reponse, source) VALUES (?,?,?,?, 'saisie')")
+  const insRep = db.prepare("INSERT INTO reponses (session_id, phase, texte_reponse, source) VALUES (?,?,?, 'saisie')")
+  const insQ = db.prepare('INSERT INTO questions_entretien (session_id, phase, texte) VALUES (?,?,?)')
   const sessionIds: number[] = []
   for (const e of entretiens) {
     const sid = Number(insSession.run(dossierId, e.date, e.phaseAtteinte, 'terminee').lastInsertRowid)
     sessionIds.push(sid)
-    for (const rep of e.reponses) insRep.run(sid, rep.phase, rep.q, rep.r)
+    for (const rep of e.reponses) {
+      insRep.run(sid, rep.phase, rep.r)
+      insQ.run(sid, rep.phase, rep.q)
+    }
   }
 
   // Comptes rendus des entretiens 1 et 2 (le 3ᵉ sera généré en direct lors de la démo)
@@ -153,7 +162,7 @@ export async function seedDemoData(accId: number, amineId: number): Promise<void
   insCreneau.run(accId, dayOffset(7, '10:00'), dayOffset(7, '11:00'), 0)
 
   // Grille d'auto-évaluation de Mohamed : 2 versions validées (pour la courbe) + 1 brouillon courant
-  const insEval = db.prepare('INSERT INTO auto_evaluations (dossier_id, statut, note_globale, commentaire_global, cree_le, maj_le) VALUES (?,?,?,?,?,?)')
+  const insEval = db.prepare('INSERT INTO auto_evaluations (dossier_id, statut, note_globale, commentaire_global, analyse_questions, cree_le, maj_le) VALUES (?,?,?,?,?,?,?)')
   const insScore = db.prepare('INSERT INTO auto_evaluation_scores (eval_id, indicateur, score, commentaire) VALUES (?,?,?,?)')
   const scoresV2 = GRILLE_SCORES.map((g) => g.score)
   const scoresV1 = scoresV2.map((s) => Math.max(0, s - 7))
@@ -161,13 +170,13 @@ export async function seedDemoData(accId: number, amineId: number): Promise<void
     GRILLE_SCORES.forEach((g, i) => insScore.run(evalId, g.id, deltaFrom ? deltaFrom[i] : g.score, useComments ? g.commentaire : null))
   }
   // v1 (validée, plus ancienne, légèrement plus basse)
-  const v1 = Number(insEval.run(dossierId, 'validee', noteFromScores(scoresV1), GRILLE_GLOBAL, dayOffset(-20, '18:00'), dayOffset(-20, '18:00')).lastInsertRowid)
+  const v1 = Number(insEval.run(dossierId, 'validee', noteFromScores(scoresV1), GRILLE_GLOBAL, GRILLE_ANALYSE_Q, dayOffset(-20, '18:00'), dayOffset(-20, '18:00')).lastInsertRowid)
   writeScores(v1, false, scoresV1)
   // v2 (validée, plus récente, valeurs courantes)
-  const v2 = Number(insEval.run(dossierId, 'validee', noteFromScores(scoresV2), GRILLE_GLOBAL, dayOffset(-6, '18:00'), dayOffset(-6, '18:00')).lastInsertRowid)
+  const v2 = Number(insEval.run(dossierId, 'validee', noteFromScores(scoresV2), GRILLE_GLOBAL, GRILLE_ANALYSE_Q, dayOffset(-6, '18:00'), dayOffset(-6, '18:00')).lastInsertRowid)
   writeScores(v2, true)
   // brouillon courant (copie de v2, éditable)
-  const draft = Number(insEval.run(dossierId, 'brouillon', noteFromScores(scoresV2), GRILLE_GLOBAL, dayOffset(-6, '18:00'), dayOffset(-1, '09:00')).lastInsertRowid)
+  const draft = Number(insEval.run(dossierId, 'brouillon', noteFromScores(scoresV2), GRILLE_GLOBAL, GRILLE_ANALYSE_Q, dayOffset(-6, '18:00'), dayOffset(-1, '09:00')).lastInsertRowid)
   writeScores(draft, true)
 
   // Quelques notifications cohérentes (déjà lues)

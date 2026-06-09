@@ -177,12 +177,22 @@ db.exec(`
     commentaire TEXT,
     UNIQUE (eval_id, indicateur)
   );
+
+  -- Questions effectivement posées par l'accompagnateur pendant un entretien (par phase).
+  CREATE TABLE IF NOT EXISTS questions_entretien (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    phase      TEXT NOT NULL,
+    texte      TEXT NOT NULL,
+    cree_le    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `)
 
 // Migrations légères (ajout de colonnes si la base existe déjà)
 for (const stmt of [
   "ALTER TABLE dossiers ADD COLUMN statut TEXT NOT NULL DEFAULT 'en_cours'",
   'ALTER TABLE dossiers ADD COLUMN synthese TEXT',
+  'ALTER TABLE auto_evaluations ADD COLUMN analyse_questions TEXT',
 ]) {
   try {
     db.exec(stmt)

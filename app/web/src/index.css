@@ -364,3 +364,28 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 @media (max-width: 760px) {
   .ae-row { grid-template-columns: 1fr; gap: 10px; }
 }
+
+/* === Barre de progression IA === */
+.aiprog { margin: 12px 0; }
+.aiprog-track { position: relative; height: 8px; border-radius: 999px; background: var(--sable-2); overflow: hidden; border: 1px solid var(--bordure); }
+.aiprog-bar { position: absolute; top: 0; height: 100%; width: 40%; border-radius: 999px; background: linear-gradient(90deg, var(--sauge), var(--bleu-profond)); animation: aiprog-slide 1.15s ease-in-out infinite; }
+@keyframes aiprog-slide { 0% { left: -42%; } 100% { left: 100%; } }
+.aiprog-label { margin: 6px 0 0; font-size: 13px; color: var(--texte-doux); font-style: italic; }
+
+/* === Questions posées (entretien) === */
+.questions-block { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); padding: 14px 16px; margin: 14px 0; box-shadow: var(--ombre); }
+.questions-block h3 { margin: 0 0 8px; font-size: 15px; color: var(--bleu-profond); }
+.qposees { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.qposees li { display: flex; align-items: center; gap: 8px; justify-content: space-between; background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 8px; padding: 7px 10px; font-size: 14px; }
+.qposees li.muted { background: transparent; border: none; padding: 2px 0; }
+.q-del { flex: none; border: none; background: transparent; color: #b3443b; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 4px; }
+.q-del:hover { color: #d9534f; }
+.q-add { display: flex; gap: 8px; }
+.q-add input { flex: 1; border: 1px solid var(--bordure); border-radius: 8px; padding: 8px 10px; font: inherit; }
+.q-add input:focus { outline: none; border-color: var(--sauge); }
+
+/* Questions proposées cliquables (référentiel + IA) */
+.phase-q, .sugg-q { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
+.phase-q-btn, .sugg-q-btn { width: 100%; text-align: left; background: var(--blanc); border: 1px solid var(--bordure); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; color: var(--texte); cursor: pointer; transition: all .12s; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.phase-q-btn:hover, .sugg-q-btn:hover { border-color: var(--sauge); background: var(--sauge-clair); }
+.phase-q-plus { flex: none; color: var(--sauge); font-weight: 800; }

@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express'
 import { db } from './db'
 import { requireAuth, requireRole } from './auth'
 import { GRILLE, ZONES, INDICATEUR_IDS } from './grille'
+import { PHASES } from './phases'
 import { construireGrilleDocx } from './compteRendu'
 
 const router = Router()
@@ -43,7 +44,7 @@ function loadScores(evalId: number): ScoreMap {
   for (const r of rows) if (map[r.indicateur]) map[r.indicateur] = { score: r.score, commentaire: r.commentaire }
   return map
 }
-function saveDraft(evalId: number, scores: ScoreIn[], commentaireGlobal: unknown): void {
+function saveDraft(evalId: number, scores: ScoreIn[], commentaireGlobal: unknown, analyseQuestions: unknown): void {
   const up = db.prepare(
     `INSERT INTO auto_evaluation_scores (eval_id, indicateur, score, commentaire) VALUES (?,?,?,?)
      ON CONFLICT(eval_id, indicateur) DO UPDATE SET score=excluded.score, commentaire=excluded.commentaire`,
@@ -54,8 +55,9 @@ function saveDraft(evalId: number, scores: ScoreIn[], commentaireGlobal: unknown
       up.run(evalId, s.indicateur, clampScore(s.score), s.commentaire != null ? String(s.commentaire) : null)
     }
     const note = computeNote(loadScores(evalId))
-    db.prepare("UPDATE auto_evaluations SET commentaire_global=?, note_globale=?, maj_le=datetime('now') WHERE id=?").run(
+    db.prepare("UPDATE auto_evaluations SET commentaire_global=?, analyse_questions=?, note_globale=?, maj_le=datetime('now') WHERE id=?").run(
       commentaireGlobal != null ? String(commentaireGlobal) : null,
+      analyseQuestions != null ? String(analyseQuestions) : null,
       note,
       evalId,
     )
@@ -77,8 +79,8 @@ router.get('/:id', requireAuth, requireRole('accompagnateur'), (req: Request, re
     return
   }
   const evalId = getOrCreateDraft(id)
-  const head = db.prepare('SELECT id, statut, note_globale, commentaire_global, maj_le FROM auto_evaluations WHERE id=?').get(evalId) as {
-    id: number; statut: string; note_globale: number | null; commentaire_global: string | null; maj_le: string
+  const head = db.prepare('SELECT id, statut, note_globale, commentaire_global, analyse_questions, maj_le FROM auto_evaluations WHERE id=?').get(evalId) as {
+    id: number; statut: string; note_globale: number | null; commentaire_global: string | null; analyse_questions: string | null; maj_le: string
   }
   const historique = db
     .prepare("SELECT id, note_globale, maj_le FROM auto_evaluations WHERE dossier_id=? AND statut='validee' ORDER BY maj_le, id")
@@ -96,7 +98,7 @@ router.post('/:id', requireAuth, requireRole('accompagnateur'), (req: Request, r
   }
   const evalId = getOrCreateDraft(id)
   const scores = Array.isArray(req.body?.scores) ? (req.body.scores as ScoreIn[]) : []
-  saveDraft(evalId, scores, req.body?.commentaire_global)
+  saveDraft(evalId, scores, req.body?.commentaire_global, req.body?.analyse_questions)
   const note = (db.prepare('SELECT note_globale FROM auto_evaluations WHERE id=?').get(evalId) as { note_globale: number | null }).note_globale
   res.json({ ok: true, note_globale: note })
 })
@@ -111,11 +113,11 @@ router.post('/:id/valider', requireAuth, requireRole('accompagnateur'), (req: Re
   }
   const evalId = getOrCreateDraft(id)
   const scores = Array.isArray(req.body?.scores) ? (req.body.scores as ScoreIn[]) : []
-  saveDraft(evalId, scores, req.body?.commentaire_global)
+  saveDraft(evalId, scores, req.body?.commentaire_global, req.body?.analyse_questions)
   const tx = db.transaction(() => {
     db.prepare("UPDATE auto_evaluations SET statut='validee', maj_le=datetime('now') WHERE id=?").run(evalId)
-    const head = db.prepare('SELECT note_globale, commentaire_global FROM auto_evaluations WHERE id=?').get(evalId) as { note_globale: number | null; commentaire_global: string | null }
-    const info = db.prepare("INSERT INTO auto_evaluations (dossier_id, statut, note_globale, commentaire_global) VALUES (?, 'brouillon', ?, ?)").run(id, head.note_globale, head.commentaire_global)
+    const head = db.prepare('SELECT note_globale, commentaire_global, analyse_questions FROM auto_evaluations WHERE id=?').get(evalId) as { note_globale: number | null; commentaire_global: string | null; analyse_questions: string | null }
+    const info = db.prepare("INSERT INTO auto_evaluations (dossier_id, statut, note_globale, commentaire_global, analyse_questions) VALUES (?, 'brouillon', ?, ?, ?)").run(id, head.note_globale, head.commentaire_global, head.analyse_questions)
     const newId = Number(info.lastInsertRowid)
     const rows = db.prepare('SELECT indicateur, score, commentaire FROM auto_evaluation_scores WHERE eval_id=?').all(evalId) as { indicateur: string; score: number | null; commentaire: string | null }[]
     const ins = db.prepare('INSERT INTO auto_evaluation_scores (eval_id, indicateur, score, commentaire) VALUES (?,?,?,?)')
@@ -136,9 +138,19 @@ function buildContext(dossierId: number): string {
   if (d?.contexte) parts.push(`## Contexte\n${d.contexte}`)
   if (q?.cr_recap) parts.push(`## Questionnaire initial (récapitulatif)\n${q.cr_recap}`)
   sessions.forEach((s, i) => {
-    const reps = db.prepare('SELECT phase, question, texte_reponse FROM reponses WHERE session_id=? ORDER BY id').all(s.id) as { phase: string | null; question: string | null; texte_reponse: string | null }[]
-    const lignes = reps.map((r) => `- [phase ${r.phase ?? '?'}] ${r.question ? 'Question posée : ' + r.question + ' — ' : ''}Réponse : ${r.texte_reponse || '(vide)'}`).join('\n')
-    parts.push(`## Entretien ${i + 1} (${String(s.date).slice(0, 10)})\n${lignes || '(pas de notes)'}`)
+    const reps = db.prepare('SELECT phase, texte_reponse FROM reponses WHERE session_id=? ORDER BY phase').all(s.id) as { phase: string | null; texte_reponse: string | null }[]
+    const ques = db.prepare('SELECT phase, texte FROM questions_entretien WHERE session_id=? ORDER BY id').all(s.id) as { phase: string | null; texte: string }[]
+    const blocs: string[] = []
+    PHASES.forEach((ph) => {
+      const note = reps.find((r) => String(r.phase) === String(ph.id))?.texte_reponse
+      const qs = ques.filter((qq) => String(qq.phase) === String(ph.id)).map((qq) => qq.texte)
+      if (!note && qs.length === 0) return
+      let bloc = `### Phase ${ph.id + 1} — ${ph.titre}`
+      if (qs.length) bloc += `\nQuestions effectivement posées par l'accompagnateur :\n${qs.map((t) => `  • ${t}`).join('\n')}`
+      if (note) bloc += `\nNotes / propos recueillis : ${note}`
+      blocs.push(bloc)
+    })
+    parts.push(`## Entretien ${i + 1} (${String(s.date).slice(0, 10)})\n${blocs.join('\n') || '(pas de notes)'}`)
   })
   const actions = db.prepare('SELECT libelle, statut FROM actions WHERE dossier_id=? ORDER BY id').all(dossierId) as { libelle: string; statut: string }[]
   if (actions.length) parts.push(`## Plan d'action\n${actions.map((a) => `- ${a.libelle} (${a.statut})`).join('\n')}`)
@@ -155,12 +167,16 @@ const INSTRUCTIONS =
   `Échelle de score 0–100 (4 zones) :\n${ZONES_TXT}\n\n` +
   `Pour CHAQUE indicateur (les 21), propose : un "score" entier 0–100 et un "commentaire" bref (1–2 phrases) à la première personne (« je »), STRICTEMENT fondé sur les traces fournies. ` +
   `Si une trace manque pour juger un indicateur, propose un score prudent (autour de 50) et signale explicitement le manque d'éléments dans le commentaire. ` +
-  `Termine par un "commentaire_global" (3–5 phrases) dégageant forces et axes de progrès.`
+  `Tu disposes aussi des QUESTIONS effectivement posées par l'accompagnateur (listées par phase) : évalue leur TYPE et leur qualité ` +
+  `(ouvertes vs fermées, reformulation, relances, induction vs « geste écologique », dosage des attitudes de Porter) et tiens-en compte ` +
+  `explicitement dans la notation des indicateurs concernés (notamment 1.4, 2.1, 2.4, 2.5, 2.6). ` +
+  `Ajoute un "commentaire_global" (3–5 phrases) dégageant forces et axes de progrès, ` +
+  `puis un champ "analyse_questions" (3–5 phrases) qualifiant spécifiquement la qualité et la variété de tes questions, avec un conseil concret.`
 
-async function suggererGrille(dossierId: number): Promise<{ scores: ScoreIn[]; commentaire_global: string } | null> {
+async function suggererGrille(dossierId: number): Promise<{ scores: ScoreIn[]; commentaire_global: string; analyse_questions: string } | null> {
   if (!KEY) return null
   const context = buildContext(dossierId)
-  const schema = `Réponds en JSON STRICT, sans aucun texte autour : {"scores":[{"indicateur":"1.1","score":0,"commentaire":"…"}, … les 21 indicateurs …],"commentaire_global":"…"}`
+  const schema = `Réponds en JSON STRICT, sans aucun texte autour : {"scores":[{"indicateur":"1.1","score":0,"commentaire":"…"}, … les 21 indicateurs …],"commentaire_global":"…","analyse_questions":"…"}`
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -185,11 +201,11 @@ async function suggererGrille(dossierId: number): Promise<{ scores: ScoreIn[]; c
     const a = text.indexOf('{')
     const b = text.lastIndexOf('}')
     if (a < 0 || b < 0) return null
-    const j = JSON.parse(text.slice(a, b + 1)) as { scores?: { indicateur?: string; score?: number; commentaire?: string }[]; commentaire_global?: string }
+    const j = JSON.parse(text.slice(a, b + 1)) as { scores?: { indicateur?: string; score?: number; commentaire?: string }[]; commentaire_global?: string; analyse_questions?: string }
     const scores: ScoreIn[] = (Array.isArray(j.scores) ? j.scores : [])
       .filter((s) => typeof s.indicateur === 'string' && INDICATEUR_IDS.includes(s.indicateur))
       .map((s) => ({ indicateur: s.indicateur as string, score: clampScore(s.score), commentaire: s.commentaire != null ? String(s.commentaire) : null }))
-    return { scores, commentaire_global: j.commentaire_global || '' }
+    return { scores, commentaire_global: j.commentaire_global || '', analyse_questions: j.analyse_questions || '' }
   } catch {
     return null
   }
@@ -220,8 +236,8 @@ router.get('/:id/grille.docx', requireAuth, requireRole('accompagnateur'), async
     return
   }
   const evalId = getOrCreateDraft(id)
-  const head = db.prepare('SELECT note_globale, commentaire_global, maj_le FROM auto_evaluations WHERE id=?').get(evalId) as {
-    note_globale: number | null; commentaire_global: string | null; maj_le: string
+  const head = db.prepare('SELECT note_globale, commentaire_global, analyse_questions, maj_le FROM auto_evaluations WHERE id=?').get(evalId) as {
+    note_globale: number | null; commentaire_global: string | null; analyse_questions: string | null; maj_le: string
   }
   const dossier = db.prepare('SELECT d.titre, u.prenom, u.email FROM dossiers d JOIN users u ON u.id=d.accompagne_id WHERE d.id=?').get(id) as {
     titre: string | null; prenom: string | null; email: string
@@ -231,6 +247,7 @@ router.get('/:id/grille.docx', requireAuth, requireRole('accompagnateur'), async
     titre: dossier.titre || 'Dossier',
     noteGlobale: head.note_globale,
     commentaireGlobal: head.commentaire_global,
+    analyseQuestions: head.analyse_questions,
     majLe: head.maj_le,
     scores: loadScores(evalId),
   })

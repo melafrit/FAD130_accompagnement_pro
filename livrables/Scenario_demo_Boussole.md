@@ -52,7 +52,7 @@
 - Le dossier passe en **« Clôturé »**. → *Côté B, l'étudiant reçoit une notification de clôture.*
 
 ## Bonus — Montrer la méthode à la prof
-- **Onglet Méthode** : l'**arbre de décision** (8 principes + 6 phases avec objectifs, points de vigilance, attitudes de Porter, garde-fous de l'IA).
+- **Onglet Méthode** : les **phases de l'entretien** (8 principes + 6 phases avec objectifs, points de vigilance, attitudes de Porter, garde-fous de l'IA).
 - **Onglet Aide** : la **transparence** (rôle de l'IA, RGPD) et la **synthèse du cahier des charges**.
 
 ---

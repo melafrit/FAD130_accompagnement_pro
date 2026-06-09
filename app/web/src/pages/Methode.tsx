@@ -98,7 +98,7 @@ export default function Methode() {
   return (
     <article className="page methode">
       <p className="kicker">FAD130 · Méthode d’accompagnement</p>
-      <h1 className="page-title">L’arbre de décision de l’entretien</h1>
+      <h1 className="page-title">Les phases de l’entretien</h1>
       <p className="lead">
         Une posture de <strong>facilitateur</strong> au service de la transition de l’autre. Clique pour explorer :
         mes ancrages, ma posture, et chaque phase de l’entretien.
@@ -139,9 +139,9 @@ export default function Methode() {
         </div>
       </section>
 
-      {/* Arbre de décision interactif */}
+      {/* Les phases — navigation interactive */}
       <section className="ia-section">
-        <h2>L’arbre de décision — les 6 phases</h2>
+        <h2>Les 6 phases</h2>
         <p className="hint">Navigue phase par phase (clique un numéro, ou « Précédent / Suivant »).</p>
         <div className="phase-tabs">
           {PHASES.map((ph, i) => (
@@ -153,7 +153,7 @@ export default function Methode() {
         </div>
 
         <div className="phase-panel">
-          <div className="phase-head"><span className="phase-num">{p.id}</span><h3 style={{ margin: 0 }}>{p.titre}</h3></div>
+          <div className="phase-head"><span className="phase-num">{p.id + 1}</span><h3 style={{ margin: 0 }}>{p.titre}</h3></div>
           <p className="phase-obj">{p.objectif}</p>
           <div className="phase-grid">
             <div><h4>⚠️ Points de vigilance</h4><ul>{p.vigilance.map((v, i) => <li key={i}>{v}</li>)}</ul></div>

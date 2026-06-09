@@ -242,6 +242,7 @@ export interface GrilleDocxData {
   titre: string
   noteGlobale: number | null
   commentaireGlobal: string | null
+  analyseQuestions?: string | null
   majLe: string
   scores: Record<string, { score: number | null; commentaire: string | null }>
 }
@@ -285,6 +286,11 @@ export async function construireGrilleDocx(d: GrilleDocxData): Promise<Buffer> {
       )
     }
     body.push(new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: cw, rows }))
+  }
+
+  if (d.analyseQuestions && d.analyseQuestions.trim()) {
+    body.push(h2('Analyse de mes questions'))
+    paras(d.analyseQuestions).forEach((p) => body.push(p))
   }
 
   body.push(h2('Synthèse'))

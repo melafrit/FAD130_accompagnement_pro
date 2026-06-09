@@ -2,10 +2,12 @@ import { useEffect, useState, type ChangeEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useSpeechToText } from '../hooks/useSpeechToText'
+import AiProgress from '../components/AiProgress'
 
 interface Phase { id: number; titre: string; objectif: string; vigilance: string[]; questions: string[] }
 interface Dossier { id: number; titre: string | null; accompagne_prenom: string | null; accompagne_email: string; recap: string | null }
 interface Suggestion { questions: string[]; reformulation: string | null; a_surveiller: string | null }
+interface Question { id: number; phase: string; texte: string }
 
 export default function Entretien() {
   const [phases, setPhases] = useState<Phase[]>([])
@@ -14,6 +16,8 @@ export default function Entretien() {
   const [dossierId, setDossierId] = useState<number | null>(null)
   const [current, setCurrent] = useState(0)
   const [notes, setNotes] = useState<Record<number, string>>({})
+  const [questionsByPhase, setQuestionsByPhase] = useState<Record<number, { id: number; texte: string }[]>>({})
+  const [newQ, setNewQ] = useState('')
   const [sugg, setSugg] = useState<Suggestion | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
@@ -30,10 +34,13 @@ export default function Entretien() {
     setDossierId(dId)
     const r = await api<{ sessionId: number }>('/entretien/sessions', { method: 'POST', body: JSON.stringify({ dossierId: dId }) })
     setSessionId(r.sessionId)
-    const s = await api<{ session: { phase_atteinte: string }; reponses: { phase: string; texte_reponse: string }[] }>(`/entretien/sessions/${r.sessionId}`)
+    const s = await api<{ session: { phase_atteinte: string }; reponses: { phase: string; texte_reponse: string }[]; questions: Question[] }>(`/entretien/sessions/${r.sessionId}`)
     const map: Record<number, string> = {}
     s.reponses.forEach((x) => { map[Number(x.phase)] = x.texte_reponse })
     setNotes(map)
+    const qmap: Record<number, { id: number; texte: string }[]> = {}
+    s.questions.forEach((q) => { const p = Number(q.phase); (qmap[p] = qmap[p] || []).push({ id: q.id, texte: q.texte }) })
+    setQuestionsByPhase(qmap)
     setCurrent(Number(s.session.phase_atteinte) || 0)
   }
 
@@ -59,6 +66,18 @@ export default function Entretien() {
     await saveCurrent()
     setSugg(null)
     setCurrent(idx)
+  }
+  async function addQuestion(texte: string) {
+    const t = texte.trim()
+    if (!t || sessionId == null) return
+    const r = await api<{ id: number; texte: string }>(`/entretien/sessions/${sessionId}/questions`, { method: 'POST', body: JSON.stringify({ phase: current, texte: t }) })
+    setQuestionsByPhase((m) => ({ ...m, [current]: [...(m[current] || []), { id: r.id, texte: r.texte }] }))
+    setNewQ('')
+  }
+  async function removeQuestion(qid: number) {
+    if (sessionId == null) return
+    await api(`/entretien/sessions/${sessionId}/questions/${qid}`, { method: 'DELETE' })
+    setQuestionsByPhase((m) => ({ ...m, [current]: (m[current] || []).filter((q) => q.id !== qid) }))
   }
   async function askIA() {
     if (sessionId == null) return
@@ -106,7 +125,10 @@ export default function Entretien() {
         <h1 className="page-title">Entretien clôturé ✅</h1>
         <p className="lead">Génère le compte rendu de cet entretien. Tu pourras lancer un nouvel entretien plus tard depuis le dossier.</p>
         {crId == null ? (
-          <button className="btn btn-primary" disabled={crBusy} onClick={genererCR}>{crBusy ? 'Génération…' : '📄 Générer le compte rendu'}</button>
+          <>
+            <button className="btn btn-primary" disabled={crBusy} onClick={genererCR}>📄 Générer le compte rendu</button>
+            {crBusy && <AiProgress steps={['Lecture de l’entretien…', 'Rédaction du compte rendu…', 'Mise en forme du document…']} />}
+          </>
         ) : (
           <div className="cr-done">
             <p className="form-success">Compte rendu généré ✅ et publié dans l'espace de l'accompagné.</p>
@@ -141,20 +163,38 @@ export default function Entretien() {
 
   const phase = phases[current]
   if (!phase) return null
+  const qPosees = questionsByPhase[current] || []
   return (
     <div className="page">
       <p className="kicker">Entretien guidé · Phase {current + 1}/6</p>
       <div className="phase-steps">
-        {phases.map((p, i) => <button key={p.id} className={`phase-step ${i === current ? 'active' : ''}`} onClick={() => goTo(i)} aria-label={`Phase ${i}`}>{i}</button>)}
+        {phases.map((p, i) => <button key={p.id} className={`phase-step ${i === current ? 'active' : ''}`} onClick={() => goTo(i)} aria-label={`Phase ${i + 1}`}>{i + 1}</button>)}
       </div>
 
       <div className="phase">
-        <div className="phase-head"><span className="phase-num">{phase.id}</span><h2 style={{ margin: 0 }}>{phase.titre}</h2></div>
+        <div className="phase-head"><span className="phase-num">{phase.id + 1}</span><h2 style={{ margin: 0 }}>{phase.titre}</h2></div>
         <p className="phase-obj">{phase.objectif}</p>
         <div className="phase-grid">
           <div><h4>⚠️ Vigilance</h4><ul>{phase.vigilance.map((v, i) => <li key={i}>{v}</li>)}</ul></div>
-          <div><h4>💬 Questions à poser</h4><ul>{phase.questions.map((q, i) => <li key={i}>{q}</li>)}</ul></div>
+          <div>
+            <h4>💬 Questions à poser <span className="muted">(clique pour ajouter)</span></h4>
+            <ul className="phase-q">{phase.questions.map((q, i) => <li key={i}><button className="phase-q-btn" onClick={() => addQuestion(q)} title="Ajouter à mes questions posées">{q} <span className="phase-q-plus">＋</span></button></li>)}</ul>
+          </div>
         </div>
+      </div>
+
+      <div className="questions-block">
+        <h3>❓ Questions que j'ai posées <span className="muted">(phase {current + 1})</span></h3>
+        <ul className="qposees">
+          {qPosees.map((q) => (
+            <li key={q.id}><span>{q.texte}</span><button className="q-del" onClick={() => removeQuestion(q.id)} aria-label="Supprimer la question">×</button></li>
+          ))}
+          {qPosees.length === 0 && <li className="muted">Aucune question enregistrée pour cette phase — saisis-la ou clique une question proposée ci-dessus.</li>}
+        </ul>
+        <form className="q-add" onSubmit={(e) => { e.preventDefault(); void addQuestion(newQ) }}>
+          <input value={newQ} onChange={(e) => setNewQ(e.target.value)} placeholder="Saisir une question que j'ai posée…" />
+          <button className="btn btn-ghost" type="submit">＋ Ajouter</button>
+        </form>
       </div>
 
       <div className="notes-block">
@@ -165,12 +205,13 @@ export default function Entretien() {
           ) : <span className="muted">(dictée non supportée par ce navigateur)</span>}
         </div>
         <textarea className="notes-area" value={notes[current] || ''} onChange={(e) => setNotes((n) => ({ ...n, [current]: e.target.value }))} onBlur={saveCurrent} placeholder="Saisis ou dicte les propos de la personne…" />
-        <div className="notes-actions"><button className="btn btn-primary" disabled={busy} onClick={askIA}>{busy ? '…' : '✨ Suggestions de l’IA'}</button></div>
+        <div className="notes-actions"><button className="btn btn-primary" disabled={busy} onClick={askIA}>✨ Suggestions de l’IA</button></div>
+        {busy && <AiProgress steps={['Lecture de tes notes…', 'Analyse de la phase…', 'Préparation des suggestions…']} />}
         {sugg && (
           <div className="sugg">
             {sugg.reformulation && <p><strong>Reformulation :</strong> {sugg.reformulation}</p>}
-            <p style={{ margin: '4px 0' }}><strong>Questions d’approfondissement :</strong></p>
-            <ul>{sugg.questions.map((q, i) => <li key={i}>{q}</li>)}</ul>
+            <p style={{ margin: '4px 0' }}><strong>Questions d’approfondissement</strong> <span className="muted">(clique pour ajouter à tes questions posées)</span> :</p>
+            <ul className="sugg-q">{sugg.questions.map((q, i) => <li key={i}><button className="sugg-q-btn" onClick={() => addQuestion(q)} title="Ajouter à mes questions posées">{q} <span className="phase-q-plus">＋</span></button></li>)}</ul>
             {sugg.a_surveiller && <p className="sugg-watch">À surveiller : {sugg.a_surveiller}</p>}
           </div>
         )}

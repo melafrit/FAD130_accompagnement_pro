@@ -81,7 +81,7 @@ docker compose up -d
 - [x] Entretien guidé (6 phases) + transcription vocale (Web Speech) + suggestions IA (Claude + parcours de secours)
 - [x] Génération du compte rendu DOCX (Claude + repli), téléchargement, ré-import, publication à l'accompagné
 - [x] Tableau de bord (accompagnateur) + plan d'action (accompagnateur & accompagné) + notifications in-app + recherche par étiquettes (tags)
-- [x] Page Méthode (arbre de décision : 6 phases + 8 principes + garde-fous IA) + Onglet Aide (transparence + synthèse du cahier des charges)
+- [x] Page Méthode (les phases de l'entretien : 6 phases + 8 principes + garde-fous IA) + Onglet Aide (transparence + synthèse du cahier des charges)
 - [x] Pages légales : mentions légales, CGU, politique de confidentialité (RGPD)
 - [x] Espace administrateur (gestion des comptes : création, rôle, activation/désactivation, rattachement accompagné↔accompagnateur)
 - [x] Parcours / Dossier : timeline (questionnaire → entretiens datés + CR → RDV → plan d'action → clôture), entretiens multiples, « reprendre plus tard » / « clôturer + CR » à toute phase, clôture de la démarche + synthèse finale, CR du questionnaire initial

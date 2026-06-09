@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import AiProgress from '../components/AiProgress'
 
 interface Step {
   question: string
@@ -65,7 +66,7 @@ export default function Questionnaire() {
         ))}
       </div>
 
-      {busy && <p className="qa-loading">…</p>}
+      {busy && <AiProgress steps={['L’assistant prépare la prochaine question…', 'Adaptation à tes réponses…']} />}
 
       {step && !step.termine && !busy && (
         <div className="qa-current">
