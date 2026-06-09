@@ -397,7 +397,7 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .ae-2col { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); }
 .ae-col-grille { max-height: 82vh; }
 /* Graphiques : jauge + radar côte à côte ; évolution et détail en pleine largeur de la colonne. */
-.ae-col-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: start; }
+.ae-col-charts { display: grid; grid-template-columns: minmax(160px, 0.62fr) 1.38fr; gap: 14px; align-items: start; }
 .ae-col-charts > .ae-chart-card:nth-child(3),
 .ae-col-charts > .ae-chart-card:nth-child(4) { grid-column: 1 / -1; }
 @media (max-width: 1100px) {
