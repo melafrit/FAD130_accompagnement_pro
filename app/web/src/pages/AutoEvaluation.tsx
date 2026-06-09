@@ -52,11 +52,6 @@ export default function AutoEvaluation() {
       .then((d) => setNom(d.dossier.accompagne_prenom || d.dossier.accompagne_email))
       .catch(() => {})
   }, [id])
-  // Cette page utilise une mise en page LARGE (2 colonnes) — on élargit le conteneur central uniquement ici.
-  useEffect(() => {
-    document.body.classList.add('ae-wide')
-    return () => document.body.classList.remove('ae-wide')
-  }, [])
 
   function colorFor(score: number | null): string {
     if (score == null) return '#cfc8b8'

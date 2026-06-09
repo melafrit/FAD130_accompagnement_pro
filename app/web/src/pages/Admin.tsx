@@ -91,7 +91,7 @@ export default function Admin() {
         </table>
       </div>
 
-      <div className="grid-2" style={{ marginTop: 24 }}>
+      <div className="cards" style={{ marginTop: 24 }}>
         <div className="card">
           <h3>Créer un compte</h3>
           <form className="form" onSubmit={createUser}>

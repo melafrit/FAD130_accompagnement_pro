@@ -12,7 +12,7 @@
   --blanc: #ffffff;
   --radius: 16px;
   --ombre: 0 6px 24px rgba(22, 50, 79, 0.08);
-  --maxw: 1080px;
+  --maxw: 80vw;
 }
 
 * { box-sizing: border-box; }
@@ -35,7 +35,7 @@ a { color: var(--bleu); }
 .header {
   display: flex; align-items: center; justify-content: space-between;
   gap: 16px; flex-wrap: wrap;
-  padding: 16px clamp(16px, 4vw, 40px);
+  padding: 16px calc(10vw + clamp(16px, 4vw, 40px)); /* aligne le contenu de l'en-tête sur .main (80vw centré) */
   background: var(--sable-2);
   border-bottom: 1px solid var(--bordure);
   position: sticky; top: 0; z-index: 10;
@@ -102,7 +102,7 @@ a { color: var(--bleu); }
 .btn-ghost { border: 1px solid var(--bordure); color: var(--bleu-profond); }
 
 /* Footer */
-.footer { border-top: 1px solid var(--bordure); background: var(--sable-2); padding: 20px clamp(16px, 4vw, 40px); }
+.footer { border-top: 1px solid var(--bordure); background: var(--sable-2); padding: 20px calc(10vw + clamp(16px, 4vw, 40px)); }
 .footer p { margin: 0; color: var(--texte-doux); font-size: 14px; text-align: center; }
 .footer-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 14px; }
 .footer-links a { color: var(--bleu); }
@@ -136,7 +136,13 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .legal-note { font-style: italic; color: var(--sauge); }
 
 /* Pages Méthode / Aide */
-.page { max-width: 860px; margin: 0 auto; }
+.page { max-width: 100%; margin: 0 auto; }
+/* Le 80% vise les grands écrans : sous 900px (tablettes/mobiles) le contenu reprend toute la largeur. */
+@media (max-width: 900px) {
+  .main { max-width: 100%; }
+  .header { padding-inline: clamp(16px, 4vw, 40px); }
+  .footer { padding-inline: clamp(16px, 4vw, 40px); }
+}
 .page-title { color: var(--bleu-profond); font-size: clamp(24px, 4vw, 34px); margin: 6px 0 12px; }
 .page h2 { color: var(--bleu-profond); font-size: 21px; margin: 32px 0 14px; }
 .page h3 { color: var(--bleu-profond); }
@@ -387,9 +393,7 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
   .ae-col-grille { max-height: none; }
 }
 
-/* Page LARGE : seulement l'auto-évaluation occupe ~80% de la largeur de l'écran (les pages de texte restent étroites). */
-body.ae-wide .main { max-width: 80vw; }
-body.ae-wide .page { max-width: 100%; }
+/* Disposition 2 colonnes de l'auto-évaluation (la largeur globale est gérée par .main = 80vw). */
 .ae-2col { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); }
 .ae-col-grille { max-height: 82vh; }
 /* Graphiques : jauge + radar côte à côte ; évolution et détail en pleine largeur de la colonne. */
@@ -449,7 +453,6 @@ body.ae-wide .page { max-width: 100%; }
 
 /* === Mode présentation (lisible en projection) === */
 .page-title, .lead { transition: font-size .2s ease; }
-body.presenting .main { max-width: 1180px; }
 body.presenting .page-title { font-size: 2.6rem; }
 body.presenting .lead { font-size: 1.25rem; }
 body.presenting h2 { font-size: 1.7rem; }
