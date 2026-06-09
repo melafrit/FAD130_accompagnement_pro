@@ -365,6 +365,28 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
   .ae-row { grid-template-columns: 1fr; gap: 10px; }
 }
 
+/* === Auto-évaluation : disposition 2 colonnes === */
+.ae-2col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 6px; }
+.ae-col-charts { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ae-col-grille { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); box-shadow: var(--ombre); padding: 10px; max-height: 80vh; overflow-y: auto; min-width: 0; }
+.ae-crit-fold { border: 1px solid var(--bordure); border-radius: 12px; margin-bottom: 10px; background: var(--sable-2); overflow: hidden; }
+.ae-crit-fold:last-child { margin-bottom: 0; }
+.ae-crit-fold > summary { list-style: none; cursor: pointer; padding: 11px 14px; display: flex; align-items: center; gap: 10px; }
+.ae-crit-fold > summary::-webkit-details-marker { display: none; }
+.ae-crit-fold > summary .chevron { color: var(--sauge); font-weight: 800; transition: transform .15s; }
+.ae-crit-fold[open] > summary .chevron { transform: rotate(90deg); }
+.ae-crit-titre { flex: 1; font-weight: 700; font-size: 14px; color: var(--bleu-profond); line-height: 1.3; }
+.ae-crit-body { padding: 0 14px 12px; background: var(--blanc); }
+.ae-crit-resume { margin: 8px 0 2px; font-size: 12px; color: var(--texte-doux); font-style: italic; }
+.ae-ind { border-top: 1px solid var(--bordure); padding: 12px 0; }
+.ae-ind .ae-row-txt { font-size: 13px; margin-bottom: 8px; line-height: 1.4; }
+.ae-ind .gslider { margin-bottom: 8px; }
+.ae-ind .ae-comment textarea { width: 100%; box-sizing: border-box; }
+@media (max-width: 900px) {
+  .ae-2col { grid-template-columns: 1fr; }
+  .ae-col-grille { max-height: none; }
+}
+
 /* === Barre de progression IA === */
 .aiprog { margin: 12px 0; }
 .aiprog-track { position: relative; height: 8px; border-radius: 999px; background: var(--sable-2); overflow: hidden; border: 1px solid var(--bordure); }

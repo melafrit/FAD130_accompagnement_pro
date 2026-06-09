@@ -136,58 +136,65 @@ export default function AutoEvaluation() {
       <p className="lead">Une évaluation <strong>réflexive de ma posture d’accompagnateur</strong> pour ce dossier. Confidentielle : moi seul y ai accès.</p>
       {msg && <p className="form-success">{msg}</p>}
 
-      {/* Tableau de bord visuel */}
-      <section className="ae-charts">
-        <div className="ae-chart-card">
-          <h3>Score global</h3>
-          <Gauge value={globalPct} reveal={reveal} />
-        </div>
-        <div className="ae-chart-card">
-          <h3>Radar par critère</h3>
-          <RadarChart axes={radarAxes} reveal={reveal} />
-        </div>
-        <div className="ae-chart-card ae-evo">
-          <h3>Évolution (note /20)</h3>
-          <EvolutionLine points={evoPoints} reveal={reveal} />
-        </div>
-      </section>
-
-      <section className="ae-chart-card">
-        <h3>Détail par indicateur</h3>
-        <BarsChart bars={bars} />
-      </section>
-
-      {/* Appel IA */}
+      {/* Bouton IA — en haut, sur toute la largeur des deux colonnes */}
       <section className="ae-ia">
         <button className="btn btn-primary" onClick={appelIA} disabled={aiBusy}>✨ Pré-remplir avec l’IA (Claude Opus)</button>
         <p className="hint">L’IA lit tout le dossier (questionnaire, entretiens et <strong>questions posées</strong>, plan d’action) et propose un score + un commentaire par indicateur, ainsi qu’une analyse du type de tes questions. <strong>Elle suggère, tu décides</strong> : tu peux tout éditer avant de valider.</p>
         {aiBusy && <AiProgress steps={['Lecture du dossier (questionnaire, entretiens, questions)…', 'Évaluation des 21 indicateurs…', 'Analyse du type de tes questions…', 'Rédaction des commentaires…']} />}
       </section>
 
-      {/* Grille */}
-      {criteres.map((c) => (
-        <section key={c.id} className="ae-critere">
-          <h2>Critère {c.id} — {c.titre}</h2>
-          <p className="muted">{c.resume} <span className="ae-moy">{c.indicateurs.filter((i) => scores[i.id]?.score != null).length}/7 notés · moy. {Math.round(critAvg(c))}/100</span></p>
-          <div className="ae-rows">
-            {c.indicateurs.map((ind) => (
-              <div key={ind.id} className="ae-row">
-                <div className="ae-row-txt"><span className="ae-id">{ind.id}</span> {ind.texte}</div>
-                <GradientSlider value={scores[ind.id]?.score ?? null} zones={zones} onChange={(v) => setScore(ind.id, v)} />
-                <div className="ae-comment">
-                  {aiApplied[ind.id] && <span className="ae-ia-tag">✨ suggéré par l’IA</span>}
-                  <textarea
-                    value={scores[ind.id]?.commentaire || ''}
-                    onChange={(e) => setComment(ind.id, e.target.value)}
-                    placeholder="Commentaire d’auto-évaluation…"
-                    rows={2}
-                  />
-                </div>
-              </div>
-            ))}
+      <div className="ae-2col">
+        {/* Colonne 1 : graphiques */}
+        <div className="ae-col-charts">
+          <div className="ae-chart-card">
+            <h3>Score global</h3>
+            <Gauge value={globalPct} reveal={reveal} />
           </div>
-        </section>
-      ))}
+          <div className="ae-chart-card">
+            <h3>Radar par critère</h3>
+            <RadarChart axes={radarAxes} reveal={reveal} />
+          </div>
+          <div className="ae-chart-card">
+            <h3>Évolution (note /20)</h3>
+            <EvolutionLine points={evoPoints} reveal={reveal} />
+          </div>
+          <div className="ae-chart-card">
+            <h3>Détail par indicateur</h3>
+            <BarsChart bars={bars} />
+          </div>
+        </div>
+
+        {/* Colonne 2 : grille pliable, dans un cadre à défilement vertical */}
+        <div className="ae-col-grille">
+          {criteres.map((c) => (
+            <details key={c.id} className="ae-crit-fold" open>
+              <summary>
+                <span className="chevron" aria-hidden="true">▸</span>
+                <span className="ae-crit-titre">Critère {c.id} — {c.titre}</span>
+                <span className="ae-moy">{c.indicateurs.filter((i) => scores[i.id]?.score != null).length}/7 · {Math.round(critAvg(c))}/100</span>
+              </summary>
+              <div className="ae-crit-body">
+                <p className="ae-crit-resume">{c.resume}</p>
+                {c.indicateurs.map((ind) => (
+                  <div key={ind.id} className="ae-ind">
+                    <div className="ae-row-txt"><span className="ae-id">{ind.id}</span> {ind.texte}</div>
+                    <GradientSlider value={scores[ind.id]?.score ?? null} zones={zones} onChange={(v) => setScore(ind.id, v)} />
+                    <div className="ae-comment">
+                      {aiApplied[ind.id] && <span className="ae-ia-tag">✨ suggéré par l’IA</span>}
+                      <textarea
+                        value={scores[ind.id]?.commentaire || ''}
+                        onChange={(e) => setComment(ind.id, e.target.value)}
+                        placeholder="Commentaire d’auto-évaluation…"
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
 
       {/* Analyse des questions */}
       <section className="ae-critere">
