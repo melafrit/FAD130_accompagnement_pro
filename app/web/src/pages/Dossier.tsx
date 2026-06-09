@@ -56,6 +56,7 @@ export default function Dossier() {
         {!cloture && !enCours && <button className="btn btn-primary" onClick={() => nav(`/entretien?dossier=${id}`)}>Nouvel entretien</button>}
         <Link className="btn btn-ghost" to="/mes-creneaux">Mes créneaux / RDV</Link>
         <a className="btn btn-ghost" href={`/api/dossiers/${id}/synthese.docx`}>⬇ Synthèse du parcours (.docx)</a>
+        <Link className="btn btn-primary" to={`/dossier/${id}/auto-evaluation`}>📊 Mon auto-évaluation</Link>
       </div>
 
       <ol className="timeline">

@@ -19,6 +19,7 @@ import Entretien from './pages/Entretien'
 import ComptesRendus from './pages/ComptesRendus'
 import Dashboard from './pages/Dashboard'
 import Dossier from './pages/Dossier'
+import AutoEvaluation from './pages/AutoEvaluation'
 import PlanAction from './pages/PlanAction'
 import MonPlanAction from './pages/MonPlanAction'
 import Admin from './pages/Admin'
@@ -105,6 +106,7 @@ export default function App() {
             <Route path="/mes-comptes-rendus" element={<Protected role="accompagne"><ComptesRendus /></Protected>} />
             <Route path="/tableau-de-bord" element={<Protected role="accompagnateur"><Dashboard /></Protected>} />
             <Route path="/dossier/:id" element={<Protected role="accompagnateur"><Dossier /></Protected>} />
+            <Route path="/dossier/:id/auto-evaluation" element={<Protected role="accompagnateur"><AutoEvaluation /></Protected>} />
             <Route path="/plan-action/:dossierId" element={<Protected role="accompagnateur"><PlanAction /></Protected>} />
             <Route path="/mon-plan-action" element={<Protected role="accompagne"><MonPlanAction /></Protected>} />
             <Route path="/admin" element={<Protected role="admin"><Admin /></Protected>} />

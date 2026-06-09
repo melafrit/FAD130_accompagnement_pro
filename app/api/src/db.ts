@@ -158,6 +158,25 @@ db.exec(`
     cible      TEXT,
     horodatage TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Auto-évaluation de la pratique (privée à l'accompagnateur), versionnée par dossier.
+  CREATE TABLE IF NOT EXISTS auto_evaluations (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    dossier_id         INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    statut             TEXT NOT NULL DEFAULT 'brouillon' CHECK (statut IN ('brouillon','validee')),
+    note_globale       REAL,
+    commentaire_global TEXT,
+    cree_le            TEXT NOT NULL DEFAULT (datetime('now')),
+    maj_le             TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS auto_evaluation_scores (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    eval_id     INTEGER NOT NULL REFERENCES auto_evaluations(id) ON DELETE CASCADE,
+    indicateur  TEXT NOT NULL,
+    score       REAL,
+    commentaire TEXT,
+    UNIQUE (eval_id, indicateur)
+  );
 `)
 
 // Migrations légères (ajout de colonnes si la base existe déjà)

@@ -3,6 +3,7 @@ import {
   Table, TableRow, TableCell, WidthType, ShadingType,
 } from 'docx'
 import { PHASES } from './phases'
+import { GRILLE, zoneFor } from './grille'
 
 const KEY = process.env.ANTHROPIC_API_KEY
 const MODEL = process.env.ANTHROPIC_MODEL_REPORT || 'claude-opus-4-8'
@@ -230,6 +231,67 @@ export async function construireSyntheseDocx(d: SyntheseData): Promise<Buffer> {
 
   const doc = new Document({
     styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 } } }, children: body }],
+  })
+  return Packer.toBuffer(doc)
+}
+
+// ---- Auto-évaluation de la pratique (grille) ----
+export interface GrilleDocxData {
+  accompagne: string
+  titre: string
+  noteGlobale: number | null
+  commentaireGlobal: string | null
+  majLe: string
+  scores: Record<string, { score: number | null; commentaire: string | null }>
+}
+
+export async function construireGrilleDocx(d: GrilleDocxData): Promise<Buffer> {
+  const cw = [640, 3560, 820, 1680, 2660] // somme = 9360
+  const cell = (t: string, w: number, header = false) =>
+    new TableCell({
+      width: { size: w, type: WidthType.DXA },
+      margins: { top: 50, bottom: 50, left: 90, right: 90 },
+      shading: header ? { fill: 'E7EEE8', type: ShadingType.CLEAR } : undefined,
+      children: [new Paragraph({ children: [new TextRun({ text: t || '—', bold: header })] })],
+    })
+
+  const body: (Paragraph | Table)[] = [
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun('Auto-évaluation de ma pratique d’accompagnement — Boussole')] }),
+    new Paragraph({ children: [new TextRun({ text: `Dossier : ${d.titre}  ·  Accompagné : ${d.accompagne}  ·  Mise à jour : ${frDate(d.majLe)}`, italics: true })] }),
+    new Paragraph({ children: [new TextRun({ text: `Note globale : ${d.noteGlobale != null ? d.noteGlobale.toFixed(1) : '—'} / 20`, bold: true })] }),
+  ]
+
+  for (const c of GRILLE) {
+    const vals = c.indicateurs.map((i) => d.scores[i.id]?.score).filter((v): v is number => typeof v === 'number')
+    const moy = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null
+    body.push(h2(`Critère ${c.id} — ${c.titre}${moy != null ? `  (moyenne ${moy}/100)` : ''}`))
+    const rows: TableRow[] = [
+      new TableRow({ children: [cell('#', cw[0], true), cell('Indicateur', cw[1], true), cell('Score', cw[2], true), cell('Niveau', cw[3], true), cell('Commentaire', cw[4], true)] }),
+    ]
+    for (const ind of c.indicateurs) {
+      const sc = d.scores[ind.id]?.score
+      const z = typeof sc === 'number' ? zoneFor(sc) : null
+      rows.push(
+        new TableRow({
+          children: [
+            cell(ind.id, cw[0]),
+            cell(ind.texte, cw[1]),
+            cell(typeof sc === 'number' ? String(Math.round(sc)) : '—', cw[2]),
+            cell(z ? z.label : '—', cw[3]),
+            cell(d.scores[ind.id]?.commentaire || '', cw[4]),
+          ],
+        }),
+      )
+    }
+    body.push(new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: cw, rows }))
+  }
+
+  body.push(h2('Synthèse'))
+  paras(d.commentaireGlobal || '—').forEach((p) => body.push(p))
+
+  const doc = new Document({
+    styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
     sections: [{ properties: { page: { size: { width: 11906, height: 16838 } } }, children: body }],
   })
   return Packer.toBuffer(doc)

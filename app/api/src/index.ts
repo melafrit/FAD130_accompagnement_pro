@@ -14,6 +14,7 @@ import actionsRouter from './actions'
 import tagsRouter from './tags'
 import adminRouter from './admin'
 import dossierRouter from './dossier'
+import autoevalRouter from './autoeval'
 import { seed } from './seed'
 
 const app = express()
@@ -49,6 +50,9 @@ app.use('/api/admin', adminRouter)
 
 // Dossier / parcours (détail, clôture)
 app.use('/api/dossiers', dossierRouter)
+
+// Auto-évaluation de la pratique (grille interactive, IA, export)
+app.use('/api/autoeval', autoevalRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {
