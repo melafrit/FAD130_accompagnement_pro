@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { db } from './db'
 import { makeToken, expiryHours } from './util'
 import { sendEmail, resetEmail } from './mailer'
+import { seedDemoData } from './seedDemo'
 
 type Role = 'admin' | 'accompagnateur' | 'accompagne'
 
@@ -32,7 +33,7 @@ async function ensureDevUser(email: string, role: Role, password: string, prenom
   const hash = await bcrypt.hash(password, 10)
   const existing = db.prepare('SELECT id FROM users WHERE email=?').get(email) as { id: number } | undefined
   if (existing) {
-    db.prepare('UPDATE users SET password_hash=?, role=?, email_verifie=1, actif=1 WHERE id=?').run(hash, role, existing.id)
+    db.prepare('UPDATE users SET password_hash=?, role=?, email_verifie=1, actif=1, prenom=COALESCE(?, prenom) WHERE id=?').run(hash, role, prenom || null, existing.id)
     return existing.id
   }
   const info = db.prepare('INSERT INTO users (email, password_hash, role, prenom, email_verifie) VALUES (?, ?, ?, ?, 1)').run(email, hash, role, prenom || null)
@@ -45,14 +46,12 @@ export async function seed(): Promise<void> {
   if (devPwd) {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@boussole.local'
     const accEmail = process.env.ACCOMPAGNATEUR_EMAIL || 'accompagnateur@boussole.local'
-    await ensureDevUser(adminEmail, 'admin', devPwd)
-    const accId = await ensureDevUser(accEmail, 'accompagnateur', devPwd)
-    const acpId = await ensureDevUser('demo.accompagne@elafrit.com', 'accompagne', devPwd, 'Démo')
-    db.prepare('INSERT OR IGNORE INTO liens_accompagnement (accompagnateur_id, accompagne_id) VALUES (?, ?)').run(accId, acpId)
-    if (!db.prepare('SELECT id FROM dossiers WHERE accompagne_id=? AND accompagnateur_id=?').get(acpId, accId)) {
-      db.prepare('INSERT INTO dossiers (accompagne_id, accompagnateur_id, titre) VALUES (?, ?, ?)').run(acpId, accId, 'Accompagnement mémoire')
-    }
-    console.log('[seed:dev] Comptes de démo prêts (mot de passe = SEED_PASSWORD) : admin, accompagnateur, demo.accompagne@elafrit.com')
+    await ensureDevUser(adminEmail, 'admin', devPwd, 'Mohamed')
+    const accId = await ensureDevUser(accEmail, 'accompagnateur', devPwd, 'Mohamed')
+    const amineId = await ensureDevUser('afrit_mohamed@yahoo.fr', 'accompagne', devPwd, 'Amine')
+    db.prepare('INSERT OR IGNORE INTO liens_accompagnement (accompagnateur_id, accompagne_id) VALUES (?, ?)').run(accId, amineId)
+    await seedDemoData(accId, amineId)
+    console.log('[seed:dev] Comptes de démo prêts (mot de passe = SEED_PASSWORD) : admin, accompagnateur (Mohamed), afrit_mohamed@yahoo.fr (Amine) + jeu de données de démo')
     return
   }
   await ensureUser(process.env.ADMIN_EMAIL, 'admin')

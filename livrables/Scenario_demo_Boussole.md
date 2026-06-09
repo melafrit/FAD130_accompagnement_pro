@@ -12,8 +12,10 @@
    docker compose -f docker-compose.local.yml up --build
    ```
 2. Ouvre **deux fenêtres** de navigateur (dont une en **navigation privée**) sur http://localhost:8080 :
-   - **Fenêtre A — toi (accompagnateur)** : `elafrit.mohamed@gmail.com` / `BoussoleDemo2026`
-   - **Fenêtre B — l'étudiant (accompagné)** : `demo.accompagne@elafrit.com` / `BoussoleDemo2026`
+   - **Fenêtre A — toi, Mohamed (accompagnateur)** : `elafrit.mohamed@gmail.com` / `BoussoleDemo2026`
+   - **Fenêtre B — Amine (accompagné)** : `afrit_mohamed@yahoo.fr` / `BoussoleDemo2026`
+
+   > 💡 Sur une base neuve, le dossier d'**Amine** est **déjà pré-rempli** (questionnaire + 3 entretiens + CR 1 & 2 + plan d'action + RDV + grille d'auto-évaluation). Tu peux donc démarrer directement par l'Acte 3 (côté accompagnateur) pour montrer un parcours abouti, puis **générer le CR du 3ᵉ entretien et clôturer en direct**. Les actes 1-2 (création depuis zéro) restent utiles pour montrer le flux complet sur un **second** dossier.
 3. *(Optionnel)* Mets ta **clé Anthropic** dans `app/.env` pour des suggestions IA réelles (sinon le parcours de secours s'affiche).
 
 ---

@@ -59,8 +59,10 @@ Avec `SEED_PASSWORD` défini (déjà le cas dans `docker-compose.local.yml`), tr
 | Rôle | Email | Mot de passe |
 |---|---|---|
 | Admin | `mohamed@elafrit.com` | `BoussoleDemo2026` |
-| Accompagnateur | `elafrit.mohamed@gmail.com` | `BoussoleDemo2026` |
-| Accompagné (démo) | `demo.accompagne@elafrit.com` | `BoussoleDemo2026` |
+| Accompagnateur (Mohamed) | `elafrit.mohamed@gmail.com` | `BoussoleDemo2026` |
+| Accompagné (Amine) | `afrit_mohamed@yahoo.fr` | `BoussoleDemo2026` |
+
+> Sur une **base neuve**, un **jeu de données de démonstration** est chargé automatiquement : Amine a déjà rempli son questionnaire initial et passé **3 entretiens** (comptes rendus 1 & 2 générés), avec plan d'action, rendez-vous et **grille d'auto-évaluation pré-remplie**. Le dossier reste « en cours » pour montrer la clôture en direct. Pour repartir d'une base propre : `docker compose -f docker-compose.local.yml down && rm -rf data && docker compose -f docker-compose.local.yml up -d --build`.
 
 > En **production**, laisse `SEED_PASSWORD` vide : les comptes seed s'activent alors via le lien reçu par email.
 
