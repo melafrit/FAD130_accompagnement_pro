@@ -387,8 +387,8 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
   .ae-col-grille { max-height: none; }
 }
 
-/* Page LARGE : seulement l'auto-évaluation occupe ~3/4 de l'écran (les pages de texte restent étroites). */
-body.ae-wide .main { max-width: min(1400px, 93vw); }
+/* Page LARGE : seulement l'auto-évaluation occupe ~80% de la largeur de l'écran (les pages de texte restent étroites). */
+body.ae-wide .main { max-width: 80vw; }
 body.ae-wide .page { max-width: 100%; }
 .ae-2col { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); }
 .ae-col-grille { max-height: 82vh; }
