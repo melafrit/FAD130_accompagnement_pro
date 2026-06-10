@@ -70,15 +70,6 @@ export default function Home() {
           </li>
         </ol>
       </section>
-
-      <section className="note" role="note">
-        <p>
-          🔒 Vos données sont traitées avec soin : <strong>texte uniquement</strong>, conservation
-          limitée, pas d'enregistrement audio. En créant un compte, vous accepterez les CGU et la
-          politique de confidentialité. Pour exercer vos droits&nbsp;:
-          <a href="mailto:dpo@elafrit.com"> dpo@elafrit.com</a>.
-        </p>
-      </section>
     </>
   )
 }

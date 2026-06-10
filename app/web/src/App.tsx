@@ -89,8 +89,6 @@ function Footer() {
         <Link to="/cgu">CGU</Link>
         <span aria-hidden="true">·</span>
         <Link to="/confidentialite">Confidentialité</Link>
-        <span aria-hidden="true">·</span>
-        <a href="mailto:dpo@elafrit.com">dpo@elafrit.com</a>
       </nav>
       <p>
         <strong>Boussole</strong> — application développée dans le cadre de l'UE <strong>FAD130</strong> (Cnam).<br />
