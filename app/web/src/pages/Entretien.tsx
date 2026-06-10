@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useSpeechToText } from '../hooks/useSpeechToText'
@@ -29,6 +29,7 @@ export default function Entretien() {
   const [notes, setNotes] = useState<Record<number, string>>({})
   const [questionsByPhase, setQuestionsByPhase] = useState<Record<number, { id: number; texte: string }[]>>({})
   const [newQ, setNewQ] = useState('')
+  const newQRef = useRef<HTMLInputElement>(null)
   const [sugg, setSugg] = useState<Suggestion | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
@@ -90,6 +91,17 @@ export default function Entretien() {
     if (sessionId == null) return
     await api(`/entretien/sessions/${sessionId}/questions/${qid}`, { method: 'DELETE' })
     setQuestionsByPhase((m) => ({ ...m, [current]: (m[current] || []).filter((q) => q.id !== qid) }))
+  }
+  // Charge une question proposée dans le champ de saisie pour la MODIFIER avant de l'ajouter.
+  function editSuggestion(q: string) {
+    setNewQ(q)
+    requestAnimationFrame(() => {
+      const el = newQRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
   }
   async function askIA() {
     if (sessionId == null) return
@@ -192,8 +204,13 @@ export default function Entretien() {
         <div className="phase-grid">
           <div><h4>⚠️ Vigilance</h4><ul>{phase.vigilance.map((v, i) => <li key={i}>{v}</li>)}</ul></div>
           <div>
-            <h4>💬 Questions à poser <span className="muted">(clique pour ajouter)</span></h4>
-            <ul className="phase-q">{phase.questions.map((q, i) => <li key={i}><button className="phase-q-btn" onClick={() => addQuestion(q)} title="Ajouter à mes questions posées">{q} <span className="phase-q-plus">＋</span></button></li>)}</ul>
+            <h4>💬 Questions à poser <span className="muted">(＋ ajouter · ✎ modifier)</span></h4>
+            <ul className="phase-q">{phase.questions.map((q, i) => (
+              <li key={i} className="sugg-item">
+                <button className="phase-q-btn" onClick={() => addQuestion(q)} title="Ajouter telle quelle">{q} <span className="phase-q-plus">＋</span></button>
+                <button className="sugg-edit" onClick={() => editSuggestion(q)} title="Modifier avant d'ajouter">✎</button>
+              </li>
+            ))}</ul>
           </div>
         </div>
       </div>
@@ -207,7 +224,7 @@ export default function Entretien() {
           {qPosees.length === 0 && <li className="muted">Aucune question enregistrée pour cette phase — saisis-la ou clique une question proposée ci-dessus.</li>}
         </ul>
         <form className="q-add" onSubmit={(e) => { e.preventDefault(); void addQuestion(newQ) }}>
-          <input value={newQ} onChange={(e) => setNewQ(e.target.value)} placeholder="Saisir une question que j'ai posée…" />
+          <input ref={newQRef} value={newQ} onChange={(e) => setNewQ(e.target.value)} placeholder="Saisir ou modifier une question, puis Ajouter…" />
           <button className="btn btn-ghost" type="submit">＋ Ajouter</button>
         </form>
       </div>
@@ -231,13 +248,18 @@ export default function Entretien() {
             {sugg.reformulation && (
               <p><strong>Reformulation :</strong> {sugg.reformulation.slice(0, typed[0] ?? sugg.reformulation.length)}{activeIdx === 0 && <span className="tw-caret">▌</span>}</p>
             )}
-            <p style={{ margin: '4px 0' }}><strong>Questions d’approfondissement</strong> <span className="muted">(clique pour ajouter à tes questions posées)</span> :</p>
+            <p style={{ margin: '4px 0' }}><strong>Questions d’approfondissement</strong> <span className="muted">(＋ ajouter · ✎ modifier)</span> :</p>
             <ul className="sugg-q">
               {sugg.questions.map((q, i) => {
                 if (i + 1 > lastVisible) return null
                 const shown = typed[i + 1] ?? q.length
                 if (shown >= q.length) {
-                  return <li key={i}><button className="sugg-q-btn" onClick={() => addQuestion(q)} title="Ajouter à mes questions posées">{q} <span className="phase-q-plus">＋</span></button></li>
+                  return (
+                    <li key={i} className="sugg-item">
+                      <button className="sugg-q-btn" onClick={() => addQuestion(q)} title="Ajouter telle quelle">{q} <span className="phase-q-plus">＋</span></button>
+                      <button className="sugg-edit" onClick={() => editSuggestion(q)} title="Modifier avant d'ajouter">✎</button>
+                    </li>
+                  )
                 }
                 return <li key={i}><span className="sugg-q-typing">{q.slice(0, shown)}{activeIdx === i + 1 && <span className="tw-caret">▌</span>}</span></li>
               })}

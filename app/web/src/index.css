@@ -428,6 +428,10 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .phase-q-btn, .sugg-q-btn { width: 100%; text-align: left; background: var(--blanc); border: 1px solid var(--bordure); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; color: var(--texte); cursor: pointer; transition: all .12s; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .phase-q-btn:hover, .sugg-q-btn:hover { border-color: var(--sauge); background: var(--sauge-clair); }
 .phase-q-plus { flex: none; color: var(--sauge); font-weight: 800; }
+.sugg-item { display: flex; align-items: stretch; gap: 6px; }
+.sugg-item .phase-q-btn, .sugg-item .sugg-q-btn { flex: 1; }
+.sugg-edit { flex: none; border: 1px solid var(--bordure); background: var(--blanc); border-radius: 8px; padding: 0 11px; cursor: pointer; color: var(--bleu-profond); font-size: 14px; line-height: 1; }
+.sugg-edit:hover { border-color: var(--sauge); background: var(--sauge-clair); }
 
 /* === Animations des graphiques (rejouées uniquement à la « révélation ») === */
 .radar-grow { animation: radar-grow .6s ease-out both; } /* origine (cx,cy) en coords viewBox fixée inline sur le <g> */
