@@ -460,10 +460,3 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .listening-dot { width: 9px; height: 9px; border-radius: 50%; background: #d9534f; flex: none; animation: pulse-dot 1s ease-in-out infinite; }
 @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.7); } }
 
-/* === Mode présentation (lisible en projection) === */
-.page-title, .lead { transition: font-size .2s ease; }
-body.presenting .page-title { font-size: 2.6rem; }
-body.presenting .lead { font-size: 1.25rem; }
-body.presenting h2 { font-size: 1.7rem; }
-body.presenting .phase-obj, body.presenting .notes-area, body.presenting .ae-row-txt, body.presenting .sugg, body.presenting .recap-text, body.presenting .qa-q { font-size: 1.05rem; }
-body.presenting .footer, body.presenting .nav-user { display: none; }

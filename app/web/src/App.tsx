@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { Routes, Route, Link, NavLink, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Home from './pages/Home'
@@ -30,26 +29,6 @@ import Protected from './components/Protected'
 function Header() {
   const { user, logout } = useAuth()
   const nav = useNavigate()
-  const [presenting, setPresenting] = useState(false)
-  useEffect(() => {
-    document.body.classList.toggle('presenting', presenting)
-  }, [presenting])
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const el = e.target as HTMLElement | null
-      const inputType = el && el.tagName === 'INPUT' ? (el as HTMLInputElement).type : ''
-      const typing = !!el && (el.tagName === 'TEXTAREA' || el.isContentEditable || (el.tagName === 'INPUT' && inputType !== 'range' && inputType !== 'checkbox' && inputType !== 'radio' && inputType !== 'button'))
-      if (typing) return
-      if (e.shiftKey && e.key.toLowerCase() === 'p') {
-        e.preventDefault()
-        setPresenting((p) => !p)
-      } else if (e.key === 'Escape') {
-        setPresenting(false)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
   async function onLogout() {
     await logout()
     nav('/')
@@ -64,7 +43,6 @@ function Header() {
         <NavLink to="/" end>Accueil</NavLink>
         <NavLink to="/methode">Méthode</NavLink>
         <NavLink to="/aide">Aide</NavLink>
-        <button className="btn btn-ghost pres-toggle" onClick={() => setPresenting((p) => !p)} title="Mode présentation (Maj+P)">{presenting ? '🖥 Quitter' : '🖥 Présentation'}</button>
         {user ? (
           <>
             <NavLink to="/espace">Mon espace</NavLink>
