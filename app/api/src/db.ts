@@ -194,10 +194,21 @@ for (const stmt of [
   'ALTER TABLE dossiers ADD COLUMN synthese TEXT',
   'ALTER TABLE auto_evaluations ADD COLUMN analyse_questions TEXT',
   'ALTER TABLE questions_entretien ADD COLUMN reponse TEXT',
+  // Plan d'action enrichi : description, priorité, ordre (glisser-déposer), suivi du rappel
+  'ALTER TABLE actions ADD COLUMN details TEXT',
+  'ALTER TABLE actions ADD COLUMN priorite TEXT',
+  'ALTER TABLE actions ADD COLUMN ordre INTEGER',
+  'ALTER TABLE actions ADD COLUMN rappel_envoye INTEGER NOT NULL DEFAULT 0',
 ]) {
   try {
     db.exec(stmt)
   } catch {
     /* colonne déjà présente */
   }
+}
+// Initialise l'ordre des actions héritées (avant le glisser-déposer) pour un tri déterministe
+try {
+  db.exec('UPDATE actions SET ordre = id WHERE ordre IS NULL')
+} catch {
+  /* table absente sur base toute neuve : le CREATE l'a déjà créée vide */
 }

@@ -9,7 +9,7 @@ import questionnaireRouter from './questionnaire'
 import rdvRouter from './rdv'
 import entretienRouter from './entretien'
 import crRouter from './cr'
-import notificationsRouter from './notifications'
+import notificationsRouter, { sweepDueReminders } from './notifications'
 import actionsRouter from './actions'
 import tagsRouter from './tags'
 import adminRouter from './admin'
@@ -76,6 +76,12 @@ app.get('/api/context', (_req, res) => {
 
 // Comptes initiaux (admin + accompagnateur)
 seed().catch((e) => console.error('[seed] échec :', e))
+
+// Rappels d'action : balayage périodique côté serveur, indépendant des clients connectés
+// (la consultation des notifications déclenche aussi un balayage immédiat, en complément).
+setInterval(() => {
+  try { sweepDueReminders() } catch (e) { console.error('[rappels] balayage échec :', e) }
+}, 60 * 60 * 1000)
 
 const port = Number(process.env.PORT) || 3000
 app.listen(port, () => {

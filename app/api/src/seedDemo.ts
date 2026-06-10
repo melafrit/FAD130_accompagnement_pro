@@ -157,16 +157,21 @@ export async function seedDemoData(accId: number, amineId: number): Promise<void
   await makeCR(sessionIds[0], CR_E1, dayOffset(-27, '10:00'))
   await makeCR(sessionIds[1], CR_E2, dayOffset(-17, '10:00'))
 
-  // Plan d'action
-  const insAction = db.prepare('INSERT INTO actions (dossier_id, libelle, echeance, critere, statut) VALUES (?,?,?,?,?)')
-  const actions: [string, string, string, string][] = [
-    ['Repérer 2-3 situations marquantes de la refonte à décrire', dateOnly(-21), 'Situations notées', 'fait'],
-    ['Rédiger l’introduction et la problématique', dateOnly(-4), 'Intro validée', 'fait'],
-    ['Formaliser le plan en 3 parties', dateOnly(-4), 'Plan validé', 'fait'],
-    ['Rédiger le chapitre « expérience » (la refonte)', dateOnly(10), 'Chapitre rédigé', 'en_cours'],
-    ['Préparer un pitch de soutenance de 5 minutes', dateOnly(17), 'Pitch prêt', 'a_faire'],
+  // Plan d'action (ordre = position d'affichage ; rappel de démo daté dans le futur et marqué « envoyé »
+  // pour qu'aucun e-mail réel ne parte au démarrage vers les adresses de démo)
+  const insAction = db.prepare(
+    'INSERT INTO actions (dossier_id, libelle, echeance, critere, statut, priorite, details, rappel_le, rappel_envoye, ordre) VALUES (?,?,?,?,?,?,?,?,?,?)',
+  )
+  const actions: { libelle: string; echeance: string; critere: string; statut: string; priorite: string; details: string | null; rappel: string | null }[] = [
+    { libelle: 'Préparer un pitch de soutenance de 5 minutes', echeance: dateOnly(17), critere: 'Pitch prêt', statut: 'a_faire', priorite: 'haute',
+      details: 'Structurer le pitch : contexte, problématique, démarche, résultats, ouverture. S’entraîner à l’oral en 5 min chrono.', rappel: null },
+    { libelle: 'Rédiger le chapitre « expérience » (la refonte)', echeance: dateOnly(10), critere: 'Chapitre rédigé', statut: 'en_cours', priorite: 'haute',
+      details: 'Décrire 2-3 situations marquantes de la refonte et les relier au cadre théorique (analyse réflexive).', rappel: dateOnly(3) },
+    { libelle: 'Formaliser le plan en 3 parties', echeance: dateOnly(-4), critere: 'Plan validé', statut: 'fait', priorite: 'moyenne', details: null, rappel: null },
+    { libelle: 'Rédiger l’introduction et la problématique', echeance: dateOnly(-4), critere: 'Intro validée', statut: 'fait', priorite: 'basse', details: null, rappel: null },
+    { libelle: 'Repérer 2-3 situations marquantes de la refonte à décrire', echeance: dateOnly(-21), critere: 'Situations notées', statut: 'fait', priorite: 'basse', details: null, rappel: null },
   ]
-  for (const [libelle, echeance, critere, statut] of actions) insAction.run(dossierId, libelle, echeance, critere, statut)
+  actions.forEach((a, i) => insAction.run(dossierId, a.libelle, a.echeance, a.critere, a.statut, a.priorite, a.details, a.rappel, a.rappel ? 1 : 0, i))
 
   // Rendez-vous : 3 passés (réservés, alignés aux entretiens) + 1 créneau à venir (disponible)
   const insCreneau = db.prepare('INSERT INTO creneaux (accompagnateur_id, debut, fin, reserve) VALUES (?,?,?,?)')

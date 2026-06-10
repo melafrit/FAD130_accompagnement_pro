@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import ActionList, { type Action } from '../components/ActionList'
+import ActionDetailModal from '../components/ActionDetailModal'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
 
@@ -21,6 +22,7 @@ export default function Dossier() {
   const [data, setData] = useState<Detail | null>(null)
   const [synthese, setSynthese] = useState('')
   const [libelle, setLibelle] = useState('')
+  const [selected, setSelected] = useState<Action | null>(null)
 
   async function load() {
     const d = await api<Detail>(`/dossiers/${id}`)
@@ -42,6 +44,10 @@ export default function Dossier() {
     if (!libelle.trim()) return
     await api('/actions', { method: 'POST', body: JSON.stringify({ dossierId: Number(id), libelle }) })
     setLibelle('')
+    await load()
+  }
+  async function reorder(ids: number[]) {
+    await api('/actions/reorder', { method: 'POST', body: JSON.stringify({ dossierId: Number(id), ids }) })
     await load()
   }
 
@@ -107,7 +113,8 @@ export default function Dossier() {
             <button className="btn btn-primary" type="submit">Ajouter</button>
           </form>
         )}
-        <ActionList actions={actions} onStatut={setStatut} />
+        <p className="muted action-hint">Clique une action pour ouvrir son détail (échéance, priorité, rappel, notes…) · glisse la poignée ⠿ pour réordonner.</p>
+        <ActionList actions={actions} onStatut={setStatut} onOpen={setSelected} onReorder={reorder} />
       </section>
 
       <section className="ia-section">
@@ -127,6 +134,8 @@ export default function Dossier() {
       </section>
 
       <p style={{ marginTop: 20 }}><Link className="btn btn-ghost" to="/tableau-de-bord">← Retour au tableau de bord</Link></p>
+
+      {selected && <ActionDetailModal key={selected.id} action={selected} onClose={() => setSelected(null)} onSaved={load} />}
     </div>
   )
 }

@@ -19,6 +19,11 @@ export default function NotificationsBell() {
   }
   useEffect(() => {
     void load()
+    // Rafraîchit régulièrement (et au retour sur l'onglet) : matérialise les rappels arrivés à échéance
+    const t = setInterval(() => { void load() }, 60000)
+    const onFocus = () => { void load() }
+    window.addEventListener('focus', onFocus)
+    return () => { clearInterval(t); window.removeEventListener('focus', onFocus) }
   }, [])
 
   async function toggle() {

@@ -35,7 +35,9 @@ router.get('/:id', requireAuth, requireRole('accompagnateur'), (req: Request, re
     ...s,
     crs: db.prepare('SELECT id, version, genere_le, publie FROM comptes_rendus WHERE session_id=? ORDER BY version DESC').all(s.id),
   }))
-  const actions = db.prepare('SELECT id, libelle, echeance, critere, statut FROM actions WHERE dossier_id=? ORDER BY id DESC').all(id)
+  const actions = db
+    .prepare('SELECT id, libelle, echeance, critere, details, priorite, statut, rappel_le, cree_le, ordre FROM actions WHERE dossier_id=? ORDER BY ordre ASC, id ASC')
+    .all(id)
   const acc = owns(me.id, id)!.accompagne_id
   const rdvs = db
     .prepare(
@@ -79,7 +81,7 @@ router.get('/:id/synthese.docx', requireAuth, requireRole('accompagnateur'), asy
     ).map((r) => ({ phase: r.phase, texte: r.texte_reponse })),
   }))
   const actions = db
-    .prepare('SELECT libelle, echeance, critere, statut FROM actions WHERE dossier_id=? ORDER BY id')
+    .prepare('SELECT libelle, echeance, critere, statut FROM actions WHERE dossier_id=? ORDER BY ordre ASC, id ASC')
     .all(id) as { libelle: string; echeance: string | null; critere: string | null; statut: string }[]
   const rdvs = db
     .prepare('SELECT c.debut, c.fin, r.statut FROM rdv r JOIN creneaux c ON c.id=r.creneau_id WHERE r.accompagne_id=? ORDER BY c.debut')
