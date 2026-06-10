@@ -193,6 +193,7 @@ for (const stmt of [
   "ALTER TABLE dossiers ADD COLUMN statut TEXT NOT NULL DEFAULT 'en_cours'",
   'ALTER TABLE dossiers ADD COLUMN synthese TEXT',
   'ALTER TABLE auto_evaluations ADD COLUMN analyse_questions TEXT',
+  'ALTER TABLE questions_entretien ADD COLUMN reponse TEXT',
 ]) {
   try {
     db.exec(stmt)

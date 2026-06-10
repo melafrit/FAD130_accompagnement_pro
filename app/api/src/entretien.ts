@@ -84,7 +84,7 @@ router.get('/sessions/:id', requireAuth, requireRole('accompagnateur'), (req: Re
   }
   const session = db.prepare('SELECT id, dossier_id, phase_atteinte, statut FROM sessions WHERE id=?').get(id)
   const reponses = db.prepare('SELECT phase, texte_reponse FROM reponses WHERE session_id=? ORDER BY phase').all(id)
-  const questions = db.prepare('SELECT id, phase, texte FROM questions_entretien WHERE session_id=? ORDER BY id').all(id)
+  const questions = db.prepare('SELECT id, phase, texte, reponse FROM questions_entretien WHERE session_id=? ORDER BY id').all(id)
   res.json({ session, reponses, questions })
 })
 
@@ -126,6 +126,24 @@ router.post('/sessions/:id/questions', requireAuth, requireRole('accompagnateur'
   }
   const info = db.prepare('INSERT INTO questions_entretien (session_id, phase, texte) VALUES (?,?,?)').run(id, phase, texte)
   res.status(201).json({ id: Number(info.lastInsertRowid), phase, texte })
+})
+
+// Mettre à jour une question (sa réponse, et éventuellement son texte)
+router.patch('/sessions/:id/questions/:qid', requireAuth, requireRole('accompagnateur'), (req: Request, res: Response) => {
+  const me = getUser(req)
+  const id = Number(req.params.id)
+  const qid = Number(req.params.qid)
+  if (!ownsSession(me.id, id)) {
+    res.status(404).json({ error: 'Session introuvable' })
+    return
+  }
+  const reponse = req.body?.reponse != null ? String(req.body.reponse) : null
+  if (req.body?.texte != null) {
+    db.prepare('UPDATE questions_entretien SET texte=?, reponse=? WHERE id=? AND session_id=?').run(String(req.body.texte), reponse, qid, id)
+  } else {
+    db.prepare('UPDATE questions_entretien SET reponse=? WHERE id=? AND session_id=?').run(reponse, qid, id)
+  }
+  res.json({ ok: true })
 })
 
 // Supprimer une question posée

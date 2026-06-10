@@ -8,7 +8,7 @@ import AiProgress from '../components/AiProgress'
 interface Phase { id: number; titre: string; objectif: string; vigilance: string[]; questions: string[] }
 interface Dossier { id: number; titre: string | null; accompagne_prenom: string | null; accompagne_email: string; recap: string | null }
 interface Suggestion { questions: string[]; reformulation: string | null; a_surveiller: string | null }
-interface Question { id: number; phase: string; texte: string }
+interface Question { id: number; phase: string; texte: string; reponse: string | null }
 
 // Ancrage théorique incarné par les suggestions, selon la phase (mapping front, défendable à l'oral).
 const PHASE_ANCRAGE: Record<number, { nom: string; pourquoi: string }> = {
@@ -27,7 +27,7 @@ export default function Entretien() {
   const [dossierId, setDossierId] = useState<number | null>(null)
   const [current, setCurrent] = useState(0)
   const [notes, setNotes] = useState<Record<number, string>>({})
-  const [questionsByPhase, setQuestionsByPhase] = useState<Record<number, { id: number; texte: string }[]>>({})
+  const [questionsByPhase, setQuestionsByPhase] = useState<Record<number, { id: number; texte: string; reponse: string | null }[]>>({})
   const [newQ, setNewQ] = useState('')
   const newQRef = useRef<HTMLInputElement>(null)
   const [sugg, setSugg] = useState<Suggestion | null>(null)
@@ -51,8 +51,8 @@ export default function Entretien() {
     const map: Record<number, string> = {}
     s.reponses.forEach((x) => { map[Number(x.phase)] = x.texte_reponse })
     setNotes(map)
-    const qmap: Record<number, { id: number; texte: string }[]> = {}
-    s.questions.forEach((q) => { const p = Number(q.phase); (qmap[p] = qmap[p] || []).push({ id: q.id, texte: q.texte }) })
+    const qmap: Record<number, { id: number; texte: string; reponse: string | null }[]> = {}
+    s.questions.forEach((q) => { const p = Number(q.phase); (qmap[p] = qmap[p] || []).push({ id: q.id, texte: q.texte, reponse: q.reponse }) })
     setQuestionsByPhase(qmap)
     setCurrent(Number(s.session.phase_atteinte) || 0)
   }
@@ -84,7 +84,7 @@ export default function Entretien() {
     const t = texte.trim()
     if (!t || sessionId == null) return
     const r = await api<{ id: number; texte: string }>(`/entretien/sessions/${sessionId}/questions`, { method: 'POST', body: JSON.stringify({ phase: current, texte: t }) })
-    setQuestionsByPhase((m) => ({ ...m, [current]: [...(m[current] || []), { id: r.id, texte: r.texte }] }))
+    setQuestionsByPhase((m) => ({ ...m, [current]: [...(m[current] || []), { id: r.id, texte: r.texte, reponse: null }] }))
     setNewQ('')
   }
   async function removeQuestion(qid: number) {
@@ -102,6 +102,13 @@ export default function Entretien() {
       el.setSelectionRange(el.value.length, el.value.length)
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
+  }
+  function setQReponse(qid: number, reponse: string) {
+    setQuestionsByPhase((m) => ({ ...m, [current]: (m[current] || []).map((x) => (x.id === qid ? { ...x, reponse } : x)) }))
+  }
+  async function saveQReponse(qid: number, reponse: string) {
+    if (sessionId == null) return
+    await api(`/entretien/sessions/${sessionId}/questions/${qid}`, { method: 'PATCH', body: JSON.stringify({ reponse }) })
   }
   async function askIA() {
     if (sessionId == null) return
@@ -219,7 +226,17 @@ export default function Entretien() {
         <h3>❓ Questions que j'ai posées <span className="muted">(phase {current + 1})</span></h3>
         <ul className="qposees">
           {qPosees.map((q) => (
-            <li key={q.id}><span>{q.texte}</span><button className="q-del" onClick={() => removeQuestion(q.id)} aria-label="Supprimer la question">×</button></li>
+            <li key={q.id} className="qposee">
+              <div className="qposee-head"><span className="qposee-q">{q.texte}</span><button className="q-del" onClick={() => removeQuestion(q.id)} aria-label="Supprimer la question">×</button></div>
+              <textarea
+                className="qposee-rep"
+                value={q.reponse || ''}
+                onChange={(e) => setQReponse(q.id, e.target.value)}
+                onBlur={(e) => saveQReponse(q.id, e.target.value)}
+                placeholder="Notes / réponse de la personne à cette question…"
+                rows={2}
+              />
+            </li>
           ))}
           {qPosees.length === 0 && <li className="muted">Aucune question enregistrée pour cette phase — saisis-la ou clique une question proposée ci-dessus.</li>}
         </ul>
@@ -231,7 +248,7 @@ export default function Entretien() {
 
       <div className="notes-block">
         <div className="notes-head">
-          <h3>Notes / réponses</h3>
+          <h3>Notes générales de la phase <span className="muted">(facultatif)</span></h3>
           {supported ? (
             <button className={`btn btn-ghost mic ${listening ? 'mic-on' : ''}`} onClick={toggle}>{listening ? '⏹ Arrêter le micro' : '🎙 Dicter'}</button>
           ) : <span className="muted">(dictée non supportée par ce navigateur)</span>}

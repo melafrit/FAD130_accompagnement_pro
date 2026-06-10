@@ -142,14 +142,14 @@ export async function seedDemoData(accId: number, amineId: number): Promise<void
 
   const insSession = db.prepare('INSERT INTO sessions (dossier_id, date, phase_atteinte, statut) VALUES (?,?,?, ?)')
   const insRep = db.prepare("INSERT INTO reponses (session_id, phase, texte_reponse, source) VALUES (?,?,?, 'saisie')")
-  const insQ = db.prepare('INSERT INTO questions_entretien (session_id, phase, texte) VALUES (?,?,?)')
+  const insQ = db.prepare('INSERT INTO questions_entretien (session_id, phase, texte, reponse) VALUES (?,?,?,?)')
   const sessionIds: number[] = []
   for (const e of entretiens) {
     const sid = Number(insSession.run(dossierId, e.date, e.phaseAtteinte, 'terminee').lastInsertRowid)
     sessionIds.push(sid)
     for (const rep of e.reponses) {
       insRep.run(sid, rep.phase, rep.r)
-      insQ.run(sid, rep.phase, rep.q)
+      insQ.run(sid, rep.phase, rep.q, rep.r)
     }
   }
 

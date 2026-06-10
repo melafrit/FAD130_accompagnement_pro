@@ -422,6 +422,11 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .q-add { display: flex; gap: 8px; }
 .q-add input { flex: 1; border: 1px solid var(--bordure); border-radius: 8px; padding: 8px 10px; font: inherit; }
 .q-add input:focus { outline: none; border-color: var(--sauge); }
+.qposees li.qposee { display: block; }
+.qposee-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.qposee-q { font-size: 14px; font-weight: 600; color: var(--bleu-profond); line-height: 1.35; }
+.qposee-rep { width: 100%; margin-top: 8px; border: 1px solid var(--bordure); border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 13px; resize: vertical; box-sizing: border-box; background: var(--blanc); }
+.qposee-rep:focus { outline: none; border-color: var(--sauge); }
 
 /* Questions proposées cliquables (référentiel + IA) */
 .phase-q, .sugg-q { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }

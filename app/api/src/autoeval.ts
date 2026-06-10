@@ -139,15 +139,15 @@ function buildContext(dossierId: number): string {
   if (q?.cr_recap) parts.push(`## Questionnaire initial (récapitulatif)\n${q.cr_recap}`)
   sessions.forEach((s, i) => {
     const reps = db.prepare('SELECT phase, texte_reponse FROM reponses WHERE session_id=? ORDER BY phase').all(s.id) as { phase: string | null; texte_reponse: string | null }[]
-    const ques = db.prepare('SELECT phase, texte FROM questions_entretien WHERE session_id=? ORDER BY id').all(s.id) as { phase: string | null; texte: string }[]
+    const ques = db.prepare('SELECT phase, texte, reponse FROM questions_entretien WHERE session_id=? ORDER BY id').all(s.id) as { phase: string | null; texte: string; reponse: string | null }[]
     const blocs: string[] = []
     PHASES.forEach((ph) => {
       const note = reps.find((r) => String(r.phase) === String(ph.id))?.texte_reponse
-      const qs = ques.filter((qq) => String(qq.phase) === String(ph.id)).map((qq) => qq.texte)
+      const qs = ques.filter((qq) => String(qq.phase) === String(ph.id))
       if (!note && qs.length === 0) return
       let bloc = `### Phase ${ph.id + 1} — ${ph.titre}`
-      if (qs.length) bloc += `\nQuestions effectivement posées par l'accompagnateur :\n${qs.map((t) => `  • ${t}`).join('\n')}`
-      if (note) bloc += `\nNotes / propos recueillis : ${note}`
+      if (qs.length) bloc += `\nQuestions posées par l'accompagnateur (avec réponses recueillies) :\n${qs.map((qq) => `  • Q : ${qq.texte}${qq.reponse ? `\n    R : ${qq.reponse}` : ''}`).join('\n')}`
+      if (note) bloc += `\nNotes générales : ${note}`
       blocs.push(bloc)
     })
     parts.push(`## Entretien ${i + 1} (${String(s.date).slice(0, 10)})\n${blocs.join('\n') || '(pas de notes)'}`)
