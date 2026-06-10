@@ -113,9 +113,22 @@ router.get('/verify-email', (req: Request, res: Response) => {
     res.status(400).json({ error: 'Lien invalide ou expiré' })
     return
   }
-  db.prepare('UPDATE users SET email_verifie = 1 WHERE id = ?').run(row.user_id)
+  const pend = db.prepare('SELECT email_pending FROM users WHERE id = ?').get(row.user_id) as { email_pending: string | null } | undefined
+  let message = 'Email vérifié. Vous pouvez vous connecter.'
+  if (pend?.email_pending) {
+    // Changement d'e-mail : on applique l'adresse en attente (si toujours libre)
+    const taken = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(pend.email_pending, row.user_id)
+    if (taken) {
+      res.status(409).json({ error: 'Cette adresse e-mail est désormais utilisée par un autre compte.' })
+      return
+    }
+    db.prepare('UPDATE users SET email = email_pending, email_pending = NULL, email_verifie = 1 WHERE id = ?').run(row.user_id)
+    message = 'Nouvelle adresse e-mail confirmée.'
+  } else {
+    db.prepare('UPDATE users SET email_verifie = 1 WHERE id = ?').run(row.user_id)
+  }
   db.prepare('UPDATE tokens SET utilise = 1 WHERE id = ?').run(row.id)
-  res.json({ ok: true, message: 'Email vérifié. Vous pouvez vous connecter.' })
+  res.json({ ok: true, message })
 })
 
 // --- Connexion ---
@@ -158,6 +171,66 @@ router.get('/me', requireAuth, (req: Request, res: Response) => {
   const u = (req as ReqUser).user as SessionUser
   const row = db.prepare('SELECT id, email, role, nom, prenom FROM users WHERE id = ?').get(u.id)
   res.json({ user: row })
+})
+
+// --- Mise à jour du profil (prénom / nom) ---
+router.patch('/me', requireAuth, (req: Request, res: Response) => {
+  const u = (req as ReqUser).user as SessionUser
+  const parsed = z.object({ prenom: z.string().max(80).optional(), nom: z.string().max(80).optional() }).safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Données invalides' })
+    return
+  }
+  const prenom = parsed.data.prenom?.trim() || null
+  const nom = parsed.data.nom?.trim() || null
+  db.prepare('UPDATE users SET prenom = ?, nom = ? WHERE id = ?').run(prenom, nom, u.id)
+  const row = db.prepare('SELECT id, email, role, nom, prenom FROM users WHERE id = ?').get(u.id)
+  res.json({ user: row })
+})
+
+// --- Changement de mot de passe (depuis le profil) ---
+router.post('/change-password', requireAuth, async (req: Request, res: Response) => {
+  const u = (req as ReqUser).user as SessionUser
+  const parsed = z.object({ ancien: z.string(), nouveau: z.string().min(8) }).safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Le nouveau mot de passe doit faire au moins 8 caractères.' })
+    return
+  }
+  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(u.id) as { password_hash: string | null } | undefined
+  if (!row || !row.password_hash || !(await bcrypt.compare(parsed.data.ancien, row.password_hash))) {
+    res.status(400).json({ error: 'Mot de passe actuel incorrect.' })
+    return
+  }
+  const hash = await bcrypt.hash(parsed.data.nouveau, 10)
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, u.id)
+  res.json({ ok: true })
+})
+
+// --- Changement d'adresse e-mail (avec re-validation par lien envoyé à la nouvelle adresse) ---
+router.post('/change-email', requireAuth, async (req: Request, res: Response) => {
+  const u = (req as ReqUser).user as SessionUser
+  const parsed = z.object({ email: z.string().email() }).safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Adresse e-mail invalide.' })
+    return
+  }
+  const email = parsed.data.email.trim()
+  const me = db.prepare('SELECT email FROM users WHERE id = ?').get(u.id) as { email: string } | undefined
+  if (me && me.email.toLowerCase() === email.toLowerCase()) {
+    res.status(400).json({ error: 'C’est déjà votre adresse actuelle.' })
+    return
+  }
+  const taken = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, u.id)
+  if (taken) {
+    res.status(409).json({ error: 'Cette adresse est déjà utilisée par un autre compte.' })
+    return
+  }
+  db.prepare('UPDATE users SET email_pending = ? WHERE id = ?').run(email, u.id)
+  const token = makeToken()
+  db.prepare("INSERT INTO tokens (user_id, type, valeur, expire_le) VALUES (?, 'verif_email', ?, ?)").run(u.id, token, expiryHours(48))
+  const mail = verificationEmail(token)
+  await sendEmail(email, mail.subject, mail.html)
+  res.json({ ok: true, message: 'Un lien de confirmation a été envoyé à votre nouvelle adresse.' })
 })
 
 // --- Demande de réinitialisation ---

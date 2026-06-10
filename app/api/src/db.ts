@@ -202,6 +202,8 @@ for (const stmt of [
   // Compte rendu en HTML (remplace le .docx) : contenu éditable + origine de la version
   'ALTER TABLE comptes_rendus ADD COLUMN contenu_html TEXT',
   "ALTER TABLE comptes_rendus ADD COLUMN source TEXT NOT NULL DEFAULT 'ia'",
+  // Changement d'e-mail en attente de re-validation par l'utilisateur
+  'ALTER TABLE users ADD COLUMN email_pending TEXT',
 ]) {
   try {
     db.exec(stmt)

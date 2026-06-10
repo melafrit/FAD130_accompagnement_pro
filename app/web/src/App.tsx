@@ -1,4 +1,4 @@
-import { Routes, Route, Link, NavLink, useNavigate } from 'react-router-dom'
+import { Routes, Route, Link, NavLink } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -23,16 +23,13 @@ import AutoEvaluation from './pages/AutoEvaluation'
 import PlanAction from './pages/PlanAction'
 import MonPlanAction from './pages/MonPlanAction'
 import Admin from './pages/Admin'
+import Profil from './pages/Profil'
 import NotificationsBell from './components/NotificationsBell'
+import AuthMenu from './components/AuthMenu'
 import Protected from './components/Protected'
 
 function Header() {
-  const { user, logout } = useAuth()
-  const nav = useNavigate()
-  async function onLogout() {
-    await logout()
-    nav('/')
-  }
+  const { user } = useAuth()
   return (
     <header className="header">
       <Link to="/" className="brand" aria-label="Boussole — accueil">
@@ -43,16 +40,9 @@ function Header() {
         <NavLink to="/" end>Accueil</NavLink>
         <NavLink to="/methode">Méthode</NavLink>
         <NavLink to="/aide">Aide</NavLink>
-        {user ? (
-          <>
-            <NavLink to="/espace">Mon espace</NavLink>
-            <NotificationsBell />
-            <span className="nav-user">{user.email}</span>
-            <button className="btn btn-ghost" onClick={onLogout}>Déconnexion</button>
-          </>
-        ) : (
-          <Link className="btn btn-ghost" to="/connexion">Connexion</Link>
-        )}
+        {user && <NavLink to="/espace">Mon espace</NavLink>}
+        {user && <NotificationsBell />}
+        <AuthMenu />
       </nav>
     </header>
   )
@@ -97,6 +87,7 @@ export default function App() {
             <Route path="/methode" element={<Methode />} />
             <Route path="/aide" element={<Aide />} />
             <Route path="/espace" element={<Protected><Espace /></Protected>} />
+            <Route path="/profil" element={<Protected><Profil /></Protected>} />
             <Route path="/questionnaire" element={<Protected role="accompagne"><Questionnaire /></Protected>} />
             <Route path="/mes-creneaux" element={<Protected role="accompagnateur"><Creneaux /></Protected>} />
             <Route path="/rendez-vous" element={<Protected role="accompagne"><RendezVous /></Protected>} />
