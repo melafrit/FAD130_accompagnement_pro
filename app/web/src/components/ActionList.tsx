@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { Reorder, useDragControls, AnimatePresence, MotionConfig } from 'framer-motion'
 
 export interface Action {
   id: number
@@ -15,6 +16,88 @@ export interface Action {
 
 const PRIO_LABEL: Record<string, string> = { haute: 'Priorité haute', moyenne: 'Priorité moyenne', basse: 'Priorité basse' }
 
+// Une ligne d'action (Reorder.Item) : glissable uniquement par la poignée (dragControls).
+function ActionRow({
+  action,
+  canReorder,
+  onStatut,
+  onOpen,
+  onDragStart,
+  onDragEnd,
+  onKeyReorder,
+}: {
+  action: Action
+  canReorder: boolean
+  onStatut: (id: number, statut: string) => void
+  onOpen?: (a: Action) => void
+  onDragStart: () => void
+  onDragEnd: () => void
+  onKeyReorder: (e: ReactKeyboardEvent) => void
+}) {
+  const controls = useDragControls()
+  return (
+    <Reorder.Item
+      value={action}
+      as="div"
+      dragListener={false}
+      dragControls={controls}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      layout="position"
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: action.statut === 'fait' ? 0.75 : 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.18 } }}
+      transition={{ type: 'spring', stiffness: 600, damping: 38 }}
+      whileDrag={{ scale: 1.03, boxShadow: '0 12px 30px rgba(0,0,0,.20)', zIndex: 5, cursor: 'grabbing' }}
+      className={`action-item statut-${action.statut}${action.priorite ? ` prio-${action.priorite}` : ''}`}
+    >
+      {canReorder && (
+        <button
+          type="button"
+          className="action-drag"
+          aria-label="Réordonner (glisser, ou flèches haut/bas)"
+          title="Glisser pour réordonner (ou flèches ↑/↓)"
+          style={{ touchAction: 'none' }}
+          onPointerDown={(e) => controls.start(e)}
+          onKeyDown={onKeyReorder}
+        >
+          ⠿
+        </button>
+      )}
+      {action.priorite && <span className={`prio-dot prio-${action.priorite}`} title={PRIO_LABEL[action.priorite] || ''} aria-label={PRIO_LABEL[action.priorite] || ''} />}
+      <button
+        type="button"
+        className="action-body"
+        onClick={() => onOpen?.(action)}
+        disabled={!onOpen}
+        aria-label={onOpen ? `Ouvrir le détail : ${action.libelle}` : undefined}
+      >
+        <span className="action-lib">{action.libelle}</span>
+        {(action.echeance || action.critere || action.rappel_le) && (
+          <span className="action-meta">
+            {action.echeance ? `Échéance : ${action.echeance}` : ''}
+            {action.echeance && action.critere ? ' · ' : ''}
+            {action.critere || ''}
+            {(action.echeance || action.critere) && action.rappel_le ? ' · ' : ''}
+            {action.rappel_le ? `🔔 ${action.rappel_le}` : ''}
+          </span>
+        )}
+      </button>
+      <select
+        className="action-statut"
+        value={action.statut}
+        onChange={(e) => onStatut(action.id, e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        aria-label="Statut"
+      >
+        <option value="a_faire">À faire</option>
+        <option value="en_cours">En cours</option>
+        <option value="fait">Fait</option>
+      </select>
+    </Reorder.Item>
+  )
+}
+
 export default function ActionList({
   actions,
   onStatut,
@@ -26,129 +109,74 @@ export default function ActionList({
   onOpen?: (a: Action) => void
   onReorder?: (ids: number[]) => void
 }) {
-  // Copie locale réordonnable pendant le glisser-déposer ; resynchronisée sur les props.
   const [items, setItems] = useState<Action[]>(actions)
-  const dragId = useRef<number | null>(null)
+  const draggingRef = useRef(false) // vrai pendant un glissement OU une rafale de déplacements clavier
   const startOrder = useRef<number[]>([])
-  const [draggingId, setDraggingId] = useState<number | null>(null)
-  const listRef = useRef<HTMLDivElement>(null)
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+  const kbTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Resynchronise sur les props, sauf pendant une interaction (pour ne pas casser l'animation en cours)
   useEffect(() => {
-    if (dragId.current == null) setItems(actions) // ne pas écraser pendant un glissement
+    if (!draggingRef.current) setItems(actions)
   }, [actions])
+  useEffect(() => () => { if (kbTimer.current) clearTimeout(kbTimer.current) }, [])
 
-  function startDrag(e: ReactPointerEvent, id: number) {
-    if (!onReorder) return
-    e.preventDefault()
-    dragId.current = id
-    startOrder.current = items.map((a) => a.id)
-    setDraggingId(id)
-    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+  function handleDragStart() {
+    draggingRef.current = true
+    startOrder.current = itemsRef.current.map((a) => a.id)
   }
-  function moveDrag(e: ReactPointerEvent) {
-    if (dragId.current == null || !listRef.current) return
-    const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>('[data-action-row]'))
-    const y = e.clientY
-    // index souhaité = nombre d'AUTRES lignes dont le milieu est au-dessus du pointeur
-    let desired = 0
-    for (const r of rows) {
-      if (Number(r.dataset.id) === dragId.current) continue
-      const rect = r.getBoundingClientRect()
-      if (rect.top + rect.height / 2 < y) desired++
-    }
-    setItems((cur) => {
-      const moved = cur.find((a) => a.id === dragId.current)
-      if (!moved) return cur
-      const without = cur.filter((a) => a.id !== dragId.current)
-      const clamped = Math.max(0, Math.min(desired, without.length))
-      const next = [...without.slice(0, clamped), moved, ...without.slice(clamped)]
-      // évite un setState inutile si l'ordre n'a pas changé
-      if (next.every((a, i) => a.id === cur[i].id)) return cur
-      return next
-    })
-  }
-  function endDrag() {
-    if (dragId.current == null) return
-    dragId.current = null
-    setDraggingId(null)
-    const next = items.map((a) => a.id)
+  function handleDragEnd() {
+    draggingRef.current = false
+    const next = itemsRef.current.map((a) => a.id)
     const prev = startOrder.current
     // ne persiste que si l'ordre a réellement changé (un simple clic sur la poignée ne réordonne rien)
     if (next.length === prev.length && next.every((id, i) => id === prev[i])) return
     onReorder?.(next)
   }
-  // Réordonnancement au clavier (accessibilité) : flèches haut/bas sur la poignée
+  // Réordonnancement au clavier (accessibilité) : flèches haut/bas sur la poignée.
+  // Déplacement optimiste immédiat ; on ne persiste (POST + rechargement) qu'une fois la rafale
+  // de touches terminée (anti-emballement + pas de retour en arrière dû à une réponse tardive).
   function moveByKeyboard(e: ReactKeyboardEvent, id: number) {
     if (!onReorder || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return
     e.preventDefault()
-    const from = items.findIndex((a) => a.id === id)
+    const cur = itemsRef.current
+    const from = cur.findIndex((a) => a.id === id)
     if (from === -1) return
     const to = e.key === 'ArrowUp' ? from - 1 : from + 1
-    if (to < 0 || to >= items.length) return
-    const next = items.slice()
+    if (to < 0 || to >= cur.length) return
+    const next = cur.slice()
     ;[next[from], next[to]] = [next[to], next[from]]
+    itemsRef.current = next // synchronise pour les touches rapprochées
+    draggingRef.current = true // suspend la resync pendant la rafale
     setItems(next)
-    onReorder(next.map((a) => a.id))
+    if (kbTimer.current) clearTimeout(kbTimer.current)
+    kbTimer.current = setTimeout(() => {
+      draggingRef.current = false
+      onReorder?.(itemsRef.current.map((a) => a.id))
+    }, 350)
   }
 
   if (items.length === 0) return <p className="muted">Aucune action pour l'instant.</p>
 
   return (
-    <div className="actions-list" ref={listRef}>
-      {items.map((a) => (
-        <div
-          key={a.id}
-          data-action-row
-          data-id={a.id}
-          className={`action-item statut-${a.statut}${a.priorite ? ` prio-${a.priorite}` : ''}${draggingId === a.id ? ' dragging' : ''}`}
-        >
-          {onReorder && (
-            <button
-              type="button"
-              className="action-drag"
-              aria-label="Réordonner (glisser, ou flèches haut/bas)"
-              title="Glisser pour réordonner (ou flèches ↑/↓)"
-              onPointerDown={(e) => startDrag(e, a.id)}
-              onPointerMove={moveDrag}
-              onPointerUp={endDrag}
-              onPointerCancel={endDrag}
-              onKeyDown={(e) => moveByKeyboard(e, a.id)}
-            >
-              ⠿
-            </button>
-          )}
-          {a.priorite && <span className={`prio-dot prio-${a.priorite}`} title={PRIO_LABEL[a.priorite] || ''} aria-label={PRIO_LABEL[a.priorite] || ''} />}
-          <button
-            type="button"
-            className="action-body"
-            onClick={() => onOpen?.(a)}
-            disabled={!onOpen}
-            aria-label={onOpen ? `Ouvrir le détail : ${a.libelle}` : undefined}
-          >
-            <span className="action-lib">{a.libelle}</span>
-            {(a.echeance || a.critere || a.rappel_le) && (
-              <span className="action-meta">
-                {a.echeance ? `Échéance : ${a.echeance}` : ''}
-                {a.echeance && a.critere ? ' · ' : ''}
-                {a.critere || ''}
-                {(a.echeance || a.critere) && a.rappel_le ? ' · ' : ''}
-                {a.rappel_le ? `🔔 ${a.rappel_le}` : ''}
-              </span>
-            )}
-          </button>
-          <select
-            className="action-statut"
-            value={a.statut}
-            onChange={(e) => onStatut(a.id, e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            aria-label="Statut"
-          >
-            <option value="a_faire">À faire</option>
-            <option value="en_cours">En cours</option>
-            <option value="fait">Fait</option>
-          </select>
-        </div>
-      ))}
-    </div>
+    <MotionConfig reducedMotion="user">
+      <Reorder.Group axis="y" as="div" values={items} onReorder={setItems} className="actions-list">
+        <AnimatePresence initial={false}>
+          {items.map((a) => (
+            <ActionRow
+              key={a.id}
+              action={a}
+              canReorder={!!onReorder}
+              onStatut={onStatut}
+              onOpen={onOpen}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onKeyReorder={(e) => moveByKeyboard(e, a.id)}
+            />
+          ))}
+        </AnimatePresence>
+      </Reorder.Group>
+    </MotionConfig>
   )
 }

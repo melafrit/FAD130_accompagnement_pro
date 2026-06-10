@@ -239,8 +239,9 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 
 /* Plan d'action */
 .actions-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-.action-item { display: flex; align-items: center; gap: 10px; background: var(--blanc); border: 1px solid var(--bordure); border-left: 4px solid var(--sauge); border-radius: 12px; padding: 10px 14px; }
-.action-item.statut-fait { border-left-color: #1b7a43; opacity: 0.75; }
+.action-item { position: relative; display: flex; align-items: center; gap: 10px; background: var(--blanc); border: 1px solid var(--bordure); border-left: 4px solid var(--sauge); border-radius: 12px; padding: 10px 14px; }
+/* (l'estompage des actions « faites » est piloté par framer-motion — voir animate dans ActionList) */
+.action-item.statut-fait { border-left-color: #1b7a43; }
 .action-item.statut-fait .action-lib { text-decoration: line-through; }
 .action-lib { display: block; font-weight: 600; color: var(--texte); }
 .action-meta { display: block; margin-top: 2px; font-size: 13px; color: var(--texte-doux); }
@@ -264,9 +265,7 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .action-body:disabled { cursor: default; }
 .action-body:hover:not(:disabled) .action-lib { color: var(--bleu-profond); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .action-body:focus-visible { outline: 2px solid var(--sauge); outline-offset: 2px; }
-
-/* Ligne en cours de glissement */
-.action-item.dragging { box-shadow: 0 8px 24px rgba(0, 0, 0, .16); border-color: var(--sauge); background: var(--sauge-clair); }
+/* (le « soulèvement » pendant le glissement est géré par framer-motion : whileDrag) */
 
 /* === Modale (popup) générique + détail d'action === */
 .modal-overlay { position: fixed; inset: 0; background: rgba(20, 30, 40, .45); display: flex; align-items: flex-start; justify-content: center; padding: 5vh 16px; z-index: 1000; overflow-y: auto; }
