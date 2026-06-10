@@ -62,7 +62,6 @@ export default function Dossier() {
       <div className="dossier-actions">
         {!cloture && enCours && <button className="btn btn-primary" onClick={() => nav(`/entretien?dossier=${id}`)}>Reprendre l'entretien en cours</button>}
         {!cloture && !enCours && <button className="btn btn-primary" onClick={() => nav(`/entretien?dossier=${id}`)}>Nouvel entretien</button>}
-        <Link className="btn btn-ghost" to="/mes-creneaux">Mes créneaux / RDV</Link>
         <a className="btn btn-ghost" href={`/api/dossiers/${id}/synthese.docx`}>⬇ Synthèse du parcours (.docx)</a>
         <Link className="btn btn-primary" to={`/dossier/${id}/auto-evaluation`}>📊 Mon auto-évaluation</Link>
       </div>
@@ -82,15 +81,6 @@ export default function Dossier() {
           </div>
         </li>
 
-        {rdvs.map((r) => (
-          <li key={`rdv-${r.id}`} className="tl-item">
-            <span className="tl-dot tl-rdv">📅</span>
-            <div className="tl-body"><h3>Rendez-vous</h3><p className="muted">{fslot(r.debut)} — {r.statut}</p>
-              <a className="btn btn-ghost btn-sm" href={`/api/rdv/${r.id}/ics`}>📅 Ajouter à l'agenda</a>
-            </div>
-          </li>
-        ))}
-
         {sessions.map((s, i) => (
           <li key={`s-${s.id}`} className="tl-item">
             <span className="tl-dot">{i + 1}</span>
@@ -104,6 +94,21 @@ export default function Dossier() {
           </li>
         ))}
       </ol>
+
+      {rdvs.length > 0 && (
+        <section className="rdv-section">
+          <h2>Rendez-vous <span className="muted">({rdvs.length})</span></h2>
+          <div className="rdv-box">
+            {rdvs.map((r) => (
+              <div key={r.id} className="rdv-row">
+                <span className="rdv-when">{fslot(r.debut)}</span>
+                <span className={`rdv-statut st-${r.statut}`}>{r.statut}</span>
+                <a className="rdv-ics" href={`/api/rdv/${r.id}/ics`} title="Ajouter à l'agenda" aria-label={`Ajouter le rendez-vous du ${fslot(r.debut)} à l'agenda`}>📅</a>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2>Plan d'action</h2>
