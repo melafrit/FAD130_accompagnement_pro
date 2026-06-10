@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import ActionList, { type Action } from '../components/ActionList'
+import DictaTextarea from '../components/DictaTextarea'
+import DictaInput from '../components/DictaInput'
 
 interface DossierInfo { id: number; titre: string | null; statut: string; synthese: string | null; cree_le: string; accompagne_prenom: string | null; accompagne_email: string }
 interface Questionnaire { cr_recap: string | null; complete_le: string | null }
@@ -101,7 +103,7 @@ export default function Dossier() {
         <h2>Plan d'action</h2>
         {!cloture && (
           <form className="qa-form" onSubmit={addAction}>
-            <input value={libelle} onChange={(e) => setLibelle(e.target.value)} placeholder="Ajouter une action…" />
+            <DictaInput value={libelle} onChange={setLibelle} placeholder="Ajouter ou dicter une action…" />
             <button className="btn btn-primary" type="submit">Ajouter</button>
           </form>
         )}
@@ -118,7 +120,7 @@ export default function Dossier() {
           </>
         ) : (
           <>
-            <textarea className="notes-area" value={synthese} onChange={(e) => setSynthese(e.target.value)} placeholder="Synthèse finale du parcours (facultatif)…" />
+            <DictaTextarea className="notes-area" value={synthese} onChange={setSynthese} placeholder="Synthèse finale du parcours (facultatif)…" />
             <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={cloturer}>Clôturer la démarche</button>
           </>
         )}

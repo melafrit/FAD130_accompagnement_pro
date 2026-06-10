@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
-import { useSpeechToText } from '../hooks/useSpeechToText'
 import { useTypewriter } from '../hooks/useTypewriter'
 import AiProgress from '../components/AiProgress'
+import DictaTextarea from '../components/DictaTextarea'
+import DictaInput from '../components/DictaInput'
 
 interface Phase { id: number; titre: string; objectif: string; vigilance: string[]; questions: string[] }
 interface Dossier { id: number; titre: string | null; accompagne_prenom: string | null; accompagne_email: string; recap: string | null }
@@ -38,9 +39,6 @@ export default function Entretien() {
   const nav = useNavigate()
   const [params] = useSearchParams()
 
-  const { listening, supported, interim, toggle } = useSpeechToText((t) => {
-    setNotes((n) => ({ ...n, [current]: (n[current] ? n[current] + ' ' : '') + t }))
-  })
   const typed = useTypewriter(sugg ? [sugg.reformulation || '', ...sugg.questions] : [])
 
   async function startSession(dId: number) {
@@ -71,9 +69,12 @@ export default function Entretien() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function saveCurrent() {
+  async function saveReponse(texte: string) {
     if (sessionId == null) return
-    await api(`/entretien/sessions/${sessionId}/reponses`, { method: 'POST', body: JSON.stringify({ phase: current, texte: notes[current] || '' }) })
+    await api(`/entretien/sessions/${sessionId}/reponses`, { method: 'POST', body: JSON.stringify({ phase: current, texte }) })
+  }
+  async function saveCurrent() {
+    await saveReponse(notes[current] || '')
   }
   async function goTo(idx: number) {
     await saveCurrent()
@@ -228,11 +229,12 @@ export default function Entretien() {
           {qPosees.map((q) => (
             <li key={q.id} className="qposee">
               <div className="qposee-head"><span className="qposee-q">{q.texte}</span><button className="q-del" onClick={() => removeQuestion(q.id)} aria-label="Supprimer la question">×</button></div>
-              <textarea
+              <DictaTextarea
                 className="qposee-rep"
                 value={q.reponse || ''}
-                onChange={(e) => setQReponse(q.id, e.target.value)}
-                onBlur={(e) => saveQReponse(q.id, e.target.value)}
+                onChange={(v) => setQReponse(q.id, v)}
+                onBlur={(e) => void saveQReponse(q.id, e.target.value)}
+                onCommit={(v) => void saveQReponse(q.id, v)}
                 placeholder="Notes / réponse de la personne à cette question…"
                 rows={2}
               />
@@ -241,20 +243,24 @@ export default function Entretien() {
           {qPosees.length === 0 && <li className="muted">Aucune question enregistrée pour cette phase — saisis-la ou clique une question proposée ci-dessus.</li>}
         </ul>
         <form className="q-add" onSubmit={(e) => { e.preventDefault(); void addQuestion(newQ) }}>
-          <input ref={newQRef} value={newQ} onChange={(e) => setNewQ(e.target.value)} placeholder="Saisir ou modifier une question, puis Ajouter…" />
+          <DictaInput inputRef={newQRef} value={newQ} onChange={setNewQ} placeholder="Saisir, dicter ou modifier une question, puis Ajouter…" />
           <button className="btn btn-ghost" type="submit">＋ Ajouter</button>
         </form>
       </div>
 
       <div className="notes-block">
         <div className="notes-head">
-          <h3>Notes générales de la phase <span className="muted">(facultatif)</span></h3>
-          {supported ? (
-            <button className={`btn btn-ghost mic ${listening ? 'mic-on' : ''}`} onClick={toggle}>{listening ? '⏹ Arrêter le micro' : '🎙 Dicter'}</button>
-          ) : <span className="muted">(dictée non supportée par ce navigateur)</span>}
+          <h3>Notes générales de la phase <span className="muted">(facultatif · 🎙 pour dicter)</span></h3>
         </div>
-        <textarea className="notes-area" value={notes[current] || ''} onChange={(e) => setNotes((n) => ({ ...n, [current]: e.target.value }))} onBlur={saveCurrent} placeholder="Saisis ou dicte les propos de la personne…" />
-        {interim && <p className="interim"><span className="listening-dot" aria-hidden="true" />{interim}</p>}
+        <DictaTextarea
+          key={`notes-${current}`}
+          className="notes-area"
+          value={notes[current] || ''}
+          onChange={(v) => setNotes((n) => ({ ...n, [current]: v }))}
+          onBlur={() => void saveCurrent()}
+          onCommit={(v) => void saveReponse(v)}
+          placeholder="Saisis ou dicte les propos de la personne…"
+        />
         <div className="notes-actions"><button className="btn btn-primary" disabled={busy} onClick={askIA}>✨ Suggestions de l’IA</button></div>
         {busy && <AiProgress steps={['Lecture de tes notes…', 'Analyse de la phase…', 'Préparation des suggestions…']} />}
         {sugg && (

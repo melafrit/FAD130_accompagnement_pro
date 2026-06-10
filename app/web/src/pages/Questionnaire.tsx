@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import AiProgress from '../components/AiProgress'
+import DictaInput from '../components/DictaInput'
 
 interface Step {
   question: string
@@ -79,7 +80,7 @@ export default function Questionnaire() {
             </div>
           )}
           <form onSubmit={(e) => { e.preventDefault(); submit(answer) }} className="qa-form">
-            <input value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Ta réponse…" aria-label="Ta réponse" />
+            <DictaInput value={answer} onChange={setAnswer} placeholder="Ta réponse (ou 🎙 pour dicter)…" aria-label="Ta réponse" />
             <button className="btn btn-primary" type="submit">Envoyer</button>
           </form>
         </div>

@@ -7,6 +7,7 @@ import BarsChart from '../components/charts/BarsChart'
 import Gauge from '../components/charts/Gauge'
 import EvolutionLine from '../components/charts/EvolutionLine'
 import AiProgress from '../components/AiProgress'
+import DictaTextarea from '../components/DictaTextarea'
 
 interface Indicateur { id: string; texte: string }
 interface Critere { id: number; titre: string; resume: string; indicateurs: Indicateur[] }
@@ -181,9 +182,9 @@ export default function AutoEvaluation() {
                     <GradientSlider value={scores[ind.id]?.score ?? null} zones={zones} onChange={(v) => setScore(ind.id, v)} />
                     <div className="ae-comment">
                       {aiApplied[ind.id] && <span className="ae-ia-tag">✨ suggéré par l’IA</span>}
-                      <textarea
+                      <DictaTextarea
                         value={scores[ind.id]?.commentaire || ''}
-                        onChange={(e) => setComment(ind.id, e.target.value)}
+                        onChange={(v) => setComment(ind.id, v)}
                         placeholder="Commentaire d’auto-évaluation…"
                         rows={2}
                       />
@@ -200,13 +201,13 @@ export default function AutoEvaluation() {
       <section className="ae-critere">
         <h2>Analyse de mes questions</h2>
         <p className="muted">Retour de l’IA sur le <strong>type et la variété</strong> de tes questions (ouvertes/fermées, reformulation, faire émerger…). À éditer librement.</p>
-        <textarea className="notes-area" value={analyseQuestions} onChange={(e) => setAnalyseQuestions(e.target.value)} placeholder="Qualité et variété de mes questions…" />
+        <DictaTextarea className="notes-area" value={analyseQuestions} onChange={setAnalyseQuestions} placeholder="Qualité et variété de mes questions…" />
       </section>
 
       {/* Synthèse + actions */}
       <section className="ae-critere">
         <h2>Synthèse globale</h2>
-        <textarea className="notes-area" value={commentaireGlobal} onChange={(e) => setCommentaireGlobal(e.target.value)} placeholder="Forces, axes de progrès, fil rouge de mon positionnement…" />
+        <DictaTextarea className="notes-area" value={commentaireGlobal} onChange={setCommentaireGlobal} placeholder="Forces, axes de progrès, fil rouge de mon positionnement…" />
       </section>
 
       <div className="ae-actions">
