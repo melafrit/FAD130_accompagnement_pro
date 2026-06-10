@@ -10,7 +10,7 @@ function reducedMotion(): boolean {
   return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-/** Jauge circulaire du score global ; affiche /20 et /100.
+/** Jauge circulaire du score global ; affiche le score sur 100.
  *  `reveal` : à chaque changement de cette clé, la note « compte » et l'arc se remplit (révélation / pré-remplissage IA).
  *  Les éditions de curseurs (reveal inchangé) restent instantanées — aucune animation, aucun lag. */
 export default function Gauge({ value, size = 184, reveal = 0 }: { value: number | null; size?: number; reveal?: number }) {
@@ -42,10 +42,9 @@ export default function Gauge({ value, size = 184, reveal = 0 }: { value: number
   const c = 2 * Math.PI * r
   const cx = size / 2
   const cy = size / 2
-  const note20 = v / 5
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="gauge" role="img" aria-label="Score global">
+    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="gauge" role="img" aria-label="Score global sur 100">
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e7e2d6" strokeWidth={14} />
       {has && v > 0 && (
         <circle
@@ -60,8 +59,8 @@ export default function Gauge({ value, size = 184, reveal = 0 }: { value: number
           transform={`rotate(-90 ${cx} ${cy})`}
         />
       )}
-      <text x={cx} y={cy - 4} textAnchor="middle" className="gauge-big">{has ? `${note20.toFixed(1)}/20` : '—'}</text>
-      <text x={cx} y={cy + 20} textAnchor="middle" className="gauge-small">{has ? `${Math.round(v)}/100` : 'non évalué'}</text>
+      <text x={cx} y={cy + 4} textAnchor="middle" className="gauge-big">{has ? `${Math.round(v)}/100` : '—'}</text>
+      {!has && <text x={cx} y={cy + 24} textAnchor="middle" className="gauge-small">non évalué</text>}
     </svg>
   )
 }
