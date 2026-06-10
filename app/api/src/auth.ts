@@ -107,22 +107,21 @@ router.post('/register', async (req: Request, res: Response) => {
 router.get('/verify-email', (req: Request, res: Response) => {
   const token = String(req.query.token || '')
   const row = db
-    .prepare("SELECT id, user_id, expire_le FROM tokens WHERE valeur = ? AND type = 'verif_email' AND utilise = 0")
-    .get(token) as TokenRow | undefined
+    .prepare("SELECT id, user_id, expire_le, email_cible FROM tokens WHERE valeur = ? AND type = 'verif_email' AND utilise = 0")
+    .get(token) as (TokenRow & { email_cible: string | null }) | undefined
   if (!row || row.expire_le < new Date().toISOString()) {
     res.status(400).json({ error: 'Lien invalide ou expiré' })
     return
   }
-  const pend = db.prepare('SELECT email_pending FROM users WHERE id = ?').get(row.user_id) as { email_pending: string | null } | undefined
   let message = 'Email vérifié. Vous pouvez vous connecter.'
-  if (pend?.email_pending) {
-    // Changement d'e-mail : on applique l'adresse en attente (si toujours libre)
-    const taken = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(pend.email_pending, row.user_id)
+  if (row.email_cible) {
+    // Changement d'e-mail : le jeton porte l'adresse cible (le lien ne confirme QUE cette adresse-là)
+    const taken = db.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ?').get(row.email_cible, row.user_id)
     if (taken) {
       res.status(409).json({ error: 'Cette adresse e-mail est désormais utilisée par un autre compte.' })
       return
     }
-    db.prepare('UPDATE users SET email = email_pending, email_pending = NULL, email_verifie = 1 WHERE id = ?').run(row.user_id)
+    db.prepare('UPDATE users SET email = ?, email_pending = NULL, email_verifie = 1 WHERE id = ?').run(row.email_cible, row.user_id)
     message = 'Nouvelle adresse e-mail confirmée.'
   } else {
     db.prepare('UPDATE users SET email_verifie = 1 WHERE id = ?').run(row.user_id)
@@ -220,14 +219,16 @@ router.post('/change-email', requireAuth, async (req: Request, res: Response) =>
     res.status(400).json({ error: 'C’est déjà votre adresse actuelle.' })
     return
   }
-  const taken = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, u.id)
+  const taken = db.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ?').get(email, u.id)
   if (taken) {
     res.status(409).json({ error: 'Cette adresse est déjà utilisée par un autre compte.' })
     return
   }
+  // Annule les éventuels liens de confirmation en attente, puis émet un lien LIÉ à cette adresse
+  db.prepare("UPDATE tokens SET utilise = 1 WHERE user_id = ? AND type = 'verif_email' AND utilise = 0").run(u.id)
   db.prepare('UPDATE users SET email_pending = ? WHERE id = ?').run(email, u.id)
   const token = makeToken()
-  db.prepare("INSERT INTO tokens (user_id, type, valeur, expire_le) VALUES (?, 'verif_email', ?, ?)").run(u.id, token, expiryHours(48))
+  db.prepare("INSERT INTO tokens (user_id, type, valeur, expire_le, email_cible) VALUES (?, 'verif_email', ?, ?, ?)").run(u.id, token, expiryHours(48), email)
   const mail = verificationEmail(token)
   await sendEmail(email, mail.subject, mail.html)
   res.json({ ok: true, message: 'Un lien de confirmation a été envoyé à votre nouvelle adresse.' })

@@ -84,7 +84,7 @@ export default function Dossier() {
           <span className="tl-dot">Q</span>
           <div className="tl-body">
             <h3>Questionnaire initial</h3>
-            {questionnaire && questionnaire.cr_recap ? (
+            {questionnaire && (questionnaire.cr_recap || questionnaire.contenu || questionnaire.complete_le) ? (
               <>
                 <p className="muted">Complété le {(questionnaire.complete_le || '').slice(0, 10)}</p>
                 <button className="btn btn-ghost btn-sm" onClick={() => setShowQDetail(true)}>🔎 Questions &amp; réponses</button>

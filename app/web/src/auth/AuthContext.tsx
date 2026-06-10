@@ -31,8 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    await api('/auth/logout', { method: 'POST' })
-    setUser(null)
+    try { await api('/auth/logout', { method: 'POST' }) } finally { setUser(null) }
   }
 
   useEffect(() => {

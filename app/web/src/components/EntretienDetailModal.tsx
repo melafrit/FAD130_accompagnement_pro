@@ -31,8 +31,11 @@ export default function EntretienDetailModal({ sessionId, index, onClose }: { se
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
   }, [onClose])
 
-  const phaseTitre = (pid: number) => phases.find((x) => x.id === pid)?.titre || `Phase ${pid + 1}`
-  const phaseIds = Array.from(new Set([...reponses.map((r) => Number(r.phase)), ...questions.map((q) => Number(q.phase))])).sort((a, b) => a - b)
+  const phaseTitre = (pid: number) => phases.find((x) => x.id === pid)?.titre || ''
+  const phaseIds = Array.from(new Set([
+    ...reponses.filter((r) => (r.texte_reponse || '').trim()).map((r) => Number(r.phase)),
+    ...questions.map((q) => Number(q.phase)),
+  ])).sort((a, b) => a - b)
 
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
@@ -51,7 +54,7 @@ export default function EntretienDetailModal({ sessionId, index, onClose }: { se
             const qs = questions.filter((q) => Number(q.phase) === pid)
             return (
               <div key={pid} className="ent-phase">
-                <h3>Phase {pid + 1} — {phaseTitre(pid)}</h3>
+                <h3>Phase {pid + 1}{phaseTitre(pid) ? ` — ${phaseTitre(pid)}` : ''}</h3>
                 {note && note.trim() && <p className="ent-notes"><strong>Notes :</strong> {note}</p>}
                 {qs.length > 0 && (
                   <ul className="ent-qs">

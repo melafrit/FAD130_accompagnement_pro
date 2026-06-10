@@ -204,6 +204,8 @@ for (const stmt of [
   "ALTER TABLE comptes_rendus ADD COLUMN source TEXT NOT NULL DEFAULT 'ia'",
   // Changement d'e-mail en attente de re-validation par l'utilisateur
   'ALTER TABLE users ADD COLUMN email_pending TEXT',
+  // Adresse cible portée par le jeton de confirmation (lie le lien à l'adresse précise)
+  'ALTER TABLE tokens ADD COLUMN email_cible TEXT',
 ]) {
   try {
     db.exec(stmt)
