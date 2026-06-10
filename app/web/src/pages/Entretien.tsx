@@ -31,6 +31,8 @@ export default function Entretien() {
   const [questionsByPhase, setQuestionsByPhase] = useState<Record<number, { id: number; texte: string; reponse: string | null }[]>>({})
   const [newQ, setNewQ] = useState('')
   const newQRef = useRef<HTMLInputElement>(null)
+  const [editingQId, setEditingQId] = useState<number | null>(null)
+  const [editQText, setEditQText] = useState('')
   const [sugg, setSugg] = useState<Suggestion | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
@@ -79,6 +81,7 @@ export default function Entretien() {
   async function goTo(idx: number) {
     await saveCurrent()
     setSugg(null)
+    setEditingQId(null)
     setCurrent(idx)
   }
   async function addQuestion(texte: string) {
@@ -106,6 +109,26 @@ export default function Entretien() {
   }
   function setQReponse(qid: number, reponse: string) {
     setQuestionsByPhase((m) => ({ ...m, [current]: (m[current] || []).map((x) => (x.id === qid ? { ...x, reponse } : x)) }))
+  }
+  // Édition en place du texte d'une question déjà ajoutée
+  function startEditQ(qid: number, texte: string) {
+    setEditingQId(qid)
+    setEditQText(texte)
+  }
+  async function saveQTexte(qid: number) {
+    const t = editQText.trim()
+    if (!t) return // champ vide : on garde l'éditeur ouvert (annuler avec ✗ ou Échap)
+    setEditingQId(null)
+    const prev = (questionsByPhase[current] || []).find((x) => x.id === qid)?.texte
+    setQuestionsByPhase((m) => ({ ...m, [current]: (m[current] || []).map((x) => (x.id === qid ? { ...x, texte: t } : x)) }))
+    if (sessionId == null) return
+    try {
+      await api(`/entretien/sessions/${sessionId}/questions/${qid}`, { method: 'PATCH', body: JSON.stringify({ texte: t }) })
+    } catch {
+      // échec réseau : on annule la modification optimiste et on prévient
+      if (prev !== undefined) setQuestionsByPhase((m) => ({ ...m, [current]: (m[current] || []).map((x) => (x.id === qid ? { ...x, texte: prev } : x)) }))
+      alert('La modification de la question n’a pas pu être enregistrée. Réessaie.')
+    }
   }
   async function saveQReponse(qid: number, reponse: string) {
     if (sessionId == null) return
@@ -228,7 +251,29 @@ export default function Entretien() {
         <ul className="qposees">
           {qPosees.map((q) => (
             <li key={q.id} className="qposee">
-              <div className="qposee-head"><span className="qposee-q">{q.texte}</span><button className="q-del" onClick={() => removeQuestion(q.id)} aria-label="Supprimer la question">×</button></div>
+              <div className="qposee-head">
+                {editingQId === q.id ? (
+                  <form className="qposee-edit" onSubmit={(e) => { e.preventDefault(); void saveQTexte(q.id) }}>
+                    <input
+                      autoFocus
+                      value={editQText}
+                      onChange={(e) => setEditQText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Escape') setEditingQId(null) }}
+                      aria-label="Modifier la question"
+                    />
+                    <button type="submit" className="q-edit-ok" aria-label="Enregistrer la question" title="Enregistrer">✓</button>
+                    <button type="button" className="q-edit-cancel" onClick={() => setEditingQId(null)} aria-label="Annuler" title="Annuler">✗</button>
+                  </form>
+                ) : (
+                  <>
+                    <span className="qposee-q">{q.texte}</span>
+                    <span className="qposee-acts">
+                      <button className="q-edit" onClick={() => startEditQ(q.id, q.texte)} aria-label="Modifier la question" title="Modifier la question">✎</button>
+                      <button className="q-del" onClick={() => removeQuestion(q.id)} aria-label="Supprimer la question" title="Supprimer la question">×</button>
+                    </span>
+                  </>
+                )}
+              </div>
               <DictaTextarea
                 className="qposee-rep"
                 value={q.reponse || ''}

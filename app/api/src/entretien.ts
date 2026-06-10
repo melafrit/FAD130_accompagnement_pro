@@ -128,7 +128,8 @@ router.post('/sessions/:id/questions', requireAuth, requireRole('accompagnateur'
   res.status(201).json({ id: Number(info.lastInsertRowid), phase, texte })
 })
 
-// Mettre à jour une question (sa réponse, et éventuellement son texte)
+// Mettre à jour une question : texte et/ou réponse (mise à jour PARTIELLE — un champ absent
+// du corps n'est pas touché, pour ne jamais écraser une réponse en modifiant le texte, ni l'inverse)
 router.patch('/sessions/:id/questions/:qid', requireAuth, requireRole('accompagnateur'), (req: Request, res: Response) => {
   const me = getUser(req)
   const id = Number(req.params.id)
@@ -137,12 +138,23 @@ router.patch('/sessions/:id/questions/:qid', requireAuth, requireRole('accompagn
     res.status(404).json({ error: 'Session introuvable' })
     return
   }
-  const reponse = req.body?.reponse != null ? String(req.body.reponse) : null
+  const sets: string[] = []
+  const vals: (string | number)[] = []
   if (req.body?.texte != null) {
-    db.prepare('UPDATE questions_entretien SET texte=?, reponse=? WHERE id=? AND session_id=?').run(String(req.body.texte), reponse, qid, id)
-  } else {
-    db.prepare('UPDATE questions_entretien SET reponse=? WHERE id=? AND session_id=?').run(reponse, qid, id)
+    const texte = String(req.body.texte).trim()
+    if (!texte) {
+      res.status(400).json({ error: 'Question vide' })
+      return
+    }
+    sets.push('texte=?'); vals.push(texte)
   }
+  if (req.body?.reponse != null) { sets.push('reponse=?'); vals.push(String(req.body.reponse)) }
+  if (sets.length === 0) {
+    res.json({ ok: true })
+    return
+  }
+  vals.push(qid, id)
+  db.prepare(`UPDATE questions_entretien SET ${sets.join(', ')} WHERE id=? AND session_id=?`).run(...vals)
   res.json({ ok: true })
 })
 

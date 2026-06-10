@@ -417,7 +417,7 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .qposees { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 6px; }
 .qposees li { display: flex; align-items: center; gap: 8px; justify-content: space-between; background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 8px; padding: 7px 10px; font-size: 14px; }
 .qposees li.muted { background: transparent; border: none; padding: 2px 0; }
-.q-del { flex: none; border: none; background: transparent; color: #b3443b; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 4px; }
+.q-del { flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; border: none; background: transparent; color: #b3443b; font-size: 18px; line-height: 1; cursor: pointer; padding: 0; }
 .q-del:hover { color: #d9534f; }
 .q-add { display: flex; gap: 8px; }
 .q-add input { flex: 1; border: 1px solid var(--bordure); border-radius: 8px; padding: 8px 10px; font: inherit; }
@@ -425,6 +425,17 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .qposees li.qposee { display: block; }
 .qposee-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 .qposee-q { font-size: 14px; font-weight: 600; color: var(--bleu-profond); line-height: 1.35; }
+.qposee-acts { flex: none; display: flex; align-items: center; gap: 6px; }
+.q-edit { flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; border: none; background: transparent; color: var(--bleu-profond); font-size: 14px; line-height: 1; cursor: pointer; padding: 0; }
+.q-edit:hover { color: var(--sauge); }
+.qposee-edit { display: flex; align-items: center; gap: 6px; width: 100%; }
+.qposee-edit input { flex: 1; min-width: 0; border: 1px solid var(--sauge); border-radius: 8px; padding: 6px 9px; font: inherit; font-size: 14px; font-weight: 600; color: var(--bleu-profond); }
+.qposee-edit input:focus { outline: none; border-color: var(--bleu-profond); box-shadow: 0 0 0 2px var(--sauge); }
+.q-edit-ok, .q-edit-cancel { flex: none; height: 30px; border: 1px solid var(--bordure); background: var(--blanc); border-radius: 8px; padding: 0 9px; cursor: pointer; line-height: 1; font-size: 14px; }
+.q-edit-ok { color: var(--sauge); border-color: var(--sauge); }
+.q-edit-ok:hover { background: var(--sauge-clair); }
+.q-edit-cancel { color: #b3443b; }
+.q-edit-cancel:hover { background: #fdecea; border-color: #e0b4af; }
 .qposee-rep { width: 100%; margin-top: 8px; border: 1px solid var(--bordure); border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 13px; resize: vertical; box-sizing: border-box; background: var(--blanc); }
 .qposee-rep:focus { outline: none; border-color: var(--sauge); }
 
