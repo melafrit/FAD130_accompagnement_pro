@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import ActionList, { type Action } from '../components/ActionList'
 import ActionDetailModal from '../components/ActionDetailModal'
+import EntretienDetailModal from '../components/EntretienDetailModal'
+import QuestionnaireDetailModal from '../components/QuestionnaireDetailModal'
 import ErrorBoundary from '../components/ErrorBoundary'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
@@ -13,7 +15,7 @@ const NotesPriveesModal = lazy(() => import('../components/NotesPriveesModal'))
 const SyntheseModal = lazy(() => import('../components/SyntheseModal'))
 
 interface DossierInfo { id: number; titre: string | null; statut: string; synthese: string | null; cree_le: string; accompagne_prenom: string | null; accompagne_email: string }
-interface Questionnaire { cr_recap: string | null; complete_le: string | null }
+interface Questionnaire { cr_recap: string | null; contenu: string | null; complete_le: string | null }
 interface CR { id: number; version: number; genere_le: string; publie: number }
 interface Session { id: number; date: string; phase_atteinte: string; statut: string; crs: CR[] }
 interface Rdv { id: number; debut: string; fin: string; statut: string }
@@ -32,6 +34,8 @@ export default function Dossier() {
   const [crSession, setCrSession] = useState<number | null>(null)
   const [notesSession, setNotesSession] = useState<number | null>(null)
   const [showSynthese, setShowSynthese] = useState(false)
+  const [entretienDetail, setEntretienDetail] = useState<{ id: number; index: number } | null>(null)
+  const [showQDetail, setShowQDetail] = useState(false)
 
   async function load() {
     const d = await api<Detail>(`/dossiers/${id}`)
@@ -83,7 +87,7 @@ export default function Dossier() {
             {questionnaire && questionnaire.cr_recap ? (
               <>
                 <p className="muted">Complété le {(questionnaire.complete_le || '').slice(0, 10)}</p>
-                <details><summary>Voir le récapitulatif</summary><pre className="recap-text">{questionnaire.cr_recap}</pre></details>
+                <button className="btn btn-ghost btn-sm" onClick={() => setShowQDetail(true)}>🔎 Questions &amp; réponses</button>
               </>
             ) : <p className="muted">Pas encore complété par l'accompagné.</p>}
           </div>
@@ -96,6 +100,7 @@ export default function Dossier() {
               <h3>Entretien #{i + 1} <span className="muted">— {s.statut === 'terminee' ? 'terminé' : 'en cours'}</span></h3>
               <p className="muted">{fdate(s.date)} · phase atteinte {Number(s.phase_atteinte) + 1}/6</p>
               <div className="entretien-cr-btns">
+                <button className="btn btn-ghost btn-sm" onClick={() => setEntretienDetail({ id: s.id, index: i + 1 })}>🔎 Questions &amp; réponses</button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setCrSession(s.id)}>
                   📄 Compte rendu{s.crs.some((c) => c.publie) ? ' ✓ publié' : s.crs.length ? ' • brouillon' : ''}
                 </button>
@@ -152,6 +157,8 @@ export default function Dossier() {
       <p style={{ marginTop: 20 }}><Link className="btn btn-ghost" to="/tableau-de-bord">← Retour au tableau de bord</Link></p>
 
       {selected && <ActionDetailModal key={selected.id} action={selected} onClose={() => setSelected(null)} onSaved={load} />}
+      {entretienDetail && <EntretienDetailModal sessionId={entretienDetail.id} index={entretienDetail.index} onClose={() => setEntretienDetail(null)} />}
+      {showQDetail && questionnaire && <QuestionnaireDetailModal recap={questionnaire.cr_recap} contenu={questionnaire.contenu} completeLe={questionnaire.complete_le} onClose={() => setShowQDetail(false)} />}
       <ErrorBoundary onReset={() => { setCrSession(null); setNotesSession(null); setShowSynthese(false) }}>
         <Suspense fallback={null}>
           {crSession != null && <CompteRenduModal sessionId={crSession} role="accompagnateur" onClose={() => setCrSession(null)} onChanged={load} />}

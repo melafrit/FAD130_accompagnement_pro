@@ -360,6 +360,19 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .syn-entretien { margin: 6px 0 12px; }
 .syn-entretien h3 { font-size: 15px; color: var(--bleu-profond); margin: 10px 0 4px; }
 
+/* Détail entretien / questionnaire (popup questions & réponses) */
+.ent-phase { margin: 0 0 14px; }
+.ent-phase h3 { font-size: 15px; color: var(--bleu-profond); margin: 12px 0 6px; }
+.ent-notes { margin: 0 0 8px; font-size: 14px; line-height: 1.55; }
+.ent-qs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.ent-qs li { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 10px; padding: 8px 11px; }
+.ent-q { display: block; font-weight: 600; color: var(--bleu-profond); font-size: 14px; line-height: 1.4; }
+.ent-r { display: block; margin-top: 3px; font-size: 14px; color: var(--texte); }
+.qa-detail { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.qa-detail-item { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 10px; padding: 9px 12px; }
+.qa-detail-q { margin: 0 0 3px; font-weight: 600; color: var(--bleu-profond); font-size: 14px; line-height: 1.4; }
+.qa-detail-a { margin: 0; font-size: 14px; color: var(--texte); white-space: pre-wrap; }
+
 /* Tags */
 .dash-filter { margin-bottom: 16px; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--texte-doux); }
 .dash-filter select { padding: 6px 10px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--blanc); }

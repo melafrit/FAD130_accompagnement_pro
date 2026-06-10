@@ -28,7 +28,7 @@ router.get('/:id', requireAuth, requireRole('accompagnateur'), (req: Request, re
        FROM dossiers d JOIN users u ON u.id = d.accompagne_id WHERE d.id=?`,
     )
     .get(id)
-  const questionnaire = db.prepare('SELECT cr_recap, complete_le FROM questionnaires_initiaux WHERE dossier_id=? ORDER BY id DESC LIMIT 1').get(id) || null
+  const questionnaire = db.prepare('SELECT cr_recap, contenu, complete_le FROM questionnaires_initiaux WHERE dossier_id=? ORDER BY id DESC LIMIT 1').get(id) || null
   const sessions = db.prepare('SELECT id, date, phase_atteinte, statut FROM sessions WHERE dossier_id=? ORDER BY date').all(id) as { id: number }[]
   const sessionsAvecCR = sessions.map((s) => ({
     ...s,

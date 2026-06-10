@@ -22,6 +22,15 @@ const QUESTIONNAIRE_RECAP =
   'Difficultés — « Je sais coder, mais j’ai du mal à prendre du recul et à raconter ce que je fais » ; crainte de ne pas paraître légitime à l’écrit.\n' +
   'Attentes — Être aidé à structurer le mémoire et à mettre en valeur sa démarche.'
 
+// Historique questions/réponses du questionnaire initial (affiché dans le détail du dossier)
+const QUESTIONNAIRE_QA = [
+  { question: 'Dans quel cadre se déroule ton alternance ?', answer: 'Alternant développeur full-stack chez Téaxis, une PME de distribution B2B.' },
+  { question: 'Quel est le sujet de ton mémoire ?', answer: 'La refonte et la mise en production de l’application de gestion des commandes (legacy PHP → React/Node).' },
+  { question: 'Quelle problématique pressens-tu ?', answer: 'Comment mener une refonte applicative en PME en conciliant contraintes métier, qualité technique et autonomie de l’équipe ?' },
+  { question: 'Quelles difficultés rencontres-tu ?', answer: 'Je sais coder, mais j’ai du mal à prendre du recul et à raconter ce que je fais ; je crains de ne pas paraître légitime à l’écrit.' },
+  { question: 'Qu’attends-tu de cet accompagnement ?', answer: 'Être aidé à structurer mon mémoire et à mettre en valeur ma démarche.' },
+]
+
 interface Rep { phase: string; q: string; r: string }
 interface Entretien { date: string; phaseAtteinte: string; reponses: Rep[] }
 
@@ -102,7 +111,7 @@ export async function seedDemoData(accId: number, amineId: number): Promise<void
 
   // Questionnaire initial
   db.prepare('INSERT INTO questionnaires_initiaux (dossier_id, contenu, cr_recap, complete_le) VALUES (?,?,?,?)')
-    .run(dossierId, QUESTIONNAIRE_RECAP, QUESTIONNAIRE_RECAP, dayOffset(-32, '10:00'))
+    .run(dossierId, JSON.stringify(QUESTIONNAIRE_QA), QUESTIONNAIRE_RECAP, dayOffset(-32, '10:00'))
 
   // 3 entretiens (progression sur les 6 phases)
   const entretiens: Entretien[] = [
