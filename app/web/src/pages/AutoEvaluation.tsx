@@ -119,13 +119,6 @@ export default function AutoEvaluation() {
     } catch { setMsg('Erreur lors de l’appel à l’IA.') } finally { setAiBusy(false) }
   }
 
-  async function exporter() {
-    await save()
-    const a = document.createElement('a')
-    a.href = `/api/autoeval/${id}/grille.docx`
-    a.click()
-  }
-
   const radarAxes = criteres.map((c) => ({ label: COURT[c.id] || `C${c.id}`, value: critAvg(c) }))
   const bars = criteres.flatMap((c) => c.indicateurs).map((i) => ({ label: i.id, title: i.texte, value: scores[i.id]?.score ?? null, color: colorFor(scores[i.id]?.score ?? null) }))
   const evoPoints = histo.filter((h) => h.note_globale != null).map((h) => ({ label: (h.maj_le || '').slice(5, 10), value: h.note_globale as number }))
@@ -215,7 +208,6 @@ export default function AutoEvaluation() {
         <div className="ae-actions-btns">
           <button className="btn btn-ghost" onClick={save} disabled={busy}>💾 Enregistrer</button>
           <button className="btn btn-primary" onClick={valider} disabled={busy}>✓ Valider cette version</button>
-          <button className="btn btn-ghost" onClick={exporter} disabled={busy}>⬇ Enregistrer &amp; exporter (.docx)</button>
         </div>
       </div>
 

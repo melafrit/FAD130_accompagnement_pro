@@ -199,6 +199,9 @@ for (const stmt of [
   'ALTER TABLE actions ADD COLUMN priorite TEXT',
   'ALTER TABLE actions ADD COLUMN ordre INTEGER',
   'ALTER TABLE actions ADD COLUMN rappel_envoye INTEGER NOT NULL DEFAULT 0',
+  // Compte rendu en HTML (remplace le .docx) : contenu éditable + origine de la version
+  'ALTER TABLE comptes_rendus ADD COLUMN contenu_html TEXT',
+  "ALTER TABLE comptes_rendus ADD COLUMN source TEXT NOT NULL DEFAULT 'ia'",
 ]) {
   try {
     db.exec(stmt)
@@ -206,6 +209,22 @@ for (const stmt of [
     /* colonne déjà présente */
   }
 }
+
+// Discussion sur un compte rendu (accompagné ↔ accompagnateur) + notes privées de l'accompagnateur
+db.exec(`
+  CREATE TABLE IF NOT EXISTS cr_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    auteur_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    texte      TEXT NOT NULL,
+    cree_le    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS cr_notes_privees (
+    session_id   INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+    contenu_html TEXT,
+    maj_le       TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`)
 // Initialise l'ordre des actions héritées (avant le glisser-déposer) pour un tri déterministe
 try {
   db.exec('UPDATE actions SET ordre = id WHERE ordre IS NULL')

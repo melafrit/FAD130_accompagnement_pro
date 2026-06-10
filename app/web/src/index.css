@@ -301,6 +301,65 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .btn-danger:hover { background: #fbdcd8; border-color: #d9a09a; }
 @media (max-width: 520px) { .field-row { flex-direction: column; gap: 14px; } .modal-actions { flex-wrap: wrap; } }
 
+/* === Compte rendu HTML : modale large, éditeur riche, discussion, notes privées === */
+.cr-modal { max-width: 780px; }
+.btn-sm { padding: 6px 11px; font-size: 13px; }
+.entretien-cr-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+/* Affichage HTML (compte rendu, synthèse) */
+.html-content { font-size: 15px; line-height: 1.65; color: var(--texte); }
+.html-content h2, .cr-view h2 { font-size: 18px; color: var(--bleu-profond); margin: 16px 0 8px; }
+.html-content h3, .cr-view h3 { font-size: 16px; color: var(--bleu-profond); margin: 14px 0 6px; }
+.html-content p { margin: 0 0 10px; }
+.html-content ul, .html-content ol { padding-left: 22px; margin: 0 0 10px; }
+.html-content li { margin: 2px 0; }
+
+/* Éditeur riche (TipTap) */
+.rte { border: 1px solid var(--bordure); border-radius: 12px; overflow: hidden; background: var(--blanc); }
+.rte-loading { min-height: 120px; }
+.rte-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--bordure); background: var(--sable-2); }
+.rte-btn { min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid transparent; background: transparent; border-radius: 7px; cursor: pointer; font-size: 14px; color: var(--texte); line-height: 1; }
+.rte-btn:hover { background: var(--blanc); border-color: var(--bordure); }
+.rte-btn.on { background: var(--bleu-profond); color: var(--sable); border-color: var(--bleu-profond); }
+.rte-btn:focus-visible, .modal-close:focus-visible { outline: 2px solid var(--sauge); outline-offset: 2px; }
+.rte-sep { width: 1px; height: 20px; background: var(--bordure); margin: 0 3px; }
+.rte-content .ProseMirror { min-height: 180px; max-height: 44vh; overflow-y: auto; padding: 14px 16px; font-size: 15px; line-height: 1.6; outline: none; }
+.rte-content .ProseMirror h2 { font-size: 18px; color: var(--bleu-profond); margin: 16px 0 8px; }
+.rte-content .ProseMirror h3 { font-size: 16px; color: var(--bleu-profond); margin: 14px 0 6px; }
+.rte-content .ProseMirror p { margin: 0 0 10px; }
+.rte-content .ProseMirror ul, .rte-content .ProseMirror ol { padding-left: 22px; margin: 0 0 10px; }
+
+/* Barre d'actions du compte rendu */
+.cr-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--bordure); margin-bottom: 12px; }
+.cr-bar-actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.cr-badge { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+.cr-badge.pub { background: #e3f3e8; color: #1b7a43; }
+.cr-badge.draft { background: var(--sable-2); color: var(--texte-doux); }
+.cr-meta { font-size: 12px; }
+.cr-hist { margin-bottom: 10px; font-size: 13px; }
+.cr-hist select { padding: 5px 8px; border: 1px solid var(--bordure); border-radius: 8px; font: inherit; }
+.cr-edit-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+.cr-msg { margin: 0 0 10px; }
+.cr-empty { text-align: center; padding: 14px 0; }
+
+/* Discussion */
+.cr-discussion { margin-top: 18px; border-top: 1px solid var(--bordure); padding-top: 14px; }
+.cr-discussion h3 { margin: 0 0 8px; font-size: 15px; color: var(--bleu-profond); }
+.cr-msgs { display: flex; flex-direction: column; gap: 8px; max-height: 230px; overflow-y: auto; margin-bottom: 10px; }
+.cr-msg-item { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 10px; padding: 8px 11px; max-width: 85%; align-self: flex-start; }
+.cr-msg-item.me { background: var(--sauge-clair); border-color: #d6e2d9; align-self: flex-end; }
+.cr-msg-meta { font-size: 11px; color: var(--texte-doux); margin-bottom: 2px; }
+.cr-msg-text { font-size: 14px; white-space: pre-wrap; }
+.cr-msg-form { display: flex; gap: 8px; }
+.qa-form.cr-msg-form .dicta, .cr-msg-form .dicta { flex: 1; min-width: 0; }
+
+/* Notes privées */
+.np-banner { background: #fef6e0; border: 1px solid #f0d98a; color: #6b5410; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin: 0 0 12px; }
+
+/* Synthèse à l'écran */
+.syn-entretien { margin: 6px 0 12px; }
+.syn-entretien h3 { font-size: 15px; color: var(--bleu-profond); margin: 10px 0 4px; }
+
 /* Tags */
 .dash-filter { margin-bottom: 16px; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--texte-doux); }
 .dash-filter select { padding: 6px 10px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--blanc); }

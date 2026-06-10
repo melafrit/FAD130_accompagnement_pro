@@ -1,7 +1,6 @@
 import { Router, type Request, type Response } from 'express'
 import { db } from './db'
 import { requireAuth, requireRole } from './auth'
-import { construireSyntheseDocx } from './compteRendu'
 
 const router = Router()
 interface U { id: number; role: string }
@@ -48,8 +47,8 @@ router.get('/:id', requireAuth, requireRole('accompagnateur'), (req: Request, re
   res.json({ dossier, questionnaire, sessions: sessionsAvecCR, actions, rdvs })
 })
 
-// Exporter la synthèse complète du parcours (.docx)
-router.get('/:id/synthese.docx', requireAuth, requireRole('accompagnateur'), async (req: Request, res: Response) => {
+// Synthèse complète du parcours (JSON, rendue à l'écran par SyntheseModal)
+router.get('/:id/synthese', requireAuth, requireRole('accompagnateur'), (req: Request, res: Response) => {
   const me = getUser(req)
   const id = Number(req.params.id)
   const owned = owns(me.id, id)
@@ -87,7 +86,7 @@ router.get('/:id/synthese.docx', requireAuth, requireRole('accompagnateur'), asy
     .prepare('SELECT c.debut, c.fin, r.statut FROM rdv r JOIN creneaux c ON c.id=r.creneau_id WHERE r.accompagne_id=? ORDER BY c.debut')
     .all(owned.accompagne_id) as { debut: string; fin: string; statut: string }[]
 
-  const buf = await construireSyntheseDocx({
+  res.json({
     titre: dossier.titre || 'Dossier d’accompagnement',
     accompagne: dossier.accompagne_prenom || dossier.accompagne_email,
     statut: dossier.statut,
@@ -100,9 +99,6 @@ router.get('/:id/synthese.docx', requireAuth, requireRole('accompagnateur'), asy
     rdvs,
     synthese: dossier.synthese,
   })
-  res.setHeader('Content-Disposition', `attachment; filename="synthese-dossier-${id}.docx"`)
-  res.type('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-  res.send(buf)
 })
 
 // Clôturer la démarche (avec synthèse finale optionnelle)

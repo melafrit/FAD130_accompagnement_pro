@@ -35,7 +35,7 @@ app.use('/api/rdv', rdvRouter)
 // Entretien guidé (6 phases + suggestions IA)
 app.use('/api/entretien', entretienRouter)
 
-// Comptes rendus (génération DOCX, téléchargement, ré-import)
+// Comptes rendus (génération IA en HTML, versions, publication, discussion, notes privées)
 app.use('/api/cr', crRouter)
 
 // Notifications & plan d'action

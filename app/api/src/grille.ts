@@ -1,5 +1,5 @@
 // Grille d'auto-évaluation de la pratique d'accompagnement (FAD130).
-// Source partagée : rendu frontend + prompt IA + export DOCX.
+// Source partagée : rendu frontend + prompt IA.
 // 3 critères × 7 indicateurs = 21 indicateurs. Échelle : curseur continu 0–100, 4 zones.
 
 export interface Indicateur {

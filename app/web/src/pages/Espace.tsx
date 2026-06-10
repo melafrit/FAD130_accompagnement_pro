@@ -29,7 +29,7 @@ export default function Espace() {
           </div>
           <div className="card">
             <h3>Mes comptes rendus</h3>
-            <p>Retrouve ici, datés, les comptes rendus de tes entretiens (téléchargeables en Word).</p>
+            <p>Retrouve ici, datés, les comptes rendus publiés de tes entretiens, et échange avec ton accompagnateur.</p>
             <Link className="btn btn-primary" to="/mes-comptes-rendus">Voir mes comptes rendus</Link>
           </div>
         </div>

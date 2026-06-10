@@ -1,10 +1,16 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, lazy, Suspense, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import ActionList, { type Action } from '../components/ActionList'
 import ActionDetailModal from '../components/ActionDetailModal'
+import ErrorBoundary from '../components/ErrorBoundary'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
+
+// Chargées à la demande (elles embarquent l'éditeur riche / l'assainisseur HTML)
+const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
+const NotesPriveesModal = lazy(() => import('../components/NotesPriveesModal'))
+const SyntheseModal = lazy(() => import('../components/SyntheseModal'))
 
 interface DossierInfo { id: number; titre: string | null; statut: string; synthese: string | null; cree_le: string; accompagne_prenom: string | null; accompagne_email: string }
 interface Questionnaire { cr_recap: string | null; complete_le: string | null }
@@ -23,6 +29,9 @@ export default function Dossier() {
   const [synthese, setSynthese] = useState('')
   const [libelle, setLibelle] = useState('')
   const [selected, setSelected] = useState<Action | null>(null)
+  const [crSession, setCrSession] = useState<number | null>(null)
+  const [notesSession, setNotesSession] = useState<number | null>(null)
+  const [showSynthese, setShowSynthese] = useState(false)
 
   async function load() {
     const d = await api<Detail>(`/dossiers/${id}`)
@@ -62,7 +71,7 @@ export default function Dossier() {
       <div className="dossier-actions">
         {!cloture && enCours && <button className="btn btn-primary" onClick={() => nav(`/entretien?dossier=${id}`)}>Reprendre l'entretien en cours</button>}
         {!cloture && !enCours && <button className="btn btn-primary" onClick={() => nav(`/entretien?dossier=${id}`)}>Nouvel entretien</button>}
-        <a className="btn btn-ghost" href={`/api/dossiers/${id}/synthese.docx`}>⬇ Synthèse du parcours (.docx)</a>
+        <button className="btn btn-ghost" onClick={() => setShowSynthese(true)}>📋 Synthèse du parcours</button>
         <Link className="btn btn-primary" to={`/dossier/${id}/auto-evaluation`}>📊 Mon auto-évaluation</Link>
       </div>
 
@@ -75,7 +84,6 @@ export default function Dossier() {
               <>
                 <p className="muted">Complété le {(questionnaire.complete_le || '').slice(0, 10)}</p>
                 <details><summary>Voir le récapitulatif</summary><pre className="recap-text">{questionnaire.cr_recap}</pre></details>
-                <a className="btn btn-ghost" href={`/api/questionnaire/${id}/cr`}>⬇ Récapitulatif (.docx)</a>
               </>
             ) : <p className="muted">Pas encore complété par l'accompagné.</p>}
           </div>
@@ -87,9 +95,12 @@ export default function Dossier() {
             <div className="tl-body">
               <h3>Entretien #{i + 1} <span className="muted">— {s.statut === 'terminee' ? 'terminé' : 'en cours'}</span></h3>
               <p className="muted">{fdate(s.date)} · phase atteinte {Number(s.phase_atteinte) + 1}/6</p>
-              {s.crs.length > 0
-                ? s.crs.map((cr) => <a key={cr.id} className="btn btn-ghost" href={`/api/cr/${cr.id}/download`}>⬇ Compte rendu v{cr.version} (.docx)</a>)
-                : <p className="muted">Pas encore de compte rendu.</p>}
+              <div className="entretien-cr-btns">
+                <button className="btn btn-ghost btn-sm" onClick={() => setCrSession(s.id)}>
+                  📄 Compte rendu{s.crs.some((c) => c.publie) ? ' ✓ publié' : s.crs.length ? ' • brouillon' : ''}
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setNotesSession(s.id)}>🔒 Notes privées</button>
+              </div>
             </div>
           </li>
         ))}
@@ -141,6 +152,13 @@ export default function Dossier() {
       <p style={{ marginTop: 20 }}><Link className="btn btn-ghost" to="/tableau-de-bord">← Retour au tableau de bord</Link></p>
 
       {selected && <ActionDetailModal key={selected.id} action={selected} onClose={() => setSelected(null)} onSaved={load} />}
+      <ErrorBoundary onReset={() => { setCrSession(null); setNotesSession(null); setShowSynthese(false) }}>
+        <Suspense fallback={null}>
+          {crSession != null && <CompteRenduModal sessionId={crSession} role="accompagnateur" onClose={() => setCrSession(null)} onChanged={load} />}
+          {notesSession != null && <NotesPriveesModal sessionId={notesSession} onClose={() => setNotesSession(null)} />}
+          {showSynthese && id && <SyntheseModal dossierId={id} onClose={() => setShowSynthese(false)} />}
+        </Suspense>
+      </ErrorBoundary>
     </div>
   )
 }

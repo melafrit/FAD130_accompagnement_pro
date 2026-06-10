@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTypewriter } from '../hooks/useTypewriter'
 import AiProgress from '../components/AiProgress'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
+import ErrorBoundary from '../components/ErrorBoundary'
+const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
 
 interface Phase { id: number; titre: string; objectif: string; vigilance: string[]; questions: string[] }
 interface Dossier { id: number; titre: string | null; accompagne_prenom: string | null; accompagne_email: string; recap: string | null }
@@ -36,8 +38,7 @@ export default function Entretien() {
   const [sugg, setSugg] = useState<Suggestion | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
-  const [crId, setCrId] = useState<number | null>(null)
-  const [crBusy, setCrBusy] = useState(false)
+  const [showCr, setShowCr] = useState(false)
   const nav = useNavigate()
   const [params] = useSearchParams()
 
@@ -155,44 +156,18 @@ export default function Entretien() {
     if (sessionId != null) await api(`/entretien/sessions/${sessionId}/cloturer`, { method: 'POST' })
     setDone(true)
   }
-  async function genererCR() {
-    if (sessionId == null) return
-    setCrBusy(true)
-    try {
-      const r = await api<{ id: number }>('/cr/generer', { method: 'POST', body: JSON.stringify({ sessionId }) })
-      setCrId(r.id)
-    } finally {
-      setCrBusy(false)
-    }
-  }
-  async function reimport(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f || crId == null) return
-    const fd = new FormData()
-    fd.append('fichier', f)
-    await fetch(`/api/cr/${crId}/reimport`, { method: 'POST', credentials: 'include', body: fd })
-    alert('Compte rendu mis à jour.')
-  }
-
   if (done) {
     return (
       <div className="page">
         <h1 className="page-title">Entretien clôturé ✅</h1>
-        <p className="lead">Génère le compte rendu de cet entretien. Tu pourras lancer un nouvel entretien plus tard depuis le dossier.</p>
-        {crId == null ? (
-          <>
-            <button className="btn btn-primary" disabled={crBusy} onClick={genererCR}>📄 Générer le compte rendu</button>
-            {crBusy && <AiProgress steps={['Lecture de l’entretien…', 'Rédaction du compte rendu…', 'Mise en forme du document…']} />}
-          </>
-        ) : (
-          <div className="cr-done">
-            <p className="form-success">Compte rendu généré ✅ et publié dans l'espace de l'accompagné.</p>
-            <p><a className="btn btn-primary" href={`/api/cr/${crId}/download`}>⬇ Télécharger (.docx)</a></p>
-            <p className="muted">Tu peux le modifier dans Word puis le ré-importer :</p>
-            <input type="file" accept=".docx" onChange={reimport} />
-          </div>
-        )}
+        <p className="lead">Génère et mets en forme le compte rendu de cet entretien (éditable), puis publie-le à l’accompagné quand il est prêt. Tu pourras le rouvrir plus tard depuis le dossier.</p>
+        <button className="btn btn-primary" onClick={() => setShowCr(true)}>📄 Ouvrir le compte rendu</button>
         <p style={{ marginTop: 20 }}><button className="btn btn-ghost" onClick={retour}>Retour au dossier</button></p>
+        <ErrorBoundary onReset={() => setShowCr(false)}>
+          <Suspense fallback={null}>
+            {showCr && sessionId != null && <CompteRenduModal sessionId={sessionId} role="accompagnateur" onClose={() => setShowCr(false)} />}
+          </Suspense>
+        </ErrorBoundary>
       </div>
     )
   }

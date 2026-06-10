@@ -58,7 +58,7 @@ export default function Aide() {
             <ul className="list">
               <li>Questionnaire initial assisté par l’IA + prise de RDV.</li>
               <li>Entretien guidé (6 phases) + transcription + suggestions IA.</li>
-              <li>Compte rendu DOCX (téléchargeable, modifiable, ré-importable).</li>
+              <li>Compte rendu généré par l’IA, modifiable (éditeur de texte riche), versionné et publié à la demande.</li>
               <li>Tableau de bord, suivi du plan d’action, recherche par tags.</li>
             </ul>
           </div>

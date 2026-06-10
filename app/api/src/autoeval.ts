@@ -3,7 +3,6 @@ import { db } from './db'
 import { requireAuth, requireRole } from './auth'
 import { GRILLE, ZONES, INDICATEUR_IDS } from './grille'
 import { PHASES } from './phases'
-import { construireGrilleDocx } from './compteRendu'
 
 const router = Router()
 const KEY = process.env.ANTHROPIC_API_KEY
@@ -225,35 +224,6 @@ router.post('/:id/ia', requireAuth, requireRole('accompagnateur'), async (req: R
     return
   }
   res.json({ available: true, ...suggestion })
-})
-
-// --- Export DOCX dédié ---
-router.get('/:id/grille.docx', requireAuth, requireRole('accompagnateur'), async (req: Request, res: Response) => {
-  const me = getUser(req)
-  const id = Number(req.params.id)
-  if (!owns(me.id, id)) {
-    res.status(404).json({ error: 'Dossier introuvable' })
-    return
-  }
-  const evalId = getOrCreateDraft(id)
-  const head = db.prepare('SELECT note_globale, commentaire_global, analyse_questions, maj_le FROM auto_evaluations WHERE id=?').get(evalId) as {
-    note_globale: number | null; commentaire_global: string | null; analyse_questions: string | null; maj_le: string
-  }
-  const dossier = db.prepare('SELECT d.titre, u.prenom, u.email FROM dossiers d JOIN users u ON u.id=d.accompagne_id WHERE d.id=?').get(id) as {
-    titre: string | null; prenom: string | null; email: string
-  }
-  const buf = await construireGrilleDocx({
-    accompagne: dossier.prenom || dossier.email,
-    titre: dossier.titre || 'Dossier',
-    noteGlobale: head.note_globale,
-    commentaireGlobal: head.commentaire_global,
-    analyseQuestions: head.analyse_questions,
-    majLe: head.maj_le,
-    scores: loadScores(evalId),
-  })
-  res.setHeader('Content-Disposition', `attachment; filename="auto-evaluation-dossier-${id}.docx"`)
-  res.type('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-  res.send(buf)
 })
 
 export default router
