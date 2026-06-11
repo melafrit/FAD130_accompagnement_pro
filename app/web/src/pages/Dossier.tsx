@@ -163,7 +163,7 @@ export default function Dossier() {
         <Suspense fallback={null}>
           {crSession != null && <CompteRenduModal sessionId={crSession} role="accompagnateur" onClose={() => setCrSession(null)} onChanged={load} />}
           {notesSession != null && <NotesPriveesModal sessionId={notesSession} onClose={() => setNotesSession(null)} />}
-          {showSynthese && id && <SyntheseModal dossierId={id} onClose={() => setShowSynthese(false)} />}
+          {showSynthese && id && <SyntheseModal dossierId={id} role="accompagnateur" onClose={() => setShowSynthese(false)} onChanged={load} />}
         </Suspense>
       </ErrorBoundary>
     </div>

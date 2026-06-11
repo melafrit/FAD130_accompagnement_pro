@@ -228,6 +228,25 @@ db.exec(`
     contenu_html TEXT,
     maj_le       TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Synthèse du parcours : document HTML versionné, publiable (comme un compte rendu mais par dossier)
+  CREATE TABLE IF NOT EXISTS syntheses (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    dossier_id   INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    version      INTEGER NOT NULL,
+    contenu_html TEXT,
+    source       TEXT NOT NULL DEFAULT 'ia',
+    publie       INTEGER NOT NULL DEFAULT 0,
+    genere_le    TEXT NOT NULL DEFAULT (datetime('now')),
+    publie_le    TEXT
+  );
+  CREATE TABLE IF NOT EXISTS synthese_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    auteur_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    texte      TEXT NOT NULL,
+    cree_le    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `)
 // Initialise l'ordre des actions héritées (avant le glisser-déposer) pour un tri déterministe
 try {
