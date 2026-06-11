@@ -78,6 +78,11 @@ a { color: var(--bleu); }
 }
 .card h2 { margin: 0 0 10px; font-size: 19px; color: var(--bleu-profond); }
 .card p { margin: 0; color: var(--texte-doux); }
+/* Cartes d'actions (Mon espace) : hauteur égale + bouton aligné en bas de chaque carte */
+.cards-actions .card { display: flex; flex-direction: column; gap: 12px; }
+.cards-actions .card h3 { margin: 0; font-size: 18px; color: var(--bleu-profond); }
+.cards-actions .card p { margin: 0; }
+.cards-actions .card > .btn { margin-top: auto; align-self: flex-start; }
 .list { margin: 0; padding-left: 18px; color: var(--texte-doux); }
 .list li { margin-bottom: 8px; }
 

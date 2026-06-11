@@ -11,7 +11,7 @@ export default function Espace() {
       <h1 className="page-title">Bonjour {user.prenom || user.email}</h1>
 
       {user.role === 'accompagne' && (
-        <div className="cards">
+        <div className="cards cards-actions">
           <div className="card">
             <h3>Préparer mon 1ᵉʳ rendez-vous</h3>
             <p>Quelques questions pour cadrer ton besoin (stage, mémoire, problématique…), puis tu choisiras un créneau.</p>
@@ -36,7 +36,7 @@ export default function Espace() {
       )}
 
       {user.role === 'accompagnateur' && (
-        <div className="cards">
+        <div className="cards cards-actions">
           <div className="card">
             <h3>Tableau de bord</h3>
             <p>Vue d'ensemble de tes accompagnés : entretiens, comptes rendus et plans d'action.</p>
