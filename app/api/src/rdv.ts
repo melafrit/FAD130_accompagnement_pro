@@ -35,6 +35,13 @@ router.post('/creneaux', requireAuth, requireRole('accompagnateur'), (req: Reque
     return
   }
   const info = db.prepare('INSERT INTO creneaux (accompagnateur_id, debut, fin) VALUES (?, ?, ?)').run(me.id, debut, fin)
+  // Prévient les accompagnés qui avaient demandé un RDV (faute de créneau) qu'il y en a maintenant
+  const demandeurs = db.prepare("SELECT DISTINCT accompagne_id FROM demandes_rdv WHERE accompagnateur_id=? AND statut='en_attente'").all(me.id) as { accompagne_id: number }[]
+  if (demandeurs.length) {
+    const insN = db.prepare('INSERT INTO notifications (user_id, texte) VALUES (?, ?)')
+    demandeurs.forEach((d) => insN.run(d.accompagne_id, 'De nouveaux créneaux de rendez-vous sont disponibles chez votre accompagnateur.'))
+    db.prepare("UPDATE demandes_rdv SET statut='satisfaite' WHERE accompagnateur_id=? AND statut='en_attente'").run(me.id)
+  }
   res.status(201).json({ id: Number(info.lastInsertRowid), debut, fin, reserve: 0 })
 })
 
@@ -70,14 +77,21 @@ router.delete('/creneaux/:id', requireAuth, requireRole('accompagnateur'), (req:
   res.json({ ok: true })
 })
 
-// === Accompagné : réserver un créneau ===
+// === Accompagné : réserver un créneau (par parcours) ===
+// Accompagnateur cible : celui du parcours (dossierId) si fourni, sinon l'accompagnateur par défaut.
+function targetAccompagnateur(meId: number, dossierId: number | null): number | null {
+  if (dossierId) {
+    const d = db.prepare('SELECT accompagnateur_id FROM dossiers WHERE id=? AND accompagne_id=?').get(dossierId, meId) as { accompagnateur_id: number } | undefined
+    return d ? d.accompagnateur_id : null
+  }
+  return findAccompagnateurFor(meId)
+}
+
 router.get('/disponibles', requireAuth, requireRole('accompagne'), (req: Request, res: Response) => {
   const me = getUser(req)
-  const accId = findAccompagnateurFor(me.id)
-  if (!accId) {
-    res.json({ creneaux: [] })
-    return
-  }
+  const dossierId = req.query.dossierId ? Number(req.query.dossierId) : null
+  const accId = targetAccompagnateur(me.id, dossierId)
+  if (!accId) { res.json({ creneaux: [] }); return }
   const creneaux = db
     .prepare('SELECT id, debut, fin FROM creneaux WHERE accompagnateur_id=? AND reserve=0 AND debut > ? ORDER BY debut')
     .all(accId, new Date().toISOString())
@@ -87,30 +101,43 @@ router.get('/disponibles', requireAuth, requireRole('accompagne'), (req: Request
 router.post('/reserver', requireAuth, requireRole('accompagne'), async (req: Request, res: Response) => {
   const me = getUser(req)
   const creneauId = Number(req.body?.creneauId)
-  const accId = findAccompagnateurFor(me.id)
+  const dossierIdIn = req.body?.dossierId ? Number(req.body.dossierId) : null
   const c = db.prepare('SELECT id, accompagnateur_id, debut, reserve FROM creneaux WHERE id=?').get(creneauId) as
-    | { id: number; accompagnateur_id: number; debut: string; reserve: number }
-    | undefined
-  if (!c || c.reserve || c.accompagnateur_id !== accId) {
-    res.status(409).json({ error: 'Créneau indisponible' })
-    return
-  }
-  const dossier = db
-    .prepare('SELECT id FROM dossiers WHERE accompagne_id=? AND accompagnateur_id=? ORDER BY id LIMIT 1')
-    .get(me.id, accId) as { id: number } | undefined
+    | { id: number; accompagnateur_id: number; debut: string; reserve: number } | undefined
+  if (!c || c.reserve) { res.status(409).json({ error: 'Créneau indisponible' }); return }
+  // On exige un parcours de l'accompagné avec CET accompagnateur (sécurité + rattachement du RDV)
+  const dossier = dossierIdIn
+    ? db.prepare('SELECT id FROM dossiers WHERE id=? AND accompagne_id=? AND accompagnateur_id=?').get(dossierIdIn, me.id, c.accompagnateur_id) as { id: number } | undefined
+    : db.prepare('SELECT id FROM dossiers WHERE accompagne_id=? AND accompagnateur_id=? ORDER BY id LIMIT 1').get(me.id, c.accompagnateur_id) as { id: number } | undefined
+  if (!dossier) { res.status(409).json({ error: 'Créneau indisponible pour ce parcours' }); return }
 
-  const reserver = db.transaction(() => {
+  db.transaction(() => {
     db.prepare('UPDATE creneaux SET reserve=1 WHERE id=?').run(creneauId)
-    db.prepare('INSERT INTO rdv (creneau_id, accompagne_id, dossier_id) VALUES (?, ?, ?)').run(creneauId, me.id, dossier ? dossier.id : null)
-    db.prepare('INSERT INTO notifications (user_id, texte) VALUES (?, ?)').run(accId, `Nouveau rendez-vous réservé le ${formatFr(c.debut)}.`)
+    db.prepare('INSERT INTO rdv (creneau_id, accompagne_id, dossier_id) VALUES (?, ?, ?)').run(creneauId, me.id, dossier.id)
+    db.prepare('INSERT INTO notifications (user_id, texte) VALUES (?, ?)').run(c.accompagnateur_id, `Nouveau rendez-vous réservé le ${formatFr(c.debut)}.`)
     db.prepare('INSERT INTO notifications (user_id, texte) VALUES (?, ?)').run(me.id, `Votre rendez-vous du ${formatFr(c.debut)} est confirmé.`)
-  })
-  reserver()
+    db.prepare("UPDATE demandes_rdv SET statut='satisfaite' WHERE dossier_id=? AND statut='en_attente'").run(dossier.id)
+  })()
 
-  const acc = db.prepare('SELECT email FROM users WHERE id=?').get(accId) as { email: string } | undefined
+  const acc = db.prepare('SELECT email FROM users WHERE id=?').get(c.accompagnateur_id) as { email: string } | undefined
   await sendEmail(me.email, 'Boussole — rendez-vous confirmé', `<p>Votre rendez-vous est confirmé le <strong>${formatFr(c.debut)}</strong>.</p>`)
   if (acc) await sendEmail(acc.email, 'Boussole — nouveau rendez-vous', `<p>${me.email} a réservé un rendez-vous le <strong>${formatFr(c.debut)}</strong>.</p>`)
+  res.json({ ok: true })
+})
 
+// Demander un rendez-vous quand aucun créneau n'est disponible
+router.post('/demander', requireAuth, requireRole('accompagne'), async (req: Request, res: Response) => {
+  const me = getUser(req)
+  const dossierId = Number(req.body?.dossierId)
+  const d = db.prepare('SELECT id, accompagnateur_id FROM dossiers WHERE id=? AND accompagne_id=?').get(dossierId, me.id) as { id: number; accompagnateur_id: number } | undefined
+  if (!d) { res.status(404).json({ error: 'Parcours introuvable' }); return }
+  const exists = db.prepare("SELECT id FROM demandes_rdv WHERE dossier_id=? AND statut='en_attente'").get(dossierId)
+  if (!exists) db.prepare('INSERT INTO demandes_rdv (dossier_id, accompagne_id, accompagnateur_id) VALUES (?,?,?)').run(dossierId, me.id, d.accompagnateur_id)
+  const moi = db.prepare('SELECT prenom, email FROM users WHERE id=?').get(me.id) as { prenom: string | null; email: string }
+  const qui = moi.prenom || moi.email
+  db.prepare('INSERT INTO notifications (user_id, texte) VALUES (?, ?)').run(d.accompagnateur_id, `${qui} demande un rendez-vous (aucun créneau disponible).`)
+  const acc = db.prepare('SELECT email FROM users WHERE id=?').get(d.accompagnateur_id) as { email: string } | undefined
+  if (acc) await sendEmail(acc.email, 'Boussole — demande de rendez-vous', `<p><strong>${qui}</strong> souhaite un rendez-vous mais aucun créneau n’est disponible. Ajoutez des créneaux dans Boussole : l’accompagné sera notifié automatiquement.</p>`)
   res.json({ ok: true })
 })
 

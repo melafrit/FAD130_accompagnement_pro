@@ -247,6 +247,16 @@ db.exec(`
     texte      TEXT NOT NULL,
     cree_le    TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Demande de rendez-vous quand l'accompagnateur n'a pas de créneau disponible
+  CREATE TABLE IF NOT EXISTS demandes_rdv (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    dossier_id        INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    accompagne_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    accompagnateur_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    statut            TEXT NOT NULL DEFAULT 'en_attente',
+    cree_le           TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `)
 // Initialise l'ordre des actions héritées (avant le glisser-déposer) pour un tri déterministe
 try {
