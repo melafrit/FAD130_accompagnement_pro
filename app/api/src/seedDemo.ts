@@ -1,5 +1,6 @@
 import { db } from './db'
 import { contentToHtml, type CRContent } from './compteRendu'
+import { syntheseData, syntheseToHtml } from './synthese'
 
 function dayOffset(days: number, hhmm = '14:00'): string {
   const d = new Date(Date.now() + days * 86400000)
@@ -176,6 +177,10 @@ export async function seedDemoData(accId: number, amineId: number): Promise<void
     insRdv.run(cid, amineId, dossierId)
   }
   insCreneau.run(accId, dayOffset(7, '10:00'), dayOffset(7, '11:00'), 0)
+
+  // Synthèse du parcours : une version générée + publiée (visible en lecture par Amine)
+  db.prepare("INSERT INTO syntheses (dossier_id, version, contenu_html, source, publie, publie_le, genere_le) VALUES (?, 1, ?, 'ia', 1, ?, ?)")
+    .run(dossierId, syntheseToHtml(syntheseData(dossierId)), dayOffset(-5, '11:00'), dayOffset(-5, '11:00'))
 
   // Grille d'auto-évaluation de Mohamed : 2 versions validées (pour la courbe) + 1 brouillon courant
   const insEval = db.prepare('INSERT INTO auto_evaluations (dossier_id, statut, note_globale, commentaire_global, analyse_questions, cree_le, maj_le) VALUES (?,?,?,?,?,?,?)')

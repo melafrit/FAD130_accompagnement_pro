@@ -27,7 +27,7 @@ interface SyntheseData {
   rdvs: { debut: string; fin: string; statut: string }[]
   synthese: string | null
 }
-function syntheseData(dossierId: number): SyntheseData {
+export function syntheseData(dossierId: number): SyntheseData {
   const dossier = db.prepare(
     `SELECT d.titre, d.contexte, d.statut, d.synthese, d.cree_le, d.accompagne_id, u.prenom AS accompagne_prenom, u.email AS accompagne_email
      FROM dossiers d JOIN users u ON u.id=d.accompagne_id WHERE d.id=?`,
@@ -64,7 +64,7 @@ function parasHtml(text: string): string {
   const lines = (text || '').split('\n').map((l) => l.trim()).filter(Boolean)
   return lines.length ? lines.map((l) => `<p>${esc(l)}</p>`).join('') : '<p>—</p>'
 }
-function syntheseToHtml(d: SyntheseData): string {
+export function syntheseToHtml(d: SyntheseData): string {
   const parts: string[] = []
   parts.push(`<p><em>Accompagné : ${esc(d.accompagne)} · Statut : ${esc(sf(d.statut))} · Ouvert le ${esc(frDate(d.creeLe))}</em></p>`)
   parts.push(`<h2>1. Contexte</h2>${parasHtml(d.contexte)}`)
