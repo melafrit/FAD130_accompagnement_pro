@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import AiProgress from '../components/AiProgress'
 import DictaInput from '../components/DictaInput'
@@ -19,6 +19,8 @@ export default function Questionnaire() {
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   const nav = useNavigate()
+  const [params] = useSearchParams()
+  const dossierId = params.get('dossier')
 
   async function loadNext(h: QA[]) {
     setBusy(true)
@@ -45,7 +47,7 @@ export default function Questionnaire() {
   async function save() {
     setBusy(true)
     try {
-      await api('/questionnaire/save', { method: 'POST', body: JSON.stringify({ history, recapitulatif: step?.recapitulatif }) })
+      await api('/questionnaire/save', { method: 'POST', body: JSON.stringify({ history, recapitulatif: step?.recapitulatif, dossierId: dossierId ? Number(dossierId) : undefined }) })
       setSaved(true)
     } finally {
       setBusy(false)
@@ -92,8 +94,8 @@ export default function Questionnaire() {
           <pre className="recap-text">{step.recapitulatif}</pre>
           {saved ? (
             <>
-              <p className="form-success">✅ Enregistré. Ton accompagnateur en sera informé. Tu pourras bientôt choisir un créneau de rendez-vous.</p>
-              <button className="btn btn-primary" onClick={() => nav('/espace')}>Retour à mon espace</button>
+              <p className="form-success">✅ Enregistré. Ton accompagnateur en sera informé. Tu peux maintenant choisir un créneau de rendez-vous depuis ton parcours.</p>
+              <button className="btn btn-primary" onClick={() => nav(dossierId ? `/parcours/${dossierId}` : '/espace')}>{dossierId ? 'Voir mon parcours' : 'Retour à mon espace'}</button>
             </>
           ) : (
             <button className="btn btn-primary" disabled={busy} onClick={save}>Valider et enregistrer</button>

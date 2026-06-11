@@ -12,6 +12,8 @@ import Confidentialite from './pages/Confidentialite'
 import Methode from './pages/Methode'
 import Aide from './pages/Aide'
 import Espace from './pages/Espace'
+import NouveauParcours from './pages/NouveauParcours'
+import ParcoursDetail from './pages/ParcoursDetail'
 import Questionnaire from './pages/Questionnaire'
 import Creneaux from './pages/Creneaux'
 import RendezVous from './pages/RendezVous'
@@ -88,6 +90,8 @@ export default function App() {
             <Route path="/aide" element={<Aide />} />
             <Route path="/espace" element={<Protected><Espace /></Protected>} />
             <Route path="/profil" element={<Protected><Profil /></Protected>} />
+            <Route path="/nouveau-parcours" element={<Protected role="accompagne"><NouveauParcours /></Protected>} />
+            <Route path="/parcours/:id" element={<Protected role="accompagne"><ParcoursDetail /></Protected>} />
             <Route path="/questionnaire" element={<Protected role="accompagne"><Questionnaire /></Protected>} />
             <Route path="/mes-creneaux" element={<Protected role="accompagnateur"><Creneaux /></Protected>} />
             <Route path="/rendez-vous" element={<Protected role="accompagne"><RendezVous /></Protected>} />
