@@ -1,5 +1,14 @@
 import { useState } from 'react'
 
+const FLOW = [
+  ['Inscription & consentement', 'L’utilisateur crée son compte, valide son email et accepte les CGU / la politique de confidentialité.'],
+  ['Questionnaire initial', 'Avant le 1ᵉʳ rendez-vous, l’accompagné cadre son besoin (stage, mémoire, problématique, difficultés) — guidé par l’IA, question par question.'],
+  ['Prise de rendez-vous', 'L’accompagné choisit un créneau parmi les disponibilités de l’accompagnateur ; confirmation par email.'],
+  ['Entretien guidé', 'L’accompagnateur mène l’entretien en 6 phases ; la parole peut être transcrite au micro ; l’IA propose des questions et reformulations.'],
+  ['Compte rendu', 'Un compte rendu structuré (avec plan d’action) est généré, modifiable, puis déposé — daté — dans l’espace de l’accompagné.'],
+  ['Suivi', 'Le plan d’action est suivi (rappels, notifications) ; un tableau de bord et la recherche par étiquettes facilitent le pilotage.'],
+]
+
 const ANCHORS = [
   { nom: 'Rogers', desc: 'Relation d’aide : non-jugement, et viser la croissance de l’autre plutôt que sa dépendance.' },
   { nom: 'Porter', desc: 'Les attitudes d’écoute : privilégier la reformulation, bannir le jugement et l’interprétation.' },
@@ -98,7 +107,70 @@ export default function Methode() {
   return (
     <article className="page methode">
       <p className="kicker">FAD130 · Méthode d’accompagnement</p>
-      <h1 className="page-title">Les phases de l’entretien</h1>
+      <h1 className="page-title">Comment fonctionne Boussole</h1>
+      <p className="lead">
+        Boussole est développée dans le cadre de l’UE <strong>FAD130</strong> (Cnam) pour illustrer ma
+        pratique d’accompagnement. Cette page explique son fonctionnement, le rôle de l’IA, et la
+        conformité RGPD.
+      </p>
+
+      {/* Le parcours, étape par étape */}
+      <section>
+        <h2>Le parcours, étape par étape</h2>
+        <ol className="flow">
+          {FLOW.map(([titre, desc], i) => (
+            <li key={i}>
+              <span className="flow-num">{i + 1}</span>
+              <div><strong>{titre}</strong><p>{desc}</p></div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Transparence sur l’IA */}
+      <section className="ia-section">
+        <h2>La transparence sur l’IA</h2>
+        <ul className="list">
+          <li>L’IA <strong>assiste l’accompagnateur</strong> : elle suggère des questions et des reformulations, mais <strong>ne décide jamais à sa place</strong>.</li>
+          <li>Elle <strong>ne s’adresse pas directement</strong> à la personne accompagnée pendant l’entretien.</li>
+          <li>Elle est encadrée par des <strong>garde-fous de posture</strong> (les 8 principes).</li>
+          <li>Les contenus d’entretien transmis à l’IA servent uniquement à produire les suggestions et le compte rendu.</li>
+        </ul>
+      </section>
+
+      {/* Rôles · Fonctions · Données & RGPD */}
+      <section>
+        <div className="cards">
+          <div className="card">
+            <h3>Rôles</h3>
+            <ul className="list">
+              <li><strong>Admin</strong> — gère les comptes.</li>
+              <li><strong>Accompagnateur</strong> — voit tous ses accompagnés, mène les entretiens, pilote le plan d’action.</li>
+              <li><strong>Accompagné</strong> — voit uniquement son historique et ses comptes rendus.</li>
+            </ul>
+          </div>
+          <div className="card">
+            <h3>Fonctions clés</h3>
+            <ul className="list">
+              <li>Questionnaire initial assisté par l’IA + prise de RDV.</li>
+              <li>Entretien guidé (6 phases) + transcription + suggestions IA.</li>
+              <li>Compte rendu généré par l’IA, modifiable (éditeur de texte riche), versionné et publié à la demande.</li>
+              <li>Tableau de bord, suivi du plan d’action, recherche par tags.</li>
+            </ul>
+          </div>
+          <div className="card">
+            <h3>Données & RGPD</h3>
+            <ul className="list">
+              <li><strong>Texte uniquement</strong>, pas d’enregistrement audio.</li>
+              <li>Conservation <strong>limitée</strong> ; consentement obligatoire.</li>
+              <li>Droits via <a href="mailto:dpo@elafrit.com">dpo@elafrit.com</a>.</li>
+              <li>Sous-traitants : Anthropic (IA) et Brevo (emails).</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Intro à la méthode interactive */}
       <p className="lead">
         Une posture de <strong>facilitateur</strong> au service de la transition de l’autre. Clique pour explorer :
         mes ancrages, ma posture, et chaque phase de l’entretien.
@@ -141,7 +213,7 @@ export default function Methode() {
 
       {/* Les phases — navigation interactive */}
       <section className="ia-section">
-        <h2>Les 6 phases</h2>
+        <h2>Les phases de l’entretien</h2>
         <p className="hint">Navigue phase par phase (clique un numéro, ou « Précédent / Suivant »).</p>
         <div className="phase-tabs">
           {PHASES.map((ph, i) => (
@@ -175,9 +247,8 @@ export default function Methode() {
         <h2>Comment l’IA assiste (sans jamais décider)</h2>
         <ul className="list">
           <li><strong>Elle suggère, l’accompagnateur décide</strong> : questions et reformulations proposées, jamais imposées.</li>
-          <li><strong>Elle ne s’adresse jamais à la personne accompagnée</strong> à la place de l’accompagnateur.</li>
+          <li><strong>Elle ne s’adresse jamais à la personne accompagnée</strong> à la place de l’accompagnateur pendant l’entretien.</li>
           <li><strong>Elle respecte les 8 principes</strong> ci-dessus (intégrés à ses garde-fous).</li>
-          <li><strong>Claude Sonnet</strong> pour les suggestions en temps réel, <strong>Claude Opus</strong> pour les comptes rendus.</li>
         </ul>
       </section>
     </article>

@@ -148,7 +148,7 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .legal p { color: var(--texte-doux); margin: 0 0 8px; }
 .legal-note { font-style: italic; color: var(--sauge); }
 
-/* Pages Méthode / Aide */
+/* Page Méthode */
 .page { max-width: 100%; margin: 0 auto; }
 /* Le 80% vise les grands écrans : sous 900px (tablettes/mobiles) le contenu reprend toute la largeur. */
 @media (max-width: 900px) {
