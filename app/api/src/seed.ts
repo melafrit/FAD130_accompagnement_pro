@@ -29,14 +29,14 @@ async function ensureUser(email: string | undefined, role: Role): Promise<void> 
  * Crée/active un compte avec un mot de passe connu (variable SEED_PASSWORD).
  * Réservé au DÉVELOPPEMENT / aux tests locaux.
  */
-async function ensureDevUser(email: string, role: Role, password: string, prenom?: string): Promise<number> {
+async function ensureDevUser(email: string, role: Role, password: string, prenom?: string, nom?: string): Promise<number> {
   const hash = await bcrypt.hash(password, 10)
   const existing = db.prepare('SELECT id FROM users WHERE email=?').get(email) as { id: number } | undefined
   if (existing) {
-    db.prepare('UPDATE users SET password_hash=?, role=?, email_verifie=1, actif=1, prenom=COALESCE(?, prenom) WHERE id=?').run(hash, role, prenom || null, existing.id)
+    db.prepare('UPDATE users SET password_hash=?, role=?, email_verifie=1, actif=1, prenom=COALESCE(?, prenom), nom=COALESCE(?, nom) WHERE id=?').run(hash, role, prenom || null, nom || null, existing.id)
     return existing.id
   }
-  const info = db.prepare('INSERT INTO users (email, password_hash, role, prenom, email_verifie) VALUES (?, ?, ?, ?, 1)').run(email, hash, role, prenom || null)
+  const info = db.prepare('INSERT INTO users (email, password_hash, role, prenom, nom, email_verifie) VALUES (?, ?, ?, ?, ?, 1)').run(email, hash, role, prenom || null, nom || null)
   return Number(info.lastInsertRowid)
 }
 
@@ -50,12 +50,26 @@ export async function seed(): Promise<void> {
   if (devPwd) {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@boussole.local'
     const accEmail = process.env.ACCOMPAGNATEUR_EMAIL || 'accompagnateur@boussole.local'
+    // Mot de passe partagé pour les comptes de démo @boussole.demo (et SEED_PASSWORD pour les comptes réels).
+    const demoPwd = 'BoussoleDemo2026'
     await ensureDevUser(adminEmail, 'admin', devPwd, 'Mohamed')
-    const accId = await ensureDevUser(accEmail, 'accompagnateur', devPwd, 'Mohamed')
-    const amineId = await ensureDevUser('afrit_mohamed@yahoo.fr', 'accompagne', devPwd, 'Amine')
-    db.prepare('INSERT OR IGNORE INTO liens_accompagnement (accompagnateur_id, accompagne_id) VALUES (?, ?)').run(accId, amineId)
-    await seedDemoData(accId, amineId)
-    console.log('[seed:dev] Comptes de démo prêts (mot de passe = SEED_PASSWORD) : admin, accompagnateur (Mohamed), afrit_mohamed@yahoo.fr (Amine) + jeu de données de démo')
+    // 2 accompagnateurs : Mohamed (réel) + Camille (démo)
+    const mohamedId = await ensureDevUser(accEmail, 'accompagnateur', devPwd, 'Mohamed', 'El Afrit')
+    const camilleId = await ensureDevUser('camille.laurent@boussole.demo', 'accompagnateur', demoPwd, 'Camille', 'Laurent')
+    // 3 accompagnés : Amine (réel) + Léa + Karim (démo)
+    const amineId = await ensureDevUser('afrit_mohamed@yahoo.fr', 'accompagne', devPwd, 'Amine', 'Bensaïd')
+    const leaId = await ensureDevUser('lea.martin@boussole.demo', 'accompagne', demoPwd, 'Léa', 'Martin')
+    const karimId = await ensureDevUser('karim.benali@boussole.demo', 'accompagne', demoPwd, 'Karim', 'Benali')
+    // Liens d'accompagnement (un accompagné peut être suivi par plusieurs accompagnateurs)
+    const lien = db.prepare('INSERT OR IGNORE INTO liens_accompagnement (accompagnateur_id, accompagne_id) VALUES (?, ?)')
+    lien.run(mohamedId, amineId)   // D1
+    lien.run(camilleId, amineId)   // D2
+    lien.run(mohamedId, leaId)     // D3
+    lien.run(camilleId, leaId)     // D4
+    lien.run(camilleId, karimId)   // D5
+    lien.run(mohamedId, karimId)   // D6
+    await seedDemoData({ mohamed: mohamedId, camille: camilleId, amine: amineId, lea: leaId, karim: karimId })
+    console.log('[seed:dev] Comptes de démo prêts : 2 accompagnateurs (Mohamed, Camille) + 3 accompagnés (Amine, Léa, Karim) + jeu de données complet (6 dossiers).')
     return
   }
   await ensureUser(process.env.ADMIN_EMAIL, 'admin')
