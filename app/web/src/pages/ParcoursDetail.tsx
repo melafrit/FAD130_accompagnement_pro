@@ -25,21 +25,24 @@ export default function ParcoursDetail() {
   const [crSession, setCrSession] = useState<number | null>(null)
   const [showSyn, setShowSyn] = useState(false)
   const [msg, setMsg] = useState('')
+  const [isErr, setIsErr] = useState(false)
 
   async function load() { setData(await api<Detail>(`/dossiers/mine/${id}`)) }
   async function loadCreneaux() { try { setCreneaux((await api<{ creneaux: Creneau[] }>(`/rdv/disponibles?dossierId=${id}`)).creneaux) } catch { /* ignore */ } }
-  useEffect(() => { void load().catch(() => setMsg('Chargement impossible.')); void loadCreneaux() }, [id])
+  useEffect(() => { void load().catch(() => { setMsg('Chargement impossible.'); setIsErr(true) }); void loadCreneaux() }, [id])
 
   async function setStatut(aid: number, statut: string) { await api(`/actions/${aid}`, { method: 'PATCH', body: JSON.stringify({ statut }) }); await load() }
   async function reserver(creneauId: number) {
     setMsg('')
-    try { await api('/rdv/reserver', { method: 'POST', body: JSON.stringify({ creneauId, dossierId: Number(id) }) }); setMsg('Rendez-vous réservé ✅'); await load(); await loadCreneaux() }
-    catch (e) { setMsg((e as Error).message || 'Réservation impossible.') }
+    try { await api('/rdv/reserver', { method: 'POST', body: JSON.stringify({ creneauId, dossierId: Number(id) }) }) }
+    catch (e) { setMsg((e as Error).message || 'Réservation impossible.'); setIsErr(true); return }
+    setMsg('Rendez-vous réservé ✅'); setIsErr(false)
+    try { await load(); await loadCreneaux() } catch { /* l'écran se resynchronisera au prochain chargement */ }
   }
   async function demander() {
     setMsg('')
-    try { await api('/rdv/demander', { method: 'POST', body: JSON.stringify({ dossierId: Number(id) }) }); setMsg('Demande envoyée à ton accompagnateur. Tu seras notifié dès qu’il ajoute des créneaux.') }
-    catch { setMsg('Demande impossible.') }
+    try { await api('/rdv/demander', { method: 'POST', body: JSON.stringify({ dossierId: Number(id) }) }); setMsg('Demande envoyée à ton accompagnateur. Tu seras notifié dès qu’il ajoute des créneaux.'); setIsErr(false) }
+    catch { setMsg('Demande impossible.'); setIsErr(true) }
   }
 
   if (!data) return <div className="page"><p>{msg || 'Chargement…'}</p></div>
@@ -51,7 +54,7 @@ export default function ParcoursDetail() {
       <p className="kicker">Mon parcours</p>
       <h1 className="page-title">{d.titre}</h1>
       <p className="lead">Accompagnateur : <strong>{acc}</strong> · {d.statut === 'cloture' ? 'Clôturé' : 'En cours'}</p>
-      {msg && <p className="form-success">{msg}</p>}
+      {msg && <p className={isErr ? 'form-error' : 'form-success'}>{msg}</p>}
 
       <section>
         <h2>Questionnaire initial</h2>

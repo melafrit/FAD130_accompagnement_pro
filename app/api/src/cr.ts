@@ -108,10 +108,14 @@ router.patch('/version/:id', requireAuth, requireRole('accompagnateur'), (req: R
   const me = getUser(req)
   const id = Number(req.params.id)
   const cr = db
-    .prepare('SELECT cr.id, cr.session_id, cr.version, d.accompagnateur_id FROM comptes_rendus cr JOIN sessions s ON s.id=cr.session_id JOIN dossiers d ON d.id=s.dossier_id WHERE cr.id=?')
-    .get(id) as { id: number; session_id: number; version: number; accompagnateur_id: number } | undefined
+    .prepare('SELECT cr.id, cr.session_id, cr.version, cr.publie, d.accompagnateur_id FROM comptes_rendus cr JOIN sessions s ON s.id=cr.session_id JOIN dossiers d ON d.id=s.dossier_id WHERE cr.id=?')
+    .get(id) as { id: number; session_id: number; version: number; publie: number; accompagnateur_id: number } | undefined
   if (!cr || cr.accompagnateur_id !== me.id) {
     res.status(404).json({ error: 'Compte rendu introuvable' })
+    return
+  }
+  if (cr.publie) {
+    res.status(400).json({ error: 'Une version publiée est figée : régénère pour repartir d’une nouvelle version éditable.' })
     return
   }
   const latest = latestVersion(cr.session_id)

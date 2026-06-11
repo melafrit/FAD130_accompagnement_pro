@@ -105,18 +105,26 @@ router.post('/reserver', requireAuth, requireRole('accompagne'), async (req: Req
   const c = db.prepare('SELECT id, accompagnateur_id, debut, reserve FROM creneaux WHERE id=?').get(creneauId) as
     | { id: number; accompagnateur_id: number; debut: string; reserve: number } | undefined
   if (!c || c.reserve) { res.status(409).json({ error: 'Créneau indisponible' }); return }
-  // On exige un parcours de l'accompagné avec CET accompagnateur (sécurité + rattachement du RDV)
-  const dossier = dossierIdIn
-    ? db.prepare('SELECT id FROM dossiers WHERE id=? AND accompagne_id=? AND accompagnateur_id=?').get(dossierIdIn, me.id, c.accompagnateur_id) as { id: number } | undefined
-    : db.prepare('SELECT id FROM dossiers WHERE accompagne_id=? AND accompagnateur_id=? ORDER BY id LIMIT 1').get(me.id, c.accompagnateur_id) as { id: number } | undefined
-  if (!dossier) { res.status(409).json({ error: 'Créneau indisponible pour ce parcours' }); return }
+  // Détermine le dossier ciblé. En multi-parcours (dossierId fourni) : doit appartenir à l'accompagné
+  // ET correspondre à l'accompagnateur du créneau. En mode hérité (sans dossierId) : on autorise même
+  // sans dossier (rdv.dossier_id NULL), à condition que le créneau soit d'un accompagnateur lié.
+  let dossierId: number | null = null
+  if (dossierIdIn) {
+    const d = db.prepare('SELECT id FROM dossiers WHERE id=? AND accompagne_id=? AND accompagnateur_id=?').get(dossierIdIn, me.id, c.accompagnateur_id) as { id: number } | undefined
+    if (!d) { res.status(409).json({ error: 'Créneau indisponible pour ce parcours' }); return }
+    dossierId = d.id
+  } else {
+    if (c.accompagnateur_id !== findAccompagnateurFor(me.id)) { res.status(409).json({ error: 'Créneau indisponible' }); return }
+    const d = db.prepare('SELECT id FROM dossiers WHERE accompagne_id=? AND accompagnateur_id=? ORDER BY id LIMIT 1').get(me.id, c.accompagnateur_id) as { id: number } | undefined
+    dossierId = d ? d.id : null
+  }
 
   db.transaction(() => {
     db.prepare('UPDATE creneaux SET reserve=1 WHERE id=?').run(creneauId)
-    db.prepare('INSERT INTO rdv (creneau_id, accompagne_id, dossier_id) VALUES (?, ?, ?)').run(creneauId, me.id, dossier.id)
+    db.prepare('INSERT INTO rdv (creneau_id, accompagne_id, dossier_id) VALUES (?, ?, ?)').run(creneauId, me.id, dossierId)
     db.prepare('INSERT INTO notifications (user_id, texte) VALUES (?, ?)').run(c.accompagnateur_id, `Nouveau rendez-vous réservé le ${formatFr(c.debut)}.`)
     db.prepare('INSERT INTO notifications (user_id, texte) VALUES (?, ?)').run(me.id, `Votre rendez-vous du ${formatFr(c.debut)} est confirmé.`)
-    db.prepare("UPDATE demandes_rdv SET statut='satisfaite' WHERE dossier_id=? AND statut='en_attente'").run(dossier.id)
+    if (dossierId) db.prepare("UPDATE demandes_rdv SET statut='satisfaite' WHERE dossier_id=? AND statut='en_attente'").run(dossierId)
   })()
 
   const acc = db.prepare('SELECT email FROM users WHERE id=?').get(c.accompagnateur_id) as { email: string } | undefined

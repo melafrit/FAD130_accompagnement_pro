@@ -146,7 +146,7 @@ export default function CompteRenduModal({
                   <span className={`cr-badge ${cr.publie ? 'pub' : 'draft'}`}>{cr.publie ? '✓ Publié' : '• Brouillon'}</span>
                   <span className="muted cr-meta">v{cr.version} · {cr.source === 'ia' ? 'généré IA' : 'édité'} · {shortDate(cr.genere_le)}</span>
                   <div className="cr-bar-actions">
-                    {!editing && !onHistory && <button className="btn btn-ghost btn-sm" onClick={startEdit}>✎ Éditer</button>}
+                    {!editing && !onHistory && !cr.publie && <button className="btn btn-ghost btn-sm" onClick={startEdit}>✎ Éditer</button>}
                     {!editing && !onHistory && <button className="btn btn-ghost btn-sm" disabled={busy} onClick={regenerer}>↻ Régénérer (IA)</button>}
                     {!editing && !onHistory && !cr.publie && <button className="btn btn-primary btn-sm" disabled={busy} onClick={publier}>📣 Publier</button>}
                   </div>
