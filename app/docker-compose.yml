@@ -1,10 +1,17 @@
-# Boussole — orchestration des containers.
+# Boussole — orchestration des containers (déploiement VPS OVH).
 #
-# ⚠️ COEXISTENCE : d'autres apps tournent déjà sur le VPS (formaplanne, etc.).
-# Boussole NE prend PAS les ports 80/443 : elle s'attache au reverse proxy EXISTANT
-# via un réseau Docker externe (PROXY_NETWORK) et des labels Traefik.
-# Le nom exact du réseau et du certresolver sera confirmé au déploiement
-# (voir livrables/Guide_deploiement_Boussole.md §2 : `docker network ls`, `docker ps`).
+# ⚠️ COEXISTENCE : le VPS expose DÉJÀ un reverse proxy Caddy
+# (container `formaplanner-caddy-1`, Caddyfile statique `/opt/FormaPlanner/Caddyfile`)
+# qui tient les ports 80/443. Boussole NE prend PAS 80/443 : son front s'attache
+# au réseau de ce Caddy (EDGE_NETWORK = `formaplanner_formaplanner`) pour qu'il
+# puisse l'atteindre. Le routage HTTPS se fait en ajoutant un bloc de site au
+# Caddyfile (voir livrables/Guide_deploiement_Boussole.md) :
+#
+#     boussole.elafrit.com {
+#         reverse_proxy boussole-web:80
+#     }
+#
+# Caddy génère alors automatiquement le certificat Let's Encrypt.
 
 services:
   boussole-api:
@@ -27,20 +34,12 @@ services:
     depends_on:
       - boussole-api
     networks:
-      - interne
-      - proxy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=${PROXY_NETWORK}"
-      - "traefik.http.routers.boussole.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.boussole.entrypoints=websecure"
-      - "traefik.http.routers.boussole.tls=true"
-      - "traefik.http.routers.boussole.tls.certresolver=${CERT_RESOLVER}"
-      - "traefik.http.services.boussole.loadbalancer.server.port=80"
+      - interne        # pour joindre boussole-api (proxy /api dans nginx)
+      - edge           # réseau du Caddy de façade (il atteint boussole-web:80)
 
 networks:
   interne:
     driver: bridge
-  proxy:
+  edge:
     external: true
-    name: ${PROXY_NETWORK}
+    name: ${EDGE_NETWORK}

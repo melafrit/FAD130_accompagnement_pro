@@ -19,7 +19,7 @@ app/
 - **Front** : React + Vite + TypeScript
 - **Back** : Node.js + Express + TypeScript, base **SQLite** (better-sqlite3)
 - **IA** : Claude API (Sonnet en temps réel, Opus pour les comptes rendus)
-- **Emails** : Brevo · **Déploiement** : Docker + Traefik (HTTPS) sur VPS OVH
+- **Emails** : Brevo · **Déploiement** : Docker sur VPS OVH, derrière le reverse proxy Caddy de façade (HTTPS)
 
 ## Lancer en local (pour tester)
 
@@ -68,11 +68,11 @@ Avec `SEED_PASSWORD` défini (déjà le cas dans `docker-compose.local.yml`), tr
 
 ## Production (Docker)
 ```bash
-cp .env.example .env   # puis remplir (clés, domaine, réseau du proxy)
+cp .env.example .env   # puis remplir (clés, domaine, EDGE_NETWORK)
 docker compose build
 docker compose up -d
 ```
-> ⚠️ Boussole s'attache au **reverse proxy existant** du VPS (réseau `PROXY_NETWORK`) et ne prend pas les ports 80/443. Le nom du réseau/certresolver est à confirmer au déploiement (voir guide §2).
+> ⚠️ Boussole s'attache au **reverse proxy Caddy de façade** du VPS (réseau `EDGE_NETWORK`, ex. `formaplanner_formaplanner`) et ne prend pas les ports 80/443. Le routage HTTPS se fait en ajoutant un bloc de site `boussole.elafrit.com { reverse_proxy boussole-web:80 }` au Caddyfile (voir [guide de déploiement](../livrables/Guide_deploiement_Boussole.md)).
 
 ## État d'avancement
 - [x] Squelette monorepo (web + api), page d'accueil contextuelle, schéma SQLite, Docker/compose
