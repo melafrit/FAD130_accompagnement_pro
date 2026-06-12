@@ -119,13 +119,8 @@ export default function Presentation() {
     <article className="page presentation">
       <p className="kicker">FAD130 · Support de l’oral</p>
       <h1 className="page-title">Présentation orale</h1>
-      <p className="lead">
-        5 à 7 minutes pour répondre à <strong>3 questions</strong>, avec un fil rouge :
-        faire <strong>croître l’autonomie</strong> de la personne accompagnée. Clique pour dérouler chaque question.
-      </p>
 
       <section className="ia-section">
-        <p className="hint">Avance question par question (clique un onglet, ou « Précédent / Suivant »), puis ouvre « Démo » pour montrer l’appli en direct.</p>
         <div className="phase-tabs">
           {QUESTIONS.map((ph, i) => (
             <button key={i} className={`phase-tab ${i === q ? 'active' : ''} ${i < q ? 'done' : ''}`} onClick={() => goto(i)}>
