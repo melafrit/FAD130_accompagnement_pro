@@ -44,7 +44,7 @@ const QUESTIONS: QPres[] = [
     accroche:
       'Mon entretien suit 6 phases, du cadre à la clôture, avec à chaque étape une intention et des outils précis — et je l’étaie par ma grille d’auto-évaluation.',
     points: [
-      { titre: '6 phases, une progression', detail: 'Cadre & alliance → demande/besoin → exploration de l’expérience → mise en sens → plan d’action → clôture. Chaque phase a un objectif, des points de vigilance et une banque de questions.' },
+      { titre: '6 phases, une progression', detail: 'Accueil et mise en confiance → clarifier le besoin → explorer l’expérience → relier et donner du sens → plan d’action & engagement → clôture et élan. Chaque phase a un objectif, des points de vigilance et une banque de questions.' },
       { titre: 'Faire parler, faire émerger', detail: 'Questions ouvertes et neutres (le « geste écologique » de Brémond), reformulation plutôt qu’interprétation (Porter), ne pas donner la solution (Rogers). C’est mon principal axe de progrès.' },
       { titre: 'Distinguer demande et besoin', detail: 'La demande explicite (« réussir mon mémoire ») n’est pas toujours le besoin réel (se sentir légitime). Je reformule et je vérifie avant d’agir.' },
       { titre: 'Outiller l’engagement — ma force', detail: 'Micro-objectifs, critères de réussite, échéances et feedback (Bandura, sentiment d’efficacité). C’est là que mes métiers de chef de projet et d’enseignant servent vraiment.' },
