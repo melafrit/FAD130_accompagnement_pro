@@ -93,14 +93,25 @@ const MATRICE_CELLS: { key: keyof Matrice; cls: string; icon: string; label: str
   { key: 'pasEncore', cls: 'pasencore', icon: '🌱', label: 'Je n’y arrive pas encore…' },
 ]
 
+const DEMO_PWD = 'BoussoleDemo2026'
+const DEMO_ACCOUNTS: { role: string; nom: string; email: string }[] = [
+  { role: 'Accompagnateur', nom: 'Mohamed', email: 'elafrit.mohamed@gmail.com' },
+  { role: 'Accompagnateur', nom: 'Camille Laurent', email: 'camille.laurent@boussole.demo' },
+  { role: 'Accompagné', nom: 'Amine Bensaïd', email: 'afrit_mohamed@yahoo.fr' },
+  { role: 'Accompagné', nom: 'Léa Martin', email: 'lea.martin@boussole.demo' },
+  { role: 'Accompagné', nom: 'Karim Benali', email: 'karim.benali@boussole.demo' },
+  { role: 'Admin', nom: 'Mohamed', email: 'mohamed@elafrit.com' },
+]
+
 export default function Presentation() {
   const [q, setQ] = useState(0)
   const [openPoint, setOpenPoint] = useState<number | null>(null)
   const [showPourquoi, setShowPourquoi] = useState(false)
+  const isDemo = q === QUESTIONS.length
   const item = QUESTIONS[q]
 
   function goto(i: number) {
-    if (i < 0 || i >= QUESTIONS.length) return
+    if (i < 0 || i > QUESTIONS.length) return
     setQ(i); setOpenPoint(null); setShowPourquoi(false)
   }
 
@@ -114,7 +125,7 @@ export default function Presentation() {
       </p>
 
       <section className="ia-section">
-        <p className="hint">Avance question par question (clique un onglet, ou « Précédent / Suivant »).</p>
+        <p className="hint">Avance question par question (clique un onglet, ou « Précédent / Suivant »), puis ouvre « Démo » pour montrer l’appli en direct.</p>
         <div className="phase-tabs">
           {QUESTIONS.map((ph, i) => (
             <button key={i} className={`phase-tab ${i === q ? 'active' : ''} ${i < q ? 'done' : ''}`} onClick={() => goto(i)}>
@@ -122,52 +133,81 @@ export default function Presentation() {
               <span className="phase-tab-titre">{ph.tab}</span>
             </button>
           ))}
-        </div>
-
-        <div className="phase-panel">
-          <div className="phase-head"><span className="phase-num">{q + 1}</span><h3 style={{ margin: 0 }}>{item.titre}</h3></div>
-          <p className="pres-critere">Critère : {item.critere}</p>
-          <p className="pres-accroche">« {item.accroche} »</p>
-
-          <h4>Points clés <span className="hint" style={{ fontWeight: 400 }}>(clique pour le détail)</span></h4>
-          <div className="principe-grid">
-            {item.points.map((pt, i) => (
-              <button key={i} className={`principe-card ${openPoint === i ? 'open' : ''}`} onClick={() => setOpenPoint(openPoint === i ? null : i)}>
-                <span className="principe-head"><span className="principe-num">{i + 1}</span>{pt.titre}</span>
-                {openPoint === i && <span className="principe-detail">{pt.detail}</span>}
-              </button>
-            ))}
-          </div>
-
-          <h4>Ma matrice de positionnement</h4>
-          <div className="matrice">
-            {MATRICE_CELLS.map((c) => (
-              <div key={c.key} className={`matrice-cell ${c.cls}`}>
-                <span className="mc-label">{c.icon} {c.label}</span>
-                <span className="mc-text">{item.matrice[c.key]}</span>
-              </div>
-            ))}
-          </div>
-          <button className="btn btn-ghost btn-sm pres-pourquoi-btn" onClick={() => setShowPourquoi((v) => !v)}>
-            {showPourquoi ? '▾ Masquer le « pourquoi »' : '💡 Pourquoi ?'}
+          <button className={`phase-tab ${isDemo ? 'active' : ''}`} onClick={() => goto(QUESTIONS.length)}>
+            <span className="phase-tab-num">🔑</span>
+            <span className="phase-tab-titre">Démo</span>
           </button>
-          {showPourquoi && <p className="pres-pourquoi"><strong>Pourquoi :</strong> {item.matrice.pourquoi}</p>}
-
-          <div className="pres-meta">
-            <div className="pres-ancrages"><span className="pres-meta-lbl">Ancrages :</span>
-              {item.ancrages.map((a, i) => <span key={i} className="pres-chip">{a}</span>)}
-            </div>
-            <div className="pres-preuves"><span className="pres-meta-lbl">Preuves :</span>
-              {item.preuves.map((p, i) => <Link key={i} className="pres-chip pres-chip-link" to={p.to}>{p.label} →</Link>)}
-            </div>
-          </div>
-
-          <div className="phase-panel-nav">
-            <button className="btn btn-ghost" disabled={q === 0} onClick={() => goto(q - 1)}>← Précédent</button>
-            <span className="phase-counter">{q + 1} / {QUESTIONS.length}</span>
-            <button className="btn btn-primary" disabled={q === QUESTIONS.length - 1} onClick={() => goto(q + 1)}>Suivant →</button>
-          </div>
         </div>
+
+        {!isDemo ? (
+          <div className="phase-panel">
+            <div className="phase-head"><span className="phase-num">{q + 1}</span><h3 style={{ margin: 0 }}>{item.titre}</h3></div>
+            <p className="pres-critere">Critère : {item.critere}</p>
+            <p className="pres-accroche">« {item.accroche} »</p>
+
+            <h4>Points clés <span className="hint" style={{ fontWeight: 400 }}>(clique pour le détail)</span></h4>
+            <div className="principe-grid">
+              {item.points.map((pt, i) => (
+                <button key={i} className={`principe-card ${openPoint === i ? 'open' : ''}`} onClick={() => setOpenPoint(openPoint === i ? null : i)}>
+                  <span className="principe-head"><span className="principe-num">{i + 1}</span>{pt.titre}</span>
+                  {openPoint === i && <span className="principe-detail">{pt.detail}</span>}
+                </button>
+              ))}
+            </div>
+
+            <h4>Ma matrice de positionnement</h4>
+            <div className="matrice">
+              {MATRICE_CELLS.map((c) => (
+                <div key={c.key} className={`matrice-cell ${c.cls}`}>
+                  <span className="mc-label">{c.icon} {c.label}</span>
+                  <span className="mc-text">{item.matrice[c.key]}</span>
+                </div>
+              ))}
+            </div>
+            <button className="btn btn-ghost btn-sm pres-pourquoi-btn" onClick={() => setShowPourquoi((v) => !v)}>
+              {showPourquoi ? '▾ Masquer le « pourquoi »' : '💡 Pourquoi ?'}
+            </button>
+            {showPourquoi && <p className="pres-pourquoi"><strong>Pourquoi :</strong> {item.matrice.pourquoi}</p>}
+
+            <div className="pres-meta">
+              <div className="pres-ancrages"><span className="pres-meta-lbl">Ancrages :</span>
+                {item.ancrages.map((a, i) => <span key={i} className="pres-chip">{a}</span>)}
+              </div>
+              <div className="pres-preuves"><span className="pres-meta-lbl">Preuves :</span>
+                {item.preuves.map((p, i) => <Link key={i} className="pres-chip pres-chip-link" to={p.to}>{p.label} →</Link>)}
+              </div>
+            </div>
+
+            <div className="phase-panel-nav">
+              <button className="btn btn-ghost" disabled={q === 0} onClick={() => goto(q - 1)}>← Précédent</button>
+              <span className="phase-counter">{q + 1} / {QUESTIONS.length}</span>
+              <button className="btn btn-primary" onClick={() => goto(q + 1)}>{q === QUESTIONS.length - 1 ? 'Voir la démo →' : 'Suivant →'}</button>
+            </div>
+          </div>
+        ) : (
+          <div className="phase-panel">
+            <div className="phase-head"><span className="phase-num">🔑</span><h3 style={{ margin: 0 }}>Comptes de démonstration</h3></div>
+            <p>Connecte-toi avec un de ces comptes <strong>préchargés</strong> pour montrer l’application en direct. Le jeu de données (dossiers, entretiens, comptes rendus, synthèses) est <strong>réinitialisé à chaque redémarrage</strong>.</p>
+            <p className="demo-pwd">Mot de passe commun : <strong>{DEMO_PWD}</strong></p>
+            <table className="demo-table">
+              <thead><tr><th>Rôle</th><th>Nom</th><th>Identifiant (email)</th></tr></thead>
+              <tbody>
+                {DEMO_ACCOUNTS.map((a, i) => (
+                  <tr key={i}>
+                    <td><span className="demo-role">{a.role}</span></td>
+                    <td>{a.nom}</td>
+                    <td className="demo-email">{a.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="hint">Côté <strong>accompagnateur</strong> (Mohamed, Camille) : dossiers, entretiens, comptes rendus, grille d’auto-évaluation. Côté <strong>accompagné</strong> (Amine, Léa, Karim) : parcours, rendez-vous, synthèse.</p>
+            <div className="phase-panel-nav">
+              <button className="btn btn-ghost" onClick={() => goto(QUESTIONS.length - 1)}>← Retour aux questions</button>
+              <Link className="btn btn-primary" to="/connexion">Se connecter →</Link>
+            </div>
+          </div>
+        )}
       </section>
     </article>
   )

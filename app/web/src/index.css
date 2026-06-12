@@ -211,6 +211,16 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .pres-chip-link:hover { background: var(--sauge-clair); border-color: var(--sauge); }
 @media (max-width: 560px) { .matrice { grid-template-columns: 1fr; } }
 
+/* Onglet Démo (comptes préchargés) */
+.demo-pwd { font-size: 15px; margin: 4px 0 14px; }
+.demo-pwd strong { background: var(--sauge-clair); border: 1px solid #d6e2d9; border-radius: 8px; padding: 2px 10px; color: var(--bleu-profond); font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; }
+.demo-table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 14px; }
+.demo-table th, .demo-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--bordure); }
+.demo-table th { color: var(--bleu-profond); font-size: 13px; }
+.demo-table tbody tr:hover { background: var(--sable-2); }
+.demo-email { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 13px; color: var(--texte); }
+.demo-role { font-size: 12px; font-weight: 700; color: var(--sauge); }
+
 /* Succès de formulaire */
 .form-success { color: #1b7a43; background: #e6f4ea; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-size: 14px; }
 
