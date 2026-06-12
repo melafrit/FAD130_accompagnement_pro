@@ -126,7 +126,7 @@ export default function SyntheseModal({
                   <span className={`cr-badge ${doc.publie ? 'pub' : 'draft'}`}>{doc.publie ? '✓ Publiée' : '• Brouillon'}</span>
                   <span className="muted cr-meta">v{doc.version} · {doc.source === 'ia' ? 'générée IA' : 'éditée'} · {shortDate(doc.genere_le)}</span>
                   <div className="cr-bar-actions">
-                    {!editing && !onHistory && !doc.publie && <button className="btn btn-ghost btn-sm" onClick={startEdit}>✎ Éditer</button>}
+                    {!editing && !onHistory && <button className="btn btn-ghost btn-sm" onClick={startEdit}>✎ Éditer</button>}
                     {!editing && !onHistory && <button className="btn btn-ghost btn-sm" disabled={busy} onClick={regenerer}>↻ Régénérer (IA)</button>}
                     {!editing && !onHistory && !doc.publie && <button className="btn btn-primary btn-sm" disabled={busy} onClick={publier}>📣 Publier</button>}
                   </div>

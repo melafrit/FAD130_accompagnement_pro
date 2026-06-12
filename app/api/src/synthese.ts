@@ -163,7 +163,8 @@ router.patch('/version/:id', requireAuth, requireRole('accompagnateur'), (req: R
   const me = getUser(req)
   const v = db.prepare('SELECT s.id, s.dossier_id, s.publie, d.accompagnateur_id FROM syntheses s JOIN dossiers d ON d.id=s.dossier_id WHERE s.id=?').get(Number(req.params.id)) as { id: number; dossier_id: number; publie: number; accompagnateur_id: number } | undefined
   if (!v || v.accompagnateur_id !== me.id) { res.status(404).json({ error: 'Introuvable' }); return }
-  if (v.publie) { res.status(400).json({ error: 'Une version publiée est figée : régénère pour repartir d’une nouvelle version éditable.' }); return }
+  // La version courante reste éditable même publiée : enregistrer met à jour le contenu
+  // sans changer le statut « publié » (la modification est visible aussitôt par l'accompagné).
   if (latest(v.dossier_id)?.id !== v.id) { res.status(400).json({ error: 'Seule la version courante est modifiable.' }); return }
   db.prepare("UPDATE syntheses SET contenu_html=?, source='edition' WHERE id=?").run(String(req.body?.contenu_html ?? ''), v.id)
   res.json({ ok: true })

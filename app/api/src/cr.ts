@@ -114,15 +114,13 @@ router.patch('/version/:id', requireAuth, requireRole('accompagnateur'), (req: R
     res.status(404).json({ error: 'Compte rendu introuvable' })
     return
   }
-  if (cr.publie) {
-    res.status(400).json({ error: 'Une version publiée est figée : régénère pour repartir d’une nouvelle version éditable.' })
-    return
-  }
   const latest = latestVersion(cr.session_id)
   if (!latest || latest.id !== cr.id) {
     res.status(400).json({ error: 'Seule la version courante est modifiable (les versions de l’historique sont figées).' })
     return
   }
+  // La version courante reste éditable même publiée : enregistrer met à jour le
+  // contenu sans changer le statut « publié » (la modification est visible aussitôt).
   const html = String(req.body?.contenu_html ?? '')
   db.prepare("UPDATE comptes_rendus SET contenu_html=?, source='edition' WHERE id=?").run(html, id)
   res.json({ ok: true })

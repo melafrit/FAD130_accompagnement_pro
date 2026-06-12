@@ -441,6 +441,12 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .ent-qs li { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 10px; padding: 8px 11px; }
 .ent-q { display: block; font-weight: 600; color: var(--bleu-profond); font-size: 14px; line-height: 1.4; }
 .ent-r { display: block; margin-top: 3px; font-size: 14px; color: var(--texte); }
+/* Édition d'un entretien */
+.ent-edit { border: 1px solid var(--bordure); border-radius: 12px; padding: 10px 14px; background: var(--blanc); }
+.ent-lbl { display: block; font-size: 12px; font-weight: 700; color: var(--bleu-profond); margin: 6px 0 4px; }
+.ent-edit-q { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 10px; padding: 8px 10px; margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+.ent-edit-q .dicta-field { font-size: 14px; }
+.ent-del { align-self: flex-end; color: #b3261e; }
 .qa-detail { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
 .qa-detail-item { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 10px; padding: 9px 12px; }
 .qa-detail-q { margin: 0 0 3px; font-weight: 600; color: var(--bleu-profond); font-size: 14px; line-height: 1.4; }
