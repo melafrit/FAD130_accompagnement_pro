@@ -10,6 +10,7 @@ import MentionsLegales from './pages/MentionsLegales'
 import CGU from './pages/CGU'
 import Confidentialite from './pages/Confidentialite'
 import Methode from './pages/Methode'
+import Presentation from './pages/Presentation'
 import Espace from './pages/Espace'
 import NouveauParcours from './pages/NouveauParcours'
 import ParcoursDetail from './pages/ParcoursDetail'
@@ -40,6 +41,7 @@ function Header() {
       <nav className="nav" aria-label="Navigation principale">
         <NavLink to="/" end>Accueil</NavLink>
         <NavLink to="/methode">Méthode</NavLink>
+        <NavLink to="/presentation">Présentation</NavLink>
         {user && <NavLink to="/espace">Mon espace</NavLink>}
         {user && <NotificationsBell />}
         <AuthMenu />
@@ -85,6 +87,7 @@ export default function App() {
             <Route path="/cgu" element={<CGU />} />
             <Route path="/confidentialite" element={<Confidentialite />} />
             <Route path="/methode" element={<Methode />} />
+            <Route path="/presentation" element={<Presentation />} />
             <Route path="/espace" element={<Protected><Espace /></Protected>} />
             <Route path="/profil" element={<Protected><Profil /></Protected>} />
             <Route path="/nouveau-parcours" element={<Protected role="accompagne"><NouveauParcours /></Protected>} />

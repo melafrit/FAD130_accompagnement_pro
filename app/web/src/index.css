@@ -189,6 +189,28 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
   .phase-grid { grid-template-columns: 1fr; }
 }
 
+/* Page Présentation (support de l'oral) */
+.pres-critere { color: var(--sauge); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; margin: 0 0 10px; }
+.pres-accroche { font-size: clamp(15px, 2.1vw, 19px); line-height: 1.5; color: var(--bleu-profond); font-style: italic; border-left: 4px solid var(--sauge); padding: 4px 0 4px 16px; margin: 6px 0 18px; }
+.presentation h4 { color: var(--bleu-profond); font-size: 15px; margin: 20px 0 8px; }
+.matrice { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 6px 0 10px; }
+.matrice-cell { border: 1px solid var(--bordure); border-left-width: 4px; border-radius: 12px; padding: 11px 14px; background: var(--blanc); }
+.matrice-cell .mc-label { display: block; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.matrice-cell .mc-text { font-size: 14px; color: var(--texte-doux); }
+.matrice-cell.attention { border-left-color: #2f80c9; } .matrice-cell.attention .mc-label { color: #2f80c9; }
+.matrice-cell.autorise { border-left-color: #1b7a43; } .matrice-cell.autorise .mc-label { color: #1b7a43; }
+.matrice-cell.interdit { border-left-color: #b3261e; } .matrice-cell.interdit .mc-label { color: #b3261e; }
+.matrice-cell.pasencore { border-left-color: #b8860b; } .matrice-cell.pasencore .mc-label { color: #b8860b; }
+.pres-pourquoi-btn { margin: 0 0 12px; }
+.pres-pourquoi { background: var(--sauge-clair); border: 1px solid #d6e2d9; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--texte); margin: 0 0 14px; }
+.pres-meta { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--bordure); }
+.pres-ancrages, .pres-preuves { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pres-meta-lbl { font-size: 13px; font-weight: 700; color: var(--bleu-profond); }
+.pres-chip { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 999px; padding: 3px 11px; font-size: 13px; color: var(--bleu-profond); }
+.pres-chip-link { text-decoration: none; }
+.pres-chip-link:hover { background: var(--sauge-clair); border-color: var(--sauge); }
+@media (max-width: 560px) { .matrice { grid-template-columns: 1fr; } }
+
 /* Succès de formulaire */
 .form-success { color: #1b7a43; background: #e6f4ea; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-size: 14px; }
 
