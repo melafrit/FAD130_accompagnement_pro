@@ -430,6 +430,22 @@ db.exec(`
     statut            TEXT NOT NULL DEFAULT 'en_attente',
     cree_le           TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Wiki documentaire interne (admin-only) : pages en Markdown éditables en ligne par l'administrateur.
+  -- Le contenu de référence est injecté au démarrage (seedWiki, INSERT OR IGNORE) puis modifiable ; les
+  -- éditions ne sont jamais écrasées par un redémarrage.
+  CREATE TABLE IF NOT EXISTS wiki_pages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug       TEXT UNIQUE NOT NULL,
+    categorie  TEXT NOT NULL DEFAULT 'Divers',
+    titre      TEXT NOT NULL,
+    resume     TEXT,
+    contenu_md TEXT NOT NULL DEFAULT '',
+    statut     TEXT NOT NULL DEFAULT 'redige' CHECK (statut IN ('redige','partiel','brouillon','deprecie')),
+    ordre      INTEGER NOT NULL DEFAULT 0,
+    maj_le     TEXT NOT NULL DEFAULT (datetime('now')),
+    maj_par    INTEGER REFERENCES users(id) ON DELETE SET NULL
+  );
 `)
 // Initialise l'ordre des actions héritées (avant le glisser-déposer) pour un tri déterministe
 try {

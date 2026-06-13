@@ -27,6 +27,7 @@ import visualisationRouter from './visualisation'
 import confortRouter from './confort'
 import ethiqueRouter, { sweepRetention } from './ethique'
 import adoptionRouter from './adoption'
+import wikiRouter, { seedWiki } from './wiki'
 import { seed } from './seed'
 
 const app = express()
@@ -94,6 +95,9 @@ app.use('/api/ethique', ethiqueRouter)
 // Adoption & accessibilité (reformulation FALC)
 app.use('/api/adoption', adoptionRouter)
 
+// Wiki documentaire interne (ADMIN ONLY) : pages Markdown éditables + export pandoc
+app.use('/api/wiki', wikiRouter)
+
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {
   const tables = db
@@ -116,6 +120,9 @@ app.get('/api/context', (_req, res) => {
 
 // Comptes initiaux (admin + accompagnateur)
 seed().catch((e) => console.error('[seed] échec :', e))
+
+// Contenu de référence du wiki documentaire (idempotent : n'écrase jamais les éditions)
+try { seedWiki() } catch (e) { console.error('[wiki] seed échec :', e) }
 
 // Rappels d'action : balayage périodique côté serveur, indépendant des clients connectés
 // (la consultation des notifications déclenche aussi un balayage immédiat, en complément).

@@ -50,6 +50,12 @@ export default function AuthMenu() {
               </div>
               <Link className="authmenu-item" to="/profil" role="menuitem" onClick={() => setOpen(false)}>👤 Mon profil</Link>
               <Link className="authmenu-item" to="/espace" role="menuitem" onClick={() => setOpen(false)}>🗂 Mon espace</Link>
+              {user.role === 'admin' && (
+                <>
+                  <Link className="authmenu-item" to="/admin" role="menuitem" onClick={() => setOpen(false)}>⚙️ Administration</Link>
+                  <Link className="authmenu-item" to="/admin/wiki" role="menuitem" onClick={() => setOpen(false)}>📚 Wiki projet</Link>
+                </>
+              )}
               <div className="authmenu-foot">
                 <button className="btn btn-ghost" role="menuitem" onClick={onLogout}>Déconnexion</button>
               </div>
