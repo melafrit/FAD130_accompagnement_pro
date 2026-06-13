@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import ActionList, { type Action } from '../components/ActionList'
 import QuestionnaireDetailModal from '../components/QuestionnaireDetailModal'
+import BoussoleParcours from '../components/BoussoleParcours'
 import ErrorBoundary from '../components/ErrorBoundary'
 
 const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
@@ -13,7 +14,7 @@ interface Questionnaire { cr_recap: string | null; contenu: string | null; compl
 interface CR { id: number; session_id: number; publie_le: string | null; entretien_date: string }
 interface Rdv { id: number; debut: string; fin: string; statut: string }
 interface Creneau { id: number; debut: string; fin: string }
-interface Detail { dossier: Dossier; questionnaire: Questionnaire | null; crs: CR[]; synthese_publiee: boolean; actions: Action[]; rdvs: Rdv[] }
+interface Detail { dossier: Dossier; questionnaire: Questionnaire | null; crs: CR[]; synthese_publiee: boolean; phase_max: number | null; nb_entretiens: number; actions: Action[]; rdvs: Rdv[] }
 
 function fslot(iso: string) { const [d, t] = (iso || '').split('T'); const [y, m, day] = (d || '').split('-'); return `${day}/${m}/${y} à ${(t || '').slice(0, 5)}` }
 
@@ -55,6 +56,15 @@ export default function ParcoursDetail() {
       <h1 className="page-title">{d.titre}</h1>
       <p className="lead">Accompagnateur : <strong>{acc}</strong> · {d.statut === 'cloture' ? 'Clôturé' : 'En cours'}</p>
       {msg && <p className={isErr ? 'form-error' : 'form-success'}>{msg}</p>}
+
+      <BoussoleParcours
+        phaseMax={data.phase_max ?? -1}
+        questionnaire={!!data.questionnaire}
+        entretiens={data.nb_entretiens ?? data.crs.length}
+        crPublies={data.crs.length}
+        synthesePubliee={data.synthese_publiee}
+        cloture={d.statut === 'cloture'}
+      />
 
       <section>
         <h2>Questionnaire initial</h2>

@@ -73,9 +73,10 @@ router.get('/mine/:id', requireAuth, requireRole('accompagne'), (req: Request, r
      WHERE s.dossier_id=? AND cr.publie=1 ORDER BY cr.publie_le DESC`,
   ).all(id)
   const synthese_publiee = !!db.prepare('SELECT id FROM syntheses WHERE dossier_id=? AND publie=1 LIMIT 1').get(id)
+  const prog = db.prepare("SELECT MAX(CAST(phase_atteinte AS INTEGER)) AS pmax, COUNT(*) AS n FROM sessions WHERE dossier_id=?").get(id) as { pmax: number | null; n: number }
   const actions = db.prepare('SELECT id, libelle, echeance, critere, details, priorite, statut, rappel_le, cree_le, ordre FROM actions WHERE dossier_id=? ORDER BY ordre ASC, id ASC').all(id)
   const rdvs = db.prepare('SELECT r.id, c.debut, c.fin, r.statut FROM rdv r JOIN creneaux c ON c.id=r.creneau_id WHERE r.dossier_id=? ORDER BY c.debut').all(id)
-  res.json({ dossier, questionnaire, crs, synthese_publiee, actions, rdvs })
+  res.json({ dossier, questionnaire, crs, synthese_publiee, phase_max: prog.pmax, nb_entretiens: prog.n, actions, rdvs })
 })
 
 // Détail complet d'un dossier (le « parcours »)
@@ -109,7 +110,8 @@ router.get('/:id', requireAuth, requireRole('accompagnateur'), (req: Request, re
        WHERE r.accompagne_id=? ORDER BY c.debut`,
     )
     .all(acc)
-  res.json({ dossier, questionnaire, sessions: sessionsAvecCR, actions, rdvs })
+  const synthese_publiee = !!db.prepare('SELECT id FROM syntheses WHERE dossier_id=? AND publie=1 LIMIT 1').get(id)
+  res.json({ dossier, questionnaire, sessions: sessionsAvecCR, synthese_publiee, actions, rdvs })
 })
 
 // Synthèse complète du parcours (JSON, rendue à l'écran par SyntheseModal)

@@ -15,6 +15,25 @@
   --maxw: 80vw;
 }
 
+/* Mode sombre : on inverse le couple bleu-profond / sable (titres + accents lisibles,
+   et les boutons « fond bleu, texte sable » gardent leur contraste). */
+[data-theme="dark"] {
+  --bleu-profond: #a9cdeb;
+  --bleu: #86b4d8;
+  --sauge: #7fa489;
+  --sauge-clair: #243227;
+  --sable: #0f1a24;
+  --sable-2: #16212c;
+  --texte: #e7edf3;
+  --texte-doux: #a3b2bf;
+  --bordure: #2d3a47;
+  --blanc: #1b2530;
+  --ombre: 0 6px 24px rgba(0, 0, 0, 0.42);
+}
+[data-theme="dark"] .form-error { background: #3a1c1a; color: #f3b4ae; }
+[data-theme="dark"] .form-success { background: #14301f; color: #8fd6a8; }
+[data-theme="dark"] img { opacity: .92; }
+
 * { box-sizing: border-box; }
 
 html, body, #root { height: 100%; }
@@ -222,6 +241,40 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .demo-email { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 13px; color: var(--texte); }
 .demo-role { font-size: 12px; font-weight: 700; color: var(--sauge); }
 
+.cr-listen { margin: 0 0 10px; }
+
+/* === Boussole du parcours === */
+.boussole { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); box-shadow: var(--ombre); padding: 14px 16px 16px; margin: 0 0 20px; }
+.boussole-svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; }
+.bs-seg { fill: none; stroke-width: 19; stroke-linecap: butt; transition: stroke .5s ease; }
+.bs-seg.future { stroke: var(--bordure); }
+.bs-seg.done { stroke: var(--sauge); }
+.bs-seg.current { stroke: var(--bleu-profond); }
+.bs-num { fill: var(--texte-doux); font-size: 12px; font-weight: 700; font-family: inherit; }
+.bs-needle { stroke: var(--bleu-profond); stroke-width: 3; stroke-linecap: round; transition: x2 .9s cubic-bezier(.2,.8,.2,1), y2 .9s cubic-bezier(.2,.8,.2,1); }
+.bs-hub { fill: var(--bleu-profond); }
+.bs-pct { fill: var(--bleu-profond); font-size: 27px; font-weight: 800; font-family: inherit; }
+.bs-pct-lbl { fill: var(--texte-doux); font-size: 11px; font-family: inherit; }
+.boussole-phase { text-align: center; margin: 2px 0 10px; color: var(--texte); font-size: 14px; }
+.boussole-jalons { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.bs-jalon { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--sable-2); border: 1px solid var(--bordure); color: var(--texte-doux); }
+.bs-jalon.ok { background: var(--sauge-clair); border-color: #d6e2d9; color: var(--bleu-profond); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .bs-needle, .bs-seg { transition: none; } }
+
+/* === Micro-animations & transitions === */
+@keyframes bs-fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes bs-pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+.page { animation: bs-fade-up .38s ease both; }
+.modal-overlay { animation: bs-fade-up .18s ease both; }
+.modal { animation: bs-pop .22s cubic-bezier(.2,.8,.2,1) both; }
+.btn { transition: background .15s ease, border-color .15s ease, color .15s ease, transform .08s ease; }
+.btn:active:not(:disabled) { transform: scale(.97); }
+.tl-item, .bs-jalon, .card, .slot, .anchor-chip, .phase-tab, .principe-card { transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .12s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .page, .modal, .modal-overlay { animation: none; }
+  .btn, .tl-item, .bs-jalon, .card, .slot, .anchor-chip, .phase-tab, .principe-card { transition: none; }
+}
+
 /* Succès de formulaire */
 .form-success { color: #1b7a43; background: #e6f4ea; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-size: 14px; }
 
@@ -258,6 +311,11 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .rdv-statut { flex: none; font-size: 12px; color: var(--texte-doux); font-style: italic; }
 .rdv-ics { flex: none; text-decoration: none; font-size: 16px; line-height: 1; padding: 4px 7px; border-radius: 7px; border: 1px solid var(--bordure); }
 .rdv-ics:hover { background: var(--sauge-clair); border-color: var(--sauge); }
+
+/* Bascule de thème (clair / sombre) */
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--bordure); background: var(--blanc); cursor: pointer; font-size: 17px; line-height: 1; padding: 0; }
+.theme-toggle:hover { border-color: var(--sauge); }
+.theme-toggle:focus-visible { outline: 2px solid var(--sauge); outline-offset: 2px; }
 
 /* === Menu utilisateur (icône d'authentification dans le header) === */
 .authmenu { position: relative; }

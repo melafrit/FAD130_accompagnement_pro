@@ -5,6 +5,7 @@ import ActionList, { type Action } from '../components/ActionList'
 import ActionDetailModal from '../components/ActionDetailModal'
 import EntretienDetailModal from '../components/EntretienDetailModal'
 import QuestionnaireDetailModal from '../components/QuestionnaireDetailModal'
+import BoussoleParcours from '../components/BoussoleParcours'
 import ErrorBoundary from '../components/ErrorBoundary'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
@@ -19,7 +20,7 @@ interface Questionnaire { cr_recap: string | null; contenu: string | null; compl
 interface CR { id: number; version: number; genere_le: string; publie: number }
 interface Session { id: number; date: string; phase_atteinte: string; statut: string; crs: CR[] }
 interface Rdv { id: number; debut: string; fin: string; statut: string }
-interface Detail { dossier: DossierInfo; questionnaire: Questionnaire | null; sessions: Session[]; actions: Action[]; rdvs: Rdv[] }
+interface Detail { dossier: DossierInfo; questionnaire: Questionnaire | null; sessions: Session[]; synthese_publiee: boolean; actions: Action[]; rdvs: Rdv[] }
 
 function fdate(s: string) { return (s || '').slice(0, 16).replace('T', ' ') }
 function fslot(iso: string) { const [d, t] = iso.split('T'); const [y, m, day] = (d || '').split('-'); return `${day}/${m}/${y} à ${(t || '').slice(0, 5)}` }
@@ -78,6 +79,15 @@ export default function Dossier() {
         <button className="btn btn-ghost" onClick={() => setShowSynthese(true)}>📋 Synthèse du parcours</button>
         <Link className="btn btn-primary" to={`/dossier/${id}/auto-evaluation`}>📊 Mon auto-évaluation</Link>
       </div>
+
+      <BoussoleParcours
+        phaseMax={sessions.length ? Math.max(...sessions.map((s) => Number(s.phase_atteinte))) : -1}
+        questionnaire={!!(questionnaire && (questionnaire.complete_le || questionnaire.cr_recap || questionnaire.contenu))}
+        entretiens={sessions.length}
+        crPublies={sessions.reduce((n, s) => n + s.crs.filter((c) => c.publie).length, 0)}
+        synthesePubliee={data.synthese_publiee}
+        cloture={cloture}
+      />
 
       <ol className="timeline">
         <li className="tl-item">

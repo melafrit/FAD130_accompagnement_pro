@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import HtmlContent from './HtmlContent'
 import RichTextEditor from './RichTextEditor'
 import DictaInput from './DictaInput'
+import EcouterButton from './EcouterButton'
 
 interface DocCurrent { id: number; version: number; contenu_html: string | null; source: string; genere_le: string; publie: number }
 interface DocVersion { id: number; version: number; source: string; genere_le: string; publie: number }
@@ -155,7 +156,10 @@ export default function SyntheseModal({
                   </div>
                 </>
               ) : (
-                <HtmlContent className="cr-view" html={displayHtml} />
+                <>
+                  {displayHtml && <div className="cr-listen"><EcouterButton html={displayHtml} label="Écouter la synthèse" /></div>}
+                  <HtmlContent className="cr-view" html={displayHtml} />
+                </>
               )}
 
               {!editing && (

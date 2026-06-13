@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import HtmlContent from './HtmlContent'
 import RichTextEditor from './RichTextEditor'
 import DictaInput from './DictaInput'
+import EcouterButton from './EcouterButton'
 
 interface CRCurrent { id: number; version: number; contenu_html: string | null; source: string; genere_le: string; publie: number }
 interface CRVersion { id: number; version: number; source: string; genere_le: string; publie: number }
@@ -177,7 +178,10 @@ export default function CompteRenduModal({
                   </div>
                 </>
               ) : (
-                <HtmlContent className="cr-view" html={displayHtml} />
+                <>
+                  {displayHtml && <div className="cr-listen"><EcouterButton html={displayHtml} label="Écouter le compte rendu" /></div>}
+                  <HtmlContent className="cr-view" html={displayHtml} />
+                </>
               )}
 
               {/* Discussion */}

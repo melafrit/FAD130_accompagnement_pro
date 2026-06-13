@@ -28,6 +28,7 @@ import Admin from './pages/Admin'
 import Profil from './pages/Profil'
 import NotificationsBell from './components/NotificationsBell'
 import AuthMenu from './components/AuthMenu'
+import ThemeToggle from './components/ThemeToggle'
 import Protected from './components/Protected'
 
 function Header() {
@@ -43,6 +44,7 @@ function Header() {
         <NavLink to="/methode">Méthode</NavLink>
         <NavLink to="/presentation">Présentation</NavLink>
         {user && <NavLink to="/espace">Mon espace</NavLink>}
+        <ThemeToggle />
         {user && <NotificationsBell />}
         <AuthMenu />
       </nav>
