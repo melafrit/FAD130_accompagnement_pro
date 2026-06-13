@@ -371,6 +371,15 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .notes-head h3 { margin: 0; color: var(--bleu-profond); }
 .notes-area { width: 100%; min-height: 140px; padding: 12px; border: 1px solid var(--bordure); border-radius: 10px; font: inherit; font-size: 15px; resize: vertical; background: var(--sable-2); }
 .notes-actions { margin-top: 10px; }
+/* Co-pilote d'entretien */
+.copilote-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
+.copilote-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--texte-doux); cursor: pointer; user-select: none; }
+.copilote-switch input { accent-color: var(--bleu-profond); width: 16px; height: 16px; }
+.copilote-live { font-size: 13px; font-weight: 700; color: #2e9e63; animation: copi-pulse 1.4s ease-in-out infinite; }
+.copilote-new { background: var(--sauge-clair); border: 1px solid var(--sauge); color: var(--bleu-profond); border-radius: 999px; padding: 6px 13px; font-size: 13px; font-weight: 600; cursor: pointer; animation: copi-pulse 1.6s ease-in-out infinite; }
+.copilote-new:hover:not(:disabled) { filter: brightness(.97); }
+@keyframes copi-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+@media (prefers-reduced-motion: reduce) { .copilote-live, .copilote-new { animation: none; } }
 .mic.mic-on { background: #fdecea; border-color: #b3261e; color: #b3261e; }
 .sugg { margin-top: 14px; background: var(--sauge-clair); border: 1px solid #d6e2d9; border-radius: 12px; padding: 14px 16px; }
 .sugg ul { margin: 4px 0 0; padding-left: 18px; }

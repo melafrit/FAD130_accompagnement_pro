@@ -13,6 +13,9 @@ interface Dossier { id: number; titre: string | null; accompagne_prenom: string 
 interface Suggestion { questions: string[]; reformulation: string | null; a_surveiller: string | null }
 interface Question { id: number; phase: string; texte: string; reponse: string | null }
 
+// Caractères de nouvelle matière (dictée) avant que le co-pilote ne propose un rafraîchissement.
+const NEW_MATERIAL = 140
+
 // Ancrage théorique incarné par les suggestions, selon la phase (mapping front, défendable à l'oral).
 const PHASE_ANCRAGE: Record<number, { nom: string; pourquoi: string }> = {
   0: { nom: 'Rogers', pourquoi: 'Alliance et non-jugement : créer la « bulle » de confiance.' },
@@ -36,11 +39,17 @@ export default function Entretien() {
   const [editingQId, setEditingQId] = useState<number | null>(null)
   const [editQText, setEditQText] = useState('')
   const [sugg, setSugg] = useState<Suggestion | null>(null)
+  const [autoMode, setAutoMode] = useState(false)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [showCr, setShowCr] = useState(false)
   const nav = useNavigate()
   const [params] = useSearchParams()
+  const notesRef = useRef('')
+  const lastSuggLenRef = useRef(0)
+  const busyRef = useRef(false)
+  const sessionRef = useRef<number | null>(null)
+  const askIARef = useRef<() => void>(() => {})
 
   const typed = useTypewriter(sugg ? [sugg.reformulation || '', ...sugg.questions] : [])
 
@@ -84,6 +93,7 @@ export default function Entretien() {
     setSugg(null)
     setEditingQId(null)
     setCurrent(idx)
+    lastSuggLenRef.current = (notes[idx] || '').length
   }
   async function addQuestion(texte: string) {
     const t = texte.trim()
@@ -137,13 +147,31 @@ export default function Entretien() {
   }
   async function askIA() {
     if (sessionId == null) return
+    const transcript = notes[current] || ''
     setBusy(true)
     try {
-      setSugg(await api<Suggestion>('/entretien/suggestions', { method: 'POST', body: JSON.stringify({ phase: current, transcript: notes[current] || '' }) }))
+      setSugg(await api<Suggestion>('/entretien/suggestions', { method: 'POST', body: JSON.stringify({ phase: current, transcript }) }))
+      lastSuggLenRef.current = transcript.length
     } finally {
       setBusy(false)
     }
   }
+
+  // Refs synchronisées à chaque rendu (le co-pilote auto lit la dernière valeur sans recréer le timer).
+  notesRef.current = notes[current] || ''
+  busyRef.current = busy
+  sessionRef.current = sessionId
+  askIARef.current = askIA
+
+  // Co-pilote en mode auto : rafraîchit les suggestions dès qu'il y a assez de nouvelle matière dictée.
+  useEffect(() => {
+    if (!autoMode) return
+    const t = setInterval(() => {
+      if (busyRef.current || sessionRef.current == null) return
+      if (notesRef.current.length - lastSuggLenRef.current >= NEW_MATERIAL) askIARef.current()
+    }, 22000)
+    return () => clearInterval(t)
+  }, [autoMode, current])
   function retour() {
     nav(dossierId ? `/dossier/${dossierId}` : '/tableau-de-bord')
   }
@@ -194,6 +222,7 @@ export default function Entretien() {
   const phase = phases[current]
   if (!phase) return null
   const qPosees = questionsByPhase[current] || []
+  const hasNew = (notes[current] || '').length - lastSuggLenRef.current >= NEW_MATERIAL
   const segs = sugg ? [sugg.reformulation || '', ...sugg.questions] : []
   const activeIdx = segs.findIndex((s, i) => (typed[i] ?? s.length) < s.length)
   const lastVisible = activeIdx === -1 ? segs.length - 1 : activeIdx
@@ -281,7 +310,14 @@ export default function Entretien() {
           onCommit={(v) => void saveReponse(v)}
           placeholder="Saisis ou dicte les propos de la personne…"
         />
-        <div className="notes-actions"><button className="btn btn-primary" disabled={busy} onClick={askIA}>✨ Suggestions de l’IA</button></div>
+        <div className="copilote-bar">
+          <button className="btn btn-primary" disabled={busy} onClick={askIA}>✨ Suggestions de l’IA</button>
+          <label className="copilote-switch" title="Le co-pilote rafraîchit les suggestions automatiquement quand tu dictes de la nouvelle matière">
+            <input type="checkbox" checked={autoMode} onChange={(e) => setAutoMode(e.target.checked)} /> ⚡ Co-pilote auto
+          </label>
+          {autoMode && <span className="copilote-live" aria-live="polite">● en direct</span>}
+          {!autoMode && hasNew && <button className="copilote-new" disabled={busy} onClick={askIA}>↻ Nouvelles suggestions disponibles</button>}
+        </div>
         {busy && <AiProgress steps={['Lecture de tes notes…', 'Analyse de la phase…', 'Préparation des suggestions…']} />}
         {sugg && (
           <div className="sugg">
