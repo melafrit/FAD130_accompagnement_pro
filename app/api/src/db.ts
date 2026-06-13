@@ -297,6 +297,16 @@ db.exec(`
     genere_le  TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Transparence / RGPD : demande d'effacement de ses données par l'accompagné
+  CREATE TABLE IF NOT EXISTS demandes_effacement (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    dossier_id    INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    accompagne_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    motif         TEXT,
+    statut        TEXT NOT NULL DEFAULT 'en_attente',
+    cree_le       TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Demande de rendez-vous quand l'accompagnateur n'a pas de créneau disponible
   CREATE TABLE IF NOT EXISTS demandes_rdv (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,

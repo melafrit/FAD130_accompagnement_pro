@@ -11,6 +11,7 @@ import CGU from './pages/CGU'
 import Confidentialite from './pages/Confidentialite'
 import Methode from './pages/Methode'
 import Presentation from './pages/Presentation'
+import Accessibilite from './pages/Accessibilite'
 import Espace from './pages/Espace'
 import NouveauParcours from './pages/NouveauParcours'
 import ParcoursDetail from './pages/ParcoursDetail'
@@ -61,6 +62,8 @@ function Footer() {
         <Link to="/cgu">CGU</Link>
         <span aria-hidden="true">·</span>
         <Link to="/confidentialite">Confidentialité</Link>
+        <span aria-hidden="true">·</span>
+        <Link to="/accessibilite">Accessibilité</Link>
       </nav>
       <p>
         <strong>Boussole</strong> — application développée dans le cadre de l'UE <strong>FAD130</strong> (Cnam).<br />
@@ -76,6 +79,7 @@ export default function App() {
   return (
     <AuthProvider>
       <div className="app">
+        <a className="skip-link" href="#main">Aller au contenu</a>
         <Header />
         <main className="main" id="main">
           <Routes>
@@ -90,6 +94,7 @@ export default function App() {
             <Route path="/confidentialite" element={<Confidentialite />} />
             <Route path="/methode" element={<Methode />} />
             <Route path="/presentation" element={<Presentation />} />
+            <Route path="/accessibilite" element={<Accessibilite />} />
             <Route path="/espace" element={<Protected><Espace /></Protected>} />
             <Route path="/profil" element={<Protected><Profil /></Protected>} />
             <Route path="/nouveau-parcours" element={<Protected role="accompagne"><NouveauParcours /></Protected>} />

@@ -301,6 +301,35 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .ent-moments-head h3 { margin: 0; font-size: 15px; color: var(--bleu-profond); }
 .ent-moments-acts { display: inline-flex; gap: 8px; flex-wrap: wrap; }
 
+/* === Accessibilité (RGAA) : lien d'évitement + focus clavier global === */
+.skip-link { position: absolute; left: -9999px; top: 0; z-index: 100; background: var(--bleu-profond); color: var(--sable); padding: 10px 16px; border-radius: 0 0 8px 0; text-decoration: none; }
+.skip-link:focus { left: 0; }
+:focus-visible { outline: 2px solid var(--sauge); outline-offset: 2px; }
+
+/* === Transparence & carte du parcours === */
+.tr-form { margin-top: 8px; }
+.parcours-foot { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 22px; }
+.carte-modal { max-width: 640px; }
+.carte { border: 2px solid var(--bleu-profond); border-radius: 16px; padding: 24px; background: var(--blanc); }
+.carte-brand { font-weight: 800; color: var(--bleu-profond); letter-spacing: 1px; }
+.carte-titre { font-size: 22px; color: var(--bleu-profond); margin: 8px 0 4px; }
+.carte-sub { color: var(--texte-doux); margin: 0 0 16px; }
+.carte-phases { display: flex; flex-direction: column; gap: 6px; margin: 16px 0; }
+.carte-phase { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.carte-phase-num { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--bordure); color: var(--texte-doux); font-weight: 700; font-size: 13px; }
+.carte-phase.ok .carte-phase-num { background: var(--sauge); color: #fff; }
+.carte-fil { margin: 16px 0; border-left: 4px solid var(--sauge); padding-left: 14px; }
+.carte-fil p { font-style: italic; color: var(--bleu-profond); margin: 4px 0 0; }
+.carte-foot { margin-top: 20px; font-style: italic; color: var(--texte-doux); text-align: center; }
+.carte-actions { margin-top: 14px; text-align: center; }
+@media print {
+  body * { visibility: hidden !important; }
+  .carte-modal, .carte-modal * { visibility: visible !important; }
+  .carte-overlay { position: static !important; background: none !important; display: block !important; }
+  .carte-modal { position: static !important; box-shadow: none !important; max-width: none !important; max-height: none !important; }
+  .no-print { display: none !important; }
+}
+
 /* === Boussole du parcours === */
 .boussole { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); box-shadow: var(--ombre); padding: 14px 16px 16px; margin: 0 0 20px; }
 .boussole-svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; }

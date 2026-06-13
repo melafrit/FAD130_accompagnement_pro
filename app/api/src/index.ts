@@ -19,6 +19,7 @@ import syntheseRouter from './synthese'
 import miroirRouter from './miroir'
 import relationnelRouter from './relationnel'
 import emergenceRouter from './emergence'
+import transparenceRouter from './transparence'
 import { seed } from './seed'
 
 const app = express()
@@ -63,6 +64,7 @@ app.use('/api/synthese', syntheseRouter)
 app.use('/api/miroir', miroirRouter)
 app.use('/api/relationnel', relationnelRouter)
 app.use('/api/emergence', emergenceRouter)
+app.use('/api/transparence', transparenceRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

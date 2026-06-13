@@ -7,6 +7,8 @@ import BoussoleParcours from '../components/BoussoleParcours'
 import MeteoWidget from '../components/MeteoWidget'
 import MicroJournal from '../components/MicroJournal'
 import EmergencePartage from '../components/EmergencePartage'
+import TransparenceModal from '../components/TransparenceModal'
+import CarteParcours from '../components/CarteParcours'
 import ErrorBoundary from '../components/ErrorBoundary'
 
 const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
@@ -30,6 +32,8 @@ export default function ParcoursDetail() {
   const [showSyn, setShowSyn] = useState(false)
   const [msg, setMsg] = useState('')
   const [isErr, setIsErr] = useState(false)
+  const [showTransparence, setShowTransparence] = useState(false)
+  const [showCarte, setShowCarte] = useState(false)
 
   async function load() { setData(await api<Detail>(`/dossiers/mine/${id}`)) }
   async function loadCreneaux() { try { setCreneaux((await api<{ creneaux: Creneau[] }>(`/rdv/disponibles?dossierId=${id}`)).creneaux) } catch { /* ignore */ } }
@@ -146,7 +150,14 @@ export default function ParcoursDetail() {
         <ActionList actions={data.actions} onStatut={setStatut} />
       </section>
 
-      <p style={{ marginTop: 20 }}><Link className="btn btn-ghost" to="/espace">← Mes parcours</Link></p>
+      <div className="parcours-foot">
+        <button className="btn btn-ghost" onClick={() => setShowCarte(true)}>🖨️ Carte du parcours</button>
+        <button className="btn btn-ghost" onClick={() => setShowTransparence(true)}>🔒 Mes données & transparence</button>
+        <Link className="btn btn-ghost" to="/espace">← Mes parcours</Link>
+      </div>
+
+      {showTransparence && <TransparenceModal dossierId={Number(id)} onClose={() => setShowTransparence(false)} />}
+      {showCarte && <CarteParcours dossierId={Number(id)} titre={d.titre} accompagnateur={acc} phaseMax={data.phase_max ?? -1} nbEntretiens={data.nb_entretiens ?? data.crs.length} onClose={() => setShowCarte(false)} />}
 
       {showQ && data.questionnaire && <QuestionnaireDetailModal recap={data.questionnaire.cr_recap} contenu={data.questionnaire.contenu} completeLe={data.questionnaire.complete_le} onClose={() => setShowQ(false)} />}
       <ErrorBoundary onReset={() => { setCrSession(null); setShowSyn(false) }}>
