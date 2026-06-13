@@ -325,11 +325,22 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 @media print {
   body * { visibility: hidden !important; }
   .carte-modal, .carte-modal *,
-  .export-modal, .export-modal * { visibility: visible !important; }
-  .carte-overlay, .export-overlay { position: static !important; background: none !important; display: block !important; }
-  .carte-modal, .export-modal { position: static !important; box-shadow: none !important; max-width: none !important; max-height: none !important; overflow: visible !important; }
+  .export-modal, .export-modal *,
+  .attestation-modal, .attestation-modal * { visibility: visible !important; }
+  .carte-overlay, .export-overlay, .attestation-overlay { position: static !important; background: none !important; display: block !important; }
+  .carte-modal, .export-modal, .attestation-modal { position: static !important; box-shadow: none !important; max-width: none !important; max-height: none !important; overflow: visible !important; }
   .no-print { display: none !important; }
 }
+
+/* === Attestation de fin (document imprimable) === */
+.attestation { border: 2px solid var(--bleu-profond, #16324f); border-radius: 12px; padding: 32px; text-align: center; }
+.att-brand { color: var(--bleu-profond, #16324f); font-weight: 700; letter-spacing: .04em; margin: 0; }
+.att-titre { font-size: 1.6rem; margin: 8px 0 18px; }
+.att-corps { font-size: 1.05rem; line-height: 1.6; max-width: 540px; margin: 10px auto; }
+.att-faits { list-style: none; padding: 0; margin: 18px auto; max-width: 380px; text-align: left; display: inline-block; }
+.att-faits li { padding: 3px 0; }
+.att-signature { margin-top: 28px; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.att-signature span:first-child { font-weight: 700; }
 
 /* === Export PDF complet (document imprimable) === */
 .export-doc { color: #1a1a1a; line-height: 1.5; }

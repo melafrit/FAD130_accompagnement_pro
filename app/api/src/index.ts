@@ -25,6 +25,7 @@ import reflexiviteRouter from './reflexivite'
 import collaborationRouter from './collaboration'
 import visualisationRouter from './visualisation'
 import confortRouter from './confort'
+import ethiqueRouter, { sweepRetention } from './ethique'
 import { seed } from './seed'
 
 const app = express()
@@ -86,6 +87,9 @@ app.use('/api/viz', visualisationRouter)
 // Confort & pratique (visio, PWA & push, export PDF)
 app.use('/api/confort', confortRouter)
 
+// Éthique (attestation de fin ; les actions RGPD admin sont dans /api/admin)
+app.use('/api/ethique', ethiqueRouter)
+
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {
   const tables = db
@@ -121,6 +125,7 @@ setTimeout(() => { try { sweepSignauxAlertes() } catch (e) { console.error('[sig
 setInterval(() => {
   try { sweepSignauxAlertes() } catch (e) { console.error('[signaux] balayage échec :', e) }
   void sweepDigestsHebdo().catch((e) => console.error('[digest] envoi échec :', e))
+  try { sweepRetention() } catch (e) { console.error('[rétention] balayage échec :', e) }
 }, 60 * 60 * 1000)
 
 const port = Number(process.env.PORT) || 3000

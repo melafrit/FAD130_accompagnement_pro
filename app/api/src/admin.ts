@@ -4,6 +4,7 @@ import { requireAuth, requireRole } from './auth'
 import { makeToken, expiryHours } from './util'
 import { sendEmail, resetEmail } from './mailer'
 import { FEATURES, ALL_FEATURE_KEYS, sanitizeKeys } from './features'
+import { processEffacement, retentionEligibles, anonymizeUser, deleteUser } from './ethique'
 
 const router = Router()
 const ROLES = ['admin', 'accompagnateur', 'accompagne']
@@ -114,6 +115,55 @@ function safeParse(s: string): unknown {
     return []
   }
 }
+
+// ---- Console RGPD : demandes d'effacement & rétention -------------------------------------
+
+// Demandes d'effacement en attente (avec l'accompagné et le parcours concernés)
+router.get('/effacements', requireAuth, requireRole('admin'), (_req: Request, res: Response) => {
+  const demandes = db.prepare(
+    `SELECT e.id, e.motif, e.statut, e.cree_le, e.accompagne_id,
+            u.email, u.prenom, u.nom, u.anonymise, d.titre AS dossier_titre
+     FROM demandes_effacement e
+     JOIN users u ON u.id=e.accompagne_id
+     LEFT JOIN dossiers d ON d.id=e.dossier_id
+     WHERE e.statut='en_attente' ORDER BY e.cree_le ASC`,
+  ).all()
+  res.json({ demandes })
+})
+
+// Traiter une demande : anonymiser OU supprimer (au choix de l'admin)
+router.post('/effacements/:id', requireAuth, requireRole('admin'), (req: Request, res: Response) => {
+  const action = String(req.body?.action || '')
+  if (action !== 'anonymiser' && action !== 'supprimer') { res.status(400).json({ error: 'Action invalide (anonymiser | supprimer)' }); return }
+  if (!processEffacement(Number(req.params.id), action)) { res.status(404).json({ error: 'Demande introuvable' }); return }
+  res.json({ ok: true, action })
+})
+
+// Action RGPD directe sur un compte (hors demande) — anonymiser ou supprimer
+router.post('/rgpd/:userId', requireAuth, requireRole('admin'), (req: Request, res: Response) => {
+  const userId = Number(req.params.userId)
+  const action = String(req.body?.action || '')
+  if (userId === meId(req)) { res.status(400).json({ error: 'Action impossible sur votre propre compte' }); return }
+  const u = db.prepare('SELECT id FROM users WHERE id=?').get(userId)
+  if (!u) { res.status(404).json({ error: 'Utilisateur introuvable' }); return }
+  if (action === 'anonymiser') anonymizeUser(userId)
+  else if (action === 'supprimer') deleteUser(userId)
+  else { res.status(400).json({ error: 'Action invalide' }); return }
+  res.json({ ok: true, action })
+})
+
+// Politique de rétention : comptes éligibles à l'anonymisation automatique
+router.get('/retention', requireAuth, requireRole('admin'), (_req: Request, res: Response) => {
+  const months = Number(process.env.RETENTION_MONTHS) || 36
+  res.json({ months, auto: process.env.RETENTION_AUTO === '1', eligibles: retentionEligibles(months) })
+})
+
+// Appliquer la rétention maintenant (anonymise les comptes éligibles)
+router.post('/retention/appliquer', requireAuth, requireRole('admin'), (_req: Request, res: Response) => {
+  const elig = retentionEligibles()
+  elig.forEach((u) => anonymizeUser(u.id))
+  res.json({ ok: true, anonymises: elig.length })
+})
 
 // Créer un compte (sans mot de passe ; envoi d'un lien d'activation)
 router.post('/users', requireAuth, requireRole('admin'), async (req: Request, res: Response) => {

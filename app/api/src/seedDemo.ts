@@ -456,7 +456,7 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
   })
 
   // D4 — Léa + Camille — projet de création (ESS) — JUSTE DÉMARRÉ (questionnaire seul, RDV demandé)
-  buildParcours({
+  const d4 = buildParcours({
     accompagne: ids.lea, accompagnateur: ids.camille, accompagneNom: 'Léa',
     titre: 'Projet de création — coopérative (ESS)', statut: 'en_cours', creeOff: -3,
     contexte: 'En parallèle de son poste, Léa explore un projet de création d’une coopérative dans l’économie sociale et solidaire. Parcours tout juste démarré : cadrage de l’idée et de la faisabilité.',
@@ -471,6 +471,11 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
     },
     demandeRdv: true,
   })
+
+  // Éthique/RGPD (démo console admin) : Léa demande l'effacement de ses données sur le parcours exploratoire D4
+  db.prepare("INSERT INTO demandes_effacement (dossier_id, accompagne_id, motif, statut, cree_le) VALUES (?,?,?, 'en_attente', ?)").run(
+    d4, ids.lea, 'Projet exploratoire mis en pause : je préfère retirer mes données de ce parcours pour le moment.', dayOffset(-1, '14:00'),
+  )
 
   // D5 — Karim + Camille — VAE Responsable de projets digitaux — CLÔTURÉ
   buildParcours({

@@ -208,6 +208,11 @@ for (const stmt of [
   'ALTER TABLE tokens ADD COLUMN email_cible TEXT',
   // Plan d'abonnement de l'utilisateur (NULL = niveau max, toutes fonctionnalités)
   'ALTER TABLE users ADD COLUMN plan_id INTEGER',
+  // RGPD : compte anonymisé (les données personnelles ont été effacées sur place)
+  'ALTER TABLE users ADD COLUMN anonymise INTEGER NOT NULL DEFAULT 0',
+  // Traçabilité du traitement d'une demande d'effacement (anonymiser / supprimer)
+  'ALTER TABLE demandes_effacement ADD COLUMN traite_le TEXT',
+  'ALTER TABLE demandes_effacement ADD COLUMN action TEXT',
 ]) {
   try {
     db.exec(stmt)

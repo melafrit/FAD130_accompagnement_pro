@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from '../lib/api'
 import PlansManager from '../components/PlansManager'
+import RgpdConsole from '../components/RgpdConsole'
 
 interface User {
   id: number
@@ -152,6 +153,8 @@ export default function Admin() {
       </div>
 
       <PlansManager onChange={() => { void load(); void loadPlans() }} />
+
+      <RgpdConsole />
     </div>
   )
 }

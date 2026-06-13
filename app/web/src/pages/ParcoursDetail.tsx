@@ -14,6 +14,7 @@ import ProblematisationCard from '../components/ProblematisationCard'
 import NuageThemes from '../components/NuageThemes'
 import RoueEmotions from '../components/RoueEmotions'
 import VisioButton from '../components/VisioButton'
+import AttestationModal from '../components/AttestationModal'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { useFeature } from '../features/FeaturesContext'
 
@@ -42,6 +43,8 @@ export default function ParcoursDetail() {
   const [showCarte, setShowCarte] = useState(false)
   const carteActive = useFeature('carte_parcours')
   const transparenceActive = useFeature('transparence')
+  const attestationActive = useFeature('attestation')
+  const [showAttestation, setShowAttestation] = useState(false)
 
   async function load() { setData(await api<Detail>(`/dossiers/mine/${id}`)) }
   async function loadCreneaux() { try { setCreneaux((await api<{ creneaux: Creneau[] }>(`/rdv/disponibles?dossierId=${id}`)).creneaux) } catch { /* ignore */ } }
@@ -165,12 +168,14 @@ export default function ParcoursDetail() {
 
       <div className="parcours-foot">
         {carteActive && <button className="btn btn-ghost" onClick={() => setShowCarte(true)}>🖨️ Carte du parcours</button>}
+        {attestationActive && d.statut === 'cloture' && <button className="btn btn-ghost" onClick={() => setShowAttestation(true)}>📜 Mon attestation</button>}
         {transparenceActive && <button className="btn btn-ghost" onClick={() => setShowTransparence(true)}>🔒 Mes données & transparence</button>}
         <Link className="btn btn-ghost" to="/espace">← Mes parcours</Link>
       </div>
 
       {showTransparence && <TransparenceModal dossierId={Number(id)} onClose={() => setShowTransparence(false)} />}
       {showCarte && <CarteParcours dossierId={Number(id)} titre={d.titre} accompagnateur={acc} phaseMax={data.phase_max ?? -1} nbEntretiens={data.nb_entretiens ?? data.crs.length} onClose={() => setShowCarte(false)} />}
+      {showAttestation && <AttestationModal dossierId={Number(id)} onClose={() => setShowAttestation(false)} />}
 
       {showQ && data.questionnaire && <QuestionnaireDetailModal recap={data.questionnaire.cr_recap} contenu={data.questionnaire.contenu} completeLe={data.questionnaire.complete_le} onClose={() => setShowQ(false)} />}
       <ErrorBoundary onReset={() => { setCrSession(null); setShowSyn(false) }}>

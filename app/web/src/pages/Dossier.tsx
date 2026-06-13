@@ -12,6 +12,7 @@ import FilRougeCard from '../components/FilRougeCard'
 import NuageThemes from '../components/NuageThemes'
 import RoueEmotions from '../components/RoueEmotions'
 import VisioButton from '../components/VisioButton'
+import AttestationModal from '../components/AttestationModal'
 import ErrorBoundary from '../components/ErrorBoundary'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
@@ -52,10 +53,12 @@ export default function Dossier() {
   const [replaySession, setReplaySession] = useState<{ id: number; index: number } | null>(null)
   const [showQDetail, setShowQDetail] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const [showAttestation, setShowAttestation] = useState(false)
   const miroirActif = useFeature('miroir')
   const debriefingActif = useFeature('debriefing')
   const replayActif = useFeature('replay_annote')
   const exportActif = useFeature('export_pdf')
+  const attestationActif = useFeature('attestation')
 
   async function load() {
     const d = await api<Detail>(`/dossiers/${id}`)
@@ -196,6 +199,7 @@ export default function Dossier() {
       <p style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <Link className="btn btn-ghost" to="/tableau-de-bord">← Retour au tableau de bord</Link>
         {exportActif && <button className="btn btn-ghost" onClick={() => setShowExport(true)}>📄 Export PDF complet</button>}
+        {attestationActif && cloture && <button className="btn btn-ghost" onClick={() => setShowAttestation(true)}>📜 Délivrer l’attestation</button>}
       </p>
 
       {selected && <ActionDetailModal key={selected.id} action={selected} onClose={() => setSelected(null)} onSaved={load} />}
@@ -209,6 +213,7 @@ export default function Dossier() {
           {debriefSession && <DebriefingModal sessionId={debriefSession.id} index={debriefSession.index} onClose={() => setDebriefSession(null)} />}
           {replaySession && <ReplayModal sessionId={replaySession.id} index={replaySession.index} onClose={() => setReplaySession(null)} />}
           {showExport && id && <ExportDossierModal dossierId={id} onClose={() => setShowExport(false)} />}
+          {showAttestation && id && <AttestationModal dossierId={id} onClose={() => setShowAttestation(false)} />}
           {showSynthese && id && <SyntheseModal dossierId={id} role="accompagnateur" onClose={() => setShowSynthese(false)} onChanged={load} />}
         </Suspense>
       </ErrorBoundary>
