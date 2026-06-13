@@ -68,3 +68,8 @@ export function resetEmail(token: string) {
     ),
   }
 }
+
+/** Digest hebdomadaire de l'accompagnateur : le corps HTML est construit par le module pilotage. */
+export function digestEmail(titre: string, bodyHtml: string) {
+  return { subject: `Boussole — ${titre}`, html: layout(titre, `${bodyHtml}<p><a href="${APP_URL}/tableau-de-bord">Ouvrir mon tableau de bord</a></p>`) }
+}

@@ -38,7 +38,7 @@ export const FEATURES: Feature[] = [
   { key: 'problematisation', label: 'Assistant de problématisation', categorie: 'Émergence' },
   { key: 'resume_parcours', label: 'Résumé « où j’en suis »', categorie: 'Émergence' },
   // Pilotage & alertes
-  { key: 'signaux_faibles', label: 'Détection de décrochage', categorie: 'Pilotage' },
+  { key: 'signaux_faibles', label: 'Détection de décrochage (voyant + alerte)', categorie: 'Pilotage' },
   { key: 'tableau_impact', label: 'Tableau d’impact', categorie: 'Pilotage' },
   { key: 'digest_email', label: 'Digest hebdomadaire (email)', categorie: 'Pilotage' },
   // Collaboration

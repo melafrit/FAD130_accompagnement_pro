@@ -458,12 +458,12 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
     ],
   })
 
-  // D6 — Karim + Mohamed — mémoire IA & pédagogie — TOUT JUSTE CRÉÉ (sans questionnaire)
+  // D6 — Karim + Mohamed — mémoire IA & pédagogie — DÉMARRAGE EN PANNE (questionnaire jamais complété)
+  // → illustre la détection de décrochage : voyant 🟠 et alerte côté accompagnateur.
   buildParcours({
     accompagne: ids.karim, accompagnateur: ids.mohamed, accompagneNom: 'Karim',
-    titre: 'Mémoire — IA générative et pratiques pédagogiques', statut: 'en_cours', creeOff: -1,
-    contexte: 'Nouveau parcours, tout juste démarré : Karim envisage un mémoire sur l’usage de l’IA générative dans ses pratiques de formateur. Le questionnaire initial reste à compléter.',
-    rdvs: [{ dayOff: 5, reserve: false }],
+    titre: 'Mémoire — IA générative et pratiques pédagogiques', statut: 'en_cours', creeOff: -12,
+    contexte: 'Parcours ouvert il y a deux semaines : Karim envisage un mémoire sur l’usage de l’IA générative dans ses pratiques de formateur, mais n’a pas encore complété son questionnaire initial malgré une relance. Cas typique de décrochage précoce à relancer.',
   })
 
   // Quelques notifications cohérentes (déjà lues, pour ne pas générer de bruit)

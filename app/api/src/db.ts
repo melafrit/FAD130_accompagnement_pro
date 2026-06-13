@@ -318,6 +318,23 @@ db.exec(`
     cree_le     TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Signaux faibles : dernier état connu d'un dossier, pour ne notifier qu'aux CHANGEMENTS d'état
+  CREATE TABLE IF NOT EXISTS signaux_etat (
+    dossier_id INTEGER PRIMARY KEY REFERENCES dossiers(id) ON DELETE CASCADE,
+    niveau     TEXT NOT NULL,
+    signature  TEXT NOT NULL,
+    notifie_le TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Digest hebdomadaire : trace des envois (un seul par accompagnateur et par semaine ISO)
+  CREATE TABLE IF NOT EXISTS digest_envois (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    semaine   TEXT NOT NULL,
+    envoye_le TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (user_id, semaine)
+  );
+
   -- Demande de rendez-vous quand l'accompagnateur n'a pas de créneau disponible
   CREATE TABLE IF NOT EXISTS demandes_rdv (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,

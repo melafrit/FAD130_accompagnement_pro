@@ -20,6 +20,7 @@ import miroirRouter from './miroir'
 import relationnelRouter from './relationnel'
 import emergenceRouter from './emergence'
 import transparenceRouter from './transparence'
+import pilotageRouter, { sweepSignauxAlertes, sweepDigestsHebdo } from './pilotage'
 import { seed } from './seed'
 
 const app = express()
@@ -66,6 +67,9 @@ app.use('/api/relationnel', relationnelRouter)
 app.use('/api/emergence', emergenceRouter)
 app.use('/api/transparence', transparenceRouter)
 
+// Pilotage & alertes (signaux faibles, tableau d'impact, digest hebdomadaire)
+app.use('/api/pilotage', pilotageRouter)
+
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {
   const tables = db
@@ -93,6 +97,14 @@ seed().catch((e) => console.error('[seed] échec :', e))
 // (la consultation des notifications déclenche aussi un balayage immédiat, en complément).
 setInterval(() => {
   try { sweepDueReminders() } catch (e) { console.error('[rappels] balayage échec :', e) }
+}, 60 * 60 * 1000)
+
+// Signaux faibles : alerte l'accompagnateur aux changements d'état (au démarrage puis toutes les heures).
+// Digest hebdomadaire : envoi planifié (lundi 08h), actif uniquement si DIGEST_CRON=1.
+setTimeout(() => { try { sweepSignauxAlertes() } catch (e) { console.error('[signaux] balayage échec :', e) } }, 6000)
+setInterval(() => {
+  try { sweepSignauxAlertes() } catch (e) { console.error('[signaux] balayage échec :', e) }
+  void sweepDigestsHebdo().catch((e) => console.error('[digest] envoi échec :', e))
 }, 60 * 60 * 1000)
 
 const port = Number(process.env.PORT) || 3000

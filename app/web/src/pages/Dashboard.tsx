@@ -1,8 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useFeature } from '../features/FeaturesContext'
+import PilotageBoard from '../components/PilotageBoard'
 
 interface Tag { id: number; nom: string }
+interface Signal { dossier_id: number; niveau: 'vert' | 'orange' | 'rouge'; raisons: string[] }
+const SIGNAL_COULEUR: Record<string, string> = { vert: '#16a34a', orange: '#f59e0b', rouge: '#dc2626' }
 interface DDossier {
   id: number
   accompagne_prenom: string | null
@@ -27,6 +31,8 @@ export default function Dashboard() {
   const [allTags, setAllTags] = useState<Tag[]>([])
   const [filtre, setFiltre] = useState('')
   const [nouveauTag, setNouveauTag] = useState<Record<number, string>>({})
+  const [signaux, setSignaux] = useState<Record<number, Signal>>({})
+  const signauxActifs = useFeature('signaux_faibles')
 
   async function load() {
     const [d, t] = await Promise.all([
@@ -39,6 +45,12 @@ export default function Dashboard() {
   useEffect(() => {
     void load()
   }, [])
+  useEffect(() => {
+    if (!signauxActifs) return
+    api<{ signaux: Signal[] }>('/pilotage/signaux')
+      .then((d) => setSignaux(Object.fromEntries(d.signaux.map((s) => [s.dossier_id, s]))))
+      .catch(() => { /* ignore */ })
+  }, [signauxActifs])
 
   async function addTag(e: FormEvent, dossierId: number) {
     e.preventDefault()
@@ -60,6 +72,8 @@ export default function Dashboard() {
       <p className="kicker">Accompagnateur</p>
       <h1 className="page-title">Tableau de bord</h1>
 
+      <PilotageBoard />
+
       {allTags.length > 0 && (
         <div className="dash-filter">
           <label>Filtrer par tag :</label>
@@ -74,9 +88,22 @@ export default function Dashboard() {
       <div className="dash-grid">
         {filtres.map((d) => {
           const tags = parseTags(d.tags)
+          const sig = signaux[d.id]
           return (
             <div key={d.id} className="card dash-card">
-              <h3>{d.accompagne_prenom || d.accompagne_email}</h3>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {signauxActifs && sig && (
+                  <span
+                    aria-label={`Signal ${sig.niveau} : ${sig.raisons.join(', ')}`}
+                    title={sig.raisons.join('\n')}
+                    style={{ width: 12, height: 12, borderRadius: '50%', flex: '0 0 auto', background: SIGNAL_COULEUR[sig.niveau], boxShadow: '0 0 0 2px rgba(0,0,0,.06)' }}
+                  />
+                )}
+                {d.accompagne_prenom || d.accompagne_email}
+              </h3>
+              {signauxActifs && sig && sig.niveau !== 'vert' && (
+                <p style={{ margin: '0 0 6px', fontSize: '.82rem', color: SIGNAL_COULEUR[sig.niveau] }}>{sig.raisons[0]}</p>
+              )}
               <ul className="dash-stats">
                 <li>Questionnaire : {d.questionnaire ? '✓' : '—'}</li>
                 <li>Entretiens : {d.nb_sessions}</li>
