@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useFeature } from '../features/FeaturesContext'
 
 // Lecture vocale d'un contenu HTML via la synthèse vocale du navigateur (gratuit, hors-ligne).
 function htmlToText(html: string): string {
@@ -9,13 +10,14 @@ function htmlToText(html: string): string {
 
 export default function EcouterButton({ html, label = 'Écouter' }: { html: string; label?: string }) {
   const [speaking, setSpeaking] = useState(false)
+  const audioActif = useFeature('audio')
   const supported = typeof window !== 'undefined' && 'speechSynthesis' in window
   const startedRef = useRef(false)
 
   // Coupe la lecture si le composant est démonté (fermeture de la popup).
   useEffect(() => () => { if (supported && startedRef.current) window.speechSynthesis.cancel() }, [supported])
 
-  if (!supported) return null
+  if (!supported || !audioActif) return null
 
   function toggle() {
     const synth = window.speechSynthesis

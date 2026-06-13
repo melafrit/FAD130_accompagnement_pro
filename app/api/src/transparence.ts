@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import { db } from './db'
 import { requireAuth, requireRole } from './auth'
+import { requireFeature } from './features'
 
 // Transparence / RGPD (côté accompagné) : « voici tes données, ce que l'IA a vu et produit »,
 // les sous-traitants, et une demande d'effacement (envoyée à l'accompagnateur, pas une suppression brutale).
@@ -12,7 +13,7 @@ function ownDossier(accompagneId: number, dossierId: number) {
 }
 const count = (sql: string, ...args: unknown[]) => (db.prepare(sql).get(...args) as { n: number }).n
 
-router.get('/dossier/:id', requireAuth, requireRole('accompagne'), (req: Request, res: Response) => {
+router.get('/dossier/:id', requireAuth, requireRole('accompagne'), requireFeature('transparence'), (req: Request, res: Response) => {
   const me = getUser(req)
   const id = Number(req.params.id)
   if (!ownDossier(me.id, id)) { res.status(404).json({ error: 'Parcours introuvable' }); return }
@@ -43,7 +44,7 @@ router.get('/dossier/:id', requireAuth, requireRole('accompagne'), (req: Request
   })
 })
 
-router.post('/effacement', requireAuth, requireRole('accompagne'), (req: Request, res: Response) => {
+router.post('/effacement', requireAuth, requireRole('accompagne'), requireFeature('transparence'), (req: Request, res: Response) => {
   const me = getUser(req)
   const dossierId = Number(req.body?.dossierId)
   const d = ownDossier(me.id, dossierId)

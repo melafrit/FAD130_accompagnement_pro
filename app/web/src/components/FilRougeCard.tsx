@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
+import { useFeature } from '../features/FeaturesContext'
 
 interface FilRouge { fil: string; axes: string[]; explication: string; partage: number }
 
@@ -7,8 +8,11 @@ interface FilRouge { fil: string; axes: string[]; explication: string; partage: 
 export default function FilRougeCard({ dossierId }: { dossierId: number | string }) {
   const [fr, setFr] = useState<FilRouge | null>(null)
   const [busy, setBusy] = useState(false)
+  const filRougeActif = useFeature('fil_rouge')
   const load = useCallback(async () => { setFr((await api<{ filRouge: FilRouge | null }>(`/emergence/dossier/${dossierId}/fil-rouge`)).filRouge) }, [dossierId])
   useEffect(() => { void load().catch(() => { /* ignore */ }) }, [load])
+
+  if (!filRougeActif) return null
 
   async function gen() { setBusy(true); try { setFr(await api<FilRouge>(`/emergence/dossier/${dossierId}/fil-rouge`, { method: 'POST' })) } finally { setBusy(false) } }
   async function togglePartage() {

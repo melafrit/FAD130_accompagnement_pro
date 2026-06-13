@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import { db } from './db'
 import { requireAuth, requireRole } from './auth'
+import { requireFeature } from './features'
 import { PHASES } from './phases'
 import { GRILLE, INDICATEUR_IDS } from './grille'
 
@@ -133,7 +134,7 @@ function fallbackMiroir(sid: number): Miroir {
 }
 
 // --- Générer (et stocker) l'analyse réflexive d'un entretien ---
-router.post('/session/:sid', requireAuth, requireRole('accompagnateur'), async (req: Request, res: Response) => {
+router.post('/session/:sid', requireAuth, requireRole('accompagnateur'), requireFeature('miroir'), async (req: Request, res: Response) => {
   const me = getUser(req)
   const sid = Number(req.params.sid)
   const owned = ownsSession(me.id, sid)
@@ -150,7 +151,7 @@ router.post('/session/:sid', requireAuth, requireRole('accompagnateur'), async (
 })
 
 // --- Récupérer l'analyse stockée (si elle existe) ---
-router.get('/session/:sid', requireAuth, requireRole('accompagnateur'), (req: Request, res: Response) => {
+router.get('/session/:sid', requireAuth, requireRole('accompagnateur'), requireFeature('miroir'), (req: Request, res: Response) => {
   const me = getUser(req)
   const sid = Number(req.params.sid)
   if (!ownsSession(me.id, sid)) { res.status(404).json({ error: 'Entretien introuvable' }); return }
@@ -159,7 +160,7 @@ router.get('/session/:sid', requireAuth, requireRole('accompagnateur'), (req: Re
 })
 
 // --- Appliquer les scores proposés à la grille (brouillon d'auto-évaluation du dossier) ---
-router.post('/session/:sid/appliquer', requireAuth, requireRole('accompagnateur'), (req: Request, res: Response) => {
+router.post('/session/:sid/appliquer', requireAuth, requireRole('accompagnateur'), requireFeature('miroir'), (req: Request, res: Response) => {
   const me = getUser(req)
   const sid = Number(req.params.sid)
   const owned = ownsSession(me.id, sid)

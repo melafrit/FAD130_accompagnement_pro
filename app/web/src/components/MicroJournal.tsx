@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import DictaTextarea from './DictaTextarea'
+import { useFeature } from '../features/FeaturesContext'
 
 interface Entry { id: number; texte: string; partage: number; cree_le: string }
 const fdate = (s: string) => (s || '').slice(0, 16).replace('T', ' ')
@@ -12,10 +13,13 @@ export default function MicroJournal({ dossierId, role }: { dossierId: number | 
   const [texte, setTexte] = useState('')
   const [partage, setPartage] = useState(false)
   const [busy, setBusy] = useState(false)
+  const journalActif = useFeature('journal')
   const readOnly = role === 'accompagnateur'
 
   const load = useCallback(async () => { setEntrees((await api<{ entrees: Entry[] }>(`/relationnel/journal/dossier/${dossierId}`)).entrees || []) }, [dossierId])
   useEffect(() => { void load().catch(() => { /* ignore */ }) }, [load])
+
+  if (!journalActif) return null
 
   async function ajouter() {
     const t = texte.trim(); if (!t) return

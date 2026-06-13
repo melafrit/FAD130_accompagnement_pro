@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from '../lib/api'
+import PlansManager from '../components/PlansManager'
 
 interface User {
   id: number
@@ -9,10 +10,14 @@ interface User {
   prenom: string | null
   actif: number
   email_verifie: number
+  plan_id: number | null
+  plan_nom: string | null
 }
+interface PlanOpt { id: number; nom: string }
 
 export default function Admin() {
   const [users, setUsers] = useState<User[]>([])
+  const [plans, setPlans] = useState<PlanOpt[]>([])
   const [form, setForm] = useState({ email: '', role: 'accompagne', nom: '', prenom: '' })
   const [lien, setLien] = useState({ accompagnateurId: '', accompagneId: '' })
   const [msg, setMsg] = useState('')
@@ -21,12 +26,21 @@ export default function Admin() {
     const d = await api<{ users: User[] }>('/admin/users')
     setUsers(d.users)
   }
+  async function loadPlans() {
+    const d = await api<{ plans: PlanOpt[] }>('/admin/plans')
+    setPlans(d.plans)
+  }
   useEffect(() => {
     void load()
+    void loadPlans()
   }, [])
 
   async function setRole(id: number, role: string) {
     await api(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ role }) })
+    await load()
+  }
+  async function setPlan(id: number, planId: string) {
+    await api(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ plan_id: planId === '' ? null : Number(planId) }) })
     await load()
   }
   async function toggleActif(u: User) {
@@ -69,7 +83,7 @@ export default function Admin() {
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
-            <tr><th>Email</th><th>Nom</th><th>Rôle</th><th>Validé</th><th>Statut</th></tr>
+            <tr><th>Email</th><th>Nom</th><th>Rôle</th><th>Abonnement</th><th>Validé</th><th>Statut</th></tr>
           </thead>
           <tbody>
             {users.map((u) => (
@@ -81,6 +95,12 @@ export default function Admin() {
                     <option value="accompagne">Accompagné</option>
                     <option value="accompagnateur">Accompagnateur</option>
                     <option value="admin">Admin</option>
+                  </select>
+                </td>
+                <td>
+                  <select value={u.plan_id ?? ''} onChange={(e) => setPlan(u.id, e.target.value)} title="Niveau maximum si aucun plan">
+                    <option value="">Niveau max</option>
+                    {plans.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
                   </select>
                 </td>
                 <td>{u.email_verifie ? '✓' : '—'}</td>
@@ -130,6 +150,8 @@ export default function Admin() {
           </form>
         </div>
       </div>
+
+      <PlansManager onChange={() => { void load(); void loadPlans() }} />
     </div>
   )
 }

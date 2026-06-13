@@ -10,6 +10,7 @@ import EmergencePartage from '../components/EmergencePartage'
 import TransparenceModal from '../components/TransparenceModal'
 import CarteParcours from '../components/CarteParcours'
 import ErrorBoundary from '../components/ErrorBoundary'
+import { useFeature } from '../features/FeaturesContext'
 
 const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
 const SyntheseModal = lazy(() => import('../components/SyntheseModal'))
@@ -34,6 +35,8 @@ export default function ParcoursDetail() {
   const [isErr, setIsErr] = useState(false)
   const [showTransparence, setShowTransparence] = useState(false)
   const [showCarte, setShowCarte] = useState(false)
+  const carteActive = useFeature('carte_parcours')
+  const transparenceActive = useFeature('transparence')
 
   async function load() { setData(await api<Detail>(`/dossiers/mine/${id}`)) }
   async function loadCreneaux() { try { setCreneaux((await api<{ creneaux: Creneau[] }>(`/rdv/disponibles?dossierId=${id}`)).creneaux) } catch { /* ignore */ } }
@@ -151,8 +154,8 @@ export default function ParcoursDetail() {
       </section>
 
       <div className="parcours-foot">
-        <button className="btn btn-ghost" onClick={() => setShowCarte(true)}>🖨️ Carte du parcours</button>
-        <button className="btn btn-ghost" onClick={() => setShowTransparence(true)}>🔒 Mes données & transparence</button>
+        {carteActive && <button className="btn btn-ghost" onClick={() => setShowCarte(true)}>🖨️ Carte du parcours</button>}
+        {transparenceActive && <button className="btn btn-ghost" onClick={() => setShowTransparence(true)}>🔒 Mes données & transparence</button>}
         <Link className="btn btn-ghost" to="/espace">← Mes parcours</Link>
       </div>
 

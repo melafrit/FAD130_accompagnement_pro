@@ -3,8 +3,26 @@ import { db } from './db'
 import { makeToken, expiryHours } from './util'
 import { sendEmail, resetEmail } from './mailer'
 import { seedDemoData } from './seedDemo'
+import { ALL_FEATURE_KEYS } from './features'
 
 type Role = 'admin' | 'accompagnateur' | 'accompagne'
+
+/**
+ * Plans d'abonnement d'exemple, créés une seule fois (si aucun plan n'existe).
+ * Par défaut, les utilisateurs n'ont AUCUN plan (plan_id NULL = niveau max, toutes les
+ * fonctionnalités). Ces plans servent à l'admin pour restreindre certains comptes.
+ */
+function seedPlans(): void {
+  const count = (db.prepare('SELECT COUNT(*) AS n FROM plans').get() as { n: number }).n
+  if (count > 0) return
+  const SOCLE = ['questionnaire', 'entretien', 'comptes_rendus', 'rdv', 'plan_action', 'synthese', 'auto_evaluation', 'multi_parcours']
+  const ESSENTIEL = [...SOCLE, 'boussole', 'audio', 'dark_mode', 'meteo', 'journal', 'fil_rouge', 'moments_cles', 'resume_parcours', 'transparence']
+  const ins = db.prepare('INSERT INTO plans (nom, description, features) VALUES (?, ?, ?)')
+  ins.run('Découverte', 'Le socle de l’accompagnement : questionnaire, entretiens, comptes rendus, rendez-vous, plan d’action, synthèse.', JSON.stringify(SOCLE))
+  ins.run('Essentiel', 'Le socle enrichi du confort de lecture, du suivi émotionnel et des premières aides à l’émergence.', JSON.stringify(ESSENTIEL))
+  ins.run('Pro', 'L’offre complète : toutes les fonctionnalités, y compris l’IA avancée, le pilotage, la collaboration et les outils d’adoption.', JSON.stringify(ALL_FEATURE_KEYS))
+  console.log('[seed] Plans d’abonnement d’exemple créés : Découverte, Essentiel, Pro (utilisateurs au niveau max par défaut).')
+}
 
 /**
  * Crée un compte (sans mot de passe) s'il n'existe pas, et envoie un lien
@@ -45,6 +63,8 @@ export async function seed(): Promise<void> {
   // Retire l'ancien compte de démo (remplacé par afrit_mohamed@yahoo.fr / Amine) s'il traîne encore.
   // Les données liées (dossier, entretiens…) partent en cascade (ON DELETE CASCADE).
   db.prepare("DELETE FROM users WHERE email = 'demo.accompagne@elafrit.com'").run()
+
+  seedPlans()
 
   const devPwd = process.env.SEED_PASSWORD
   if (devPwd) {

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from './db'
 import { makeToken, expiryHours } from './util'
 import { sendEmail, verificationEmail, resetEmail } from './mailer'
+import { userFeatures } from './features'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me'
 const COOKIE = 'boussole_token'
@@ -170,6 +171,12 @@ router.get('/me', requireAuth, (req: Request, res: Response) => {
   const u = (req as ReqUser).user as SessionUser
   const row = db.prepare('SELECT id, email, role, nom, prenom FROM users WHERE id = ?').get(u.id)
   res.json({ user: row })
+})
+
+// --- Fonctionnalités activées pour l'utilisateur courant (selon son plan ; aucun plan = tout) ---
+router.get('/me/features', requireAuth, (req: Request, res: Response) => {
+  const u = (req as ReqUser).user as SessionUser
+  res.json({ features: [...userFeatures(u.id)] })
 })
 
 // --- Mise à jour du profil (prénom / nom) ---

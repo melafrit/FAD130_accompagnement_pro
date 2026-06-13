@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import DictaInput from './DictaInput'
+import { useFeature } from '../features/FeaturesContext'
 
 interface Entry { id: number; niveau: number; mot: string | null; cree_le: string }
 const EMOJIS = ['😞', '😟', '😐', '🙂', '😄']
@@ -16,6 +17,7 @@ export default function MeteoWidget({ dossierId, role, accompagneNom }: { dossie
   const [mot, setMot] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
+  const meteoActif = useFeature('meteo')
   const acc = role === 'accompagnateur'
 
   const load = useCallback(async () => {
@@ -23,6 +25,8 @@ export default function MeteoWidget({ dossierId, role, accompagneNom }: { dossie
     setMine(d.mine || []); setAutre(d.autre || [])
   }, [dossierId])
   useEffect(() => { void load().catch(() => { /* ignore */ }) }, [load])
+
+  if (!meteoActif) return null
 
   async function envoyer() {
     if (!niveau) return

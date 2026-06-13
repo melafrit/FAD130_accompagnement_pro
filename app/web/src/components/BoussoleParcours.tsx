@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useFeature } from '../features/FeaturesContext'
 
 // Boussole du parcours : demi-cercle gradué sur les 6 phases de l'entretien,
 // une aiguille pointe la phase courante, + jalons et progression vers l'autonomie.
@@ -32,6 +33,7 @@ const arc = (aStart: number, aEnd: number, r: number) => {
 }
 
 export default function BoussoleParcours({ phaseMax, questionnaire, entretiens, crPublies, synthesePubliee, cloture }: Props) {
+  const boussoleActive = useFeature('boussole')
   const cur = Math.max(-1, Math.min(5, phaseMax))
   const pct = cur < 0 ? 0 : Math.round(((cur + 1) / 6) * 100)
   const targetDeg = cur < 0 ? 180 : 180 - cur * 30 - 15
@@ -41,6 +43,8 @@ export default function BoussoleParcours({ phaseMax, questionnaire, entretiens, 
   useEffect(() => { const t = setTimeout(() => setAnim(true), 80); return () => clearTimeout(t) }, [])
   const needleDeg = anim ? targetDeg : 180
   const [nx, ny] = pt(needleDeg, R - 24)
+
+  if (!boussoleActive) return null
 
   return (
     <div className="boussole">

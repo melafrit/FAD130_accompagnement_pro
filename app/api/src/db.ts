@@ -206,6 +206,8 @@ for (const stmt of [
   'ALTER TABLE users ADD COLUMN email_pending TEXT',
   // Adresse cible portée par le jeton de confirmation (lie le lien à l'adresse précise)
   'ALTER TABLE tokens ADD COLUMN email_cible TEXT',
+  // Plan d'abonnement de l'utilisateur (NULL = niveau max, toutes fonctionnalités)
+  'ALTER TABLE users ADD COLUMN plan_id INTEGER',
 ]) {
   try {
     db.exec(stmt)
@@ -305,6 +307,15 @@ db.exec(`
     motif         TEXT,
     statut        TEXT NOT NULL DEFAULT 'en_attente',
     cree_le       TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Plans d'abonnement : chaque plan active un sous-ensemble de fonctionnalités (features = JSON de clés)
+  CREATE TABLE IF NOT EXISTS plans (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom         TEXT NOT NULL,
+    description TEXT,
+    features    TEXT NOT NULL DEFAULT '[]',
+    cree_le     TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   -- Demande de rendez-vous quand l'accompagnateur n'a pas de créneau disponible

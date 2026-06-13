@@ -12,6 +12,7 @@ import FilRougeCard from '../components/FilRougeCard'
 import ErrorBoundary from '../components/ErrorBoundary'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
+import { useFeature } from '../features/FeaturesContext'
 
 // Chargées à la demande (elles embarquent l'éditeur riche / l'assainisseur HTML)
 const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
@@ -42,6 +43,7 @@ export default function Dossier() {
   const [entretienDetail, setEntretienDetail] = useState<{ id: number; index: number } | null>(null)
   const [miroirSession, setMiroirSession] = useState<{ id: number; index: number } | null>(null)
   const [showQDetail, setShowQDetail] = useState(false)
+  const miroirActif = useFeature('miroir')
 
   async function load() {
     const d = await api<Detail>(`/dossiers/${id}`)
@@ -120,7 +122,7 @@ export default function Dossier() {
                   📄 Compte rendu{s.crs.some((c) => c.publie) ? ' ✓ publié' : s.crs.length ? ' • brouillon' : ''}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setNotesSession(s.id)}>🔒 Notes privées</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setMiroirSession({ id: s.id, index: i + 1 })}>🪞 Analyser ma posture</button>
+                {miroirActif && <button className="btn btn-ghost btn-sm" onClick={() => setMiroirSession({ id: s.id, index: i + 1 })}>🪞 Analyser ma posture</button>}
               </div>
             </div>
           </li>

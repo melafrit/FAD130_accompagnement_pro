@@ -1,5 +1,6 @@
 import { Routes, Route, Link, NavLink } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
+import { FeaturesProvider, useFeature } from './features/FeaturesContext'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -34,6 +35,7 @@ import Protected from './components/Protected'
 
 function Header() {
   const { user } = useAuth()
+  const darkMode = useFeature('dark_mode')
   return (
     <header className="header">
       <Link to="/" className="brand" aria-label="Boussole — accueil">
@@ -45,7 +47,7 @@ function Header() {
         <NavLink to="/methode">Méthode</NavLink>
         <NavLink to="/presentation">Présentation</NavLink>
         {user && <NavLink to="/espace">Mon espace</NavLink>}
-        <ThemeToggle />
+        {darkMode && <ThemeToggle />}
         {user && <NotificationsBell />}
         <AuthMenu />
       </nav>
@@ -78,6 +80,7 @@ function Footer() {
 export default function App() {
   return (
     <AuthProvider>
+      <FeaturesProvider>
       <div className="app">
         <a className="skip-link" href="#main">Aller au contenu</a>
         <Header />
@@ -114,6 +117,7 @@ export default function App() {
         </main>
         <Footer />
       </div>
+      </FeaturesProvider>
     </AuthProvider>
   )
 }
