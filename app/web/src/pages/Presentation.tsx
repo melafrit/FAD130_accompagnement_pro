@@ -94,13 +94,12 @@ const MATRICE_CELLS: { key: keyof Matrice; cls: string; icon: string; label: str
 ]
 
 const DEMO_PWD = 'BoussoleDemo2026'
+// Page publique : on n'expose que les comptes de démo dédiés (@boussole.demo).
+// Les comptes admin et les adresses personnelles ne sont pas affichés ici.
 const DEMO_ACCOUNTS: { role: string; nom: string; email: string }[] = [
-  { role: 'Accompagnateur', nom: 'Mohamed', email: 'elafrit.mohamed@gmail.com' },
   { role: 'Accompagnateur', nom: 'Camille Laurent', email: 'camille.laurent@boussole.demo' },
-  { role: 'Accompagné', nom: 'Amine Bensaïd', email: 'afrit_mohamed@yahoo.fr' },
   { role: 'Accompagné', nom: 'Léa Martin', email: 'lea.martin@boussole.demo' },
   { role: 'Accompagné', nom: 'Karim Benali', email: 'karim.benali@boussole.demo' },
-  { role: 'Admin', nom: 'Mohamed', email: 'mohamed@elafrit.com' },
 ]
 
 export default function Presentation() {
@@ -182,7 +181,8 @@ export default function Presentation() {
         ) : (
           <div className="phase-panel">
             <div className="phase-head"><span className="phase-num">🔑</span><h3 style={{ margin: 0 }}>Comptes de démonstration</h3></div>
-            <p>Connecte-toi avec un de ces comptes <strong>préchargés</strong> pour montrer l’application en direct. Le jeu de données (dossiers, entretiens, comptes rendus, synthèses) est <strong>réinitialisé à chaque redémarrage</strong>.</p>
+            <p>Connecte-toi avec un de ces comptes de <strong>démonstration</strong> pour montrer l’application en direct. Le jeu de données (dossiers, entretiens, comptes rendus, synthèses) est <strong>réinitialisé à chaque redémarrage</strong>.</p>
+            <p className="muted">Seuls les comptes de démo dédiés sont affichés ici ; les comptes d’administration et les adresses personnelles ne le sont pas.</p>
             <p className="demo-pwd">Mot de passe commun : <strong>{DEMO_PWD}</strong></p>
             <table className="demo-table">
               <thead><tr><th>Rôle</th><th>Nom</th><th>Identifiant (email)</th></tr></thead>
@@ -196,7 +196,7 @@ export default function Presentation() {
                 ))}
               </tbody>
             </table>
-            <p className="hint">Côté <strong>accompagnateur</strong> (Mohamed, Camille) : dossiers, entretiens, comptes rendus, grille d’auto-évaluation. Côté <strong>accompagné</strong> (Amine, Léa, Karim) : parcours, rendez-vous, synthèse.</p>
+            <p className="hint">Côté <strong>accompagnateur</strong> (Camille) : dossiers, entretiens, comptes rendus, grille d’auto-évaluation. Côté <strong>accompagné</strong> (Léa, Karim) : parcours, rendez-vous, synthèse.</p>
             <div className="phase-panel-nav">
               <button className="btn btn-ghost" onClick={() => goto(QUESTIONS.length - 1)}>← Retour aux questions</button>
               <Link className="btn btn-primary" to="/connexion">Se connecter →</Link>
