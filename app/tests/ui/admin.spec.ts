@@ -24,9 +24,36 @@ function userRow(page: Page, email: string) {
 
 /** Localise la carte (accordéon) d'un plan par son nom exact dans l'en-tête. */
 function planCard(page: Page, nom: string) {
+  // L'en-tête de carte est un bouton dont le nom accessible inclut les pastilles
+  // (« Nom 3 fonctionnalités 0 utilisateur ▼ ») : on filtre la carte par son TEXTE, pas par
+  // un nom de bouton exact.
+  // Match EXACT du nom (l'en-tête contient <strong>nom</strong>) : « Source X » ne doit pas
+  // matcher « Source X (copie) » (le filtre hasText, en sous-chaîne, le ferait).
   return page.locator('section', { hasText: 'Plans d’abonnement' })
     .locator('.card')
-    .filter({ has: page.getByRole('button', { name: nom, exact: true }) })
+    .filter({ has: page.getByText(nom, { exact: true }) })
+}
+
+/** La carte de plan OUVERTE (en édition) — la seule à afficher le champ « Nom du plan ».
+ *  Référence STABLE pendant qu'on renomme le plan (le filtre par nom deviendrait périmé). */
+function carteOuverte(page: Page) {
+  return page.locator('section', { hasText: 'Plans d’abonnement' })
+    .locator('.card')
+    .filter({ has: page.getByText('Nom du plan') })
+}
+
+/** Supprime les plans de test périmés (le reseed ne purge pas les plans hors socle).
+ *  Garantit un état déterministe : seuls Découverte / Essentiel / Pro subsistent. */
+async function nettoyerPlans(page: Page) {
+  await page.evaluate(async () => {
+    const r = await fetch('/api/admin/plans', { credentials: 'include' })
+    const d = await r.json()
+    for (const p of d.plans || []) {
+      if (!['Découverte', 'Essentiel', 'Pro'].includes(p.nom)) {
+        await fetch(`/api/admin/plans/${p.id}`, { method: 'DELETE', credentials: 'include' })
+      }
+    }
+  })
 }
 
 test.describe('ADMIN — console /admin', () => {
@@ -266,15 +293,16 @@ test.describe('ADMIN — console /admin', () => {
   test('TC-UI-316/317/318/319/326 — créer un plan, cocher des fonctionnalités, renommer, enregistrer', async ({ page }) => {
     await login(page, DEMO.admin)
     await page.goto('/admin')
+    await nettoyerPlans(page) // purge les plans de test périmés (le reseed ne les supprime pas)
 
     const section = page.locator('section', { hasText: 'Plans d’abonnement' })
 
     // TC-UI-316 : « + Nouveau plan » -> un plan « Nouveau plan » apparaît et son accordéon s'ouvre.
     await section.getByRole('button', { name: '+ Nouveau plan' }).click()
-    const carte = planCard(page, 'Nouveau plan')
+    const carte = carteOuverte(page) // référence stable même après renommage (le nom « Nouveau plan » change)
     await expect(carte).toBeVisible()
     // L'accordéon ouvert expose aria-expanded=true et le champ « Nom du plan ».
-    await expect(carte.getByRole('button', { name: 'Nouveau plan', exact: true })).toHaveAttribute('aria-expanded', 'true')
+    await expect(carte.getByRole('button').first()).toHaveAttribute('aria-expanded', 'true')
     const nomInput = carte.getByLabel('Nom du plan')
     await expect(nomInput).toBeVisible()
 
@@ -303,16 +331,16 @@ test.describe('ADMIN — console /admin', () => {
     // TC-UI-319 : renommer le plan + description puis enregistrer -> message de succès, nom dans l'en-tête.
     const nouveauNom = `Plan test ${Date.now()}`
     await nomInput.fill(nouveauNom)
-    await carte.getByLabel('Description').fill('Plan jetable créé par le test UI.')
+    await carte.locator('textarea').first().fill('Plan jetable créé par le test UI.') // le seul textarea de la carte = Description
     await carte.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText(`Plan « ${nouveauNom} » enregistré.`)).toBeVisible()
     // L'en-tête de la carte porte désormais le nouveau nom et le compteur de fonctionnalités a augmenté.
-    await expect(planCard(page, nouveauNom).getByRole('button', { name: nouveauNom, exact: true })).toBeVisible()
+    await expect(planCard(page, nouveauNom).getByRole('button').first()).toBeVisible()
     await expect(planCard(page, nouveauNom)).toContainText('fonctionnalité')
 
     // Nettoyage : suppression du plan jetable (sans utilisateur rattaché).
     page.once('dialog', (d) => d.accept())
-    await planCard(page, nouveauNom).getByRole('button', { name: 'Supprimer' }).click()
+    await planCard(page, nouveauNom).getByRole('button', { name: 'Supprimer', exact: true }).click()
     await expect(planCard(page, nouveauNom)).toHaveCount(0)
   })
 
@@ -325,7 +353,7 @@ test.describe('ADMIN — console /admin', () => {
     // On crée d'abord un plan source jetable au nom unique pour rendre le test déterministe.
     const base = `Source ${Date.now()}`
     await section.getByRole('button', { name: '+ Nouveau plan' }).click()
-    const source = planCard(page, 'Nouveau plan')
+    const source = carteOuverte(page) // référence stable pendant le renommage
     await source.getByLabel('Nom du plan').fill(base)
     await source.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText(`Plan « ${base} » enregistré.`)).toBeVisible()
@@ -334,14 +362,16 @@ test.describe('ADMIN — console /admin', () => {
     await planCard(page, base).getByRole('button', { name: 'Dupliquer' }).click()
     const copie = planCard(page, `${base} (copie)`)
     await expect(copie).toBeVisible()
-    await expect(copie.getByRole('button', { name: `${base} (copie)`, exact: true })).toHaveAttribute('aria-expanded', 'true')
+    await expect(copie.getByRole('button').first()).toHaveAttribute('aria-expanded', 'true')
 
     // Nettoyage : suppression de la copie puis de la source.
     page.once('dialog', (d) => d.accept())
-    await copie.getByRole('button', { name: 'Supprimer' }).click()
+    await copie.getByRole('button', { name: 'Supprimer', exact: true }).click()
     await expect(planCard(page, `${base} (copie)`)).toHaveCount(0)
+    // La carte source s'est repliée quand la copie s'est ouverte → on la rouvre pour accéder à « Supprimer ».
+    await planCard(page, base).getByRole('button').first().click()
     page.once('dialog', (d) => d.accept())
-    await planCard(page, base).getByRole('button', { name: 'Supprimer' }).click()
+    await planCard(page, base).getByRole('button', { name: 'Supprimer', exact: true }).click()
     await expect(planCard(page, base)).toHaveCount(0)
   })
 
@@ -354,7 +384,7 @@ test.describe('ADMIN — console /admin', () => {
     // Plan jetable sans utilisateur rattaché.
     const nom = `À supprimer ${Date.now()}`
     await section.getByRole('button', { name: '+ Nouveau plan' }).click()
-    const carte = planCard(page, 'Nouveau plan')
+    const carte = carteOuverte(page) // référence stable même après renommage (le nom « Nouveau plan » change)
     await carte.getByLabel('Nom du plan').fill(nom)
     await carte.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText(`Plan « ${nom} » enregistré.`)).toBeVisible()
@@ -362,13 +392,13 @@ test.describe('ADMIN — console /admin', () => {
     // TC-UI-324 : annulation du confirm -> aucun DELETE, le plan reste présent.
     let dialogMsg = ''
     page.once('dialog', (d) => { dialogMsg = d.message(); return d.dismiss() })
-    await planCard(page, nom).getByRole('button', { name: 'Supprimer' }).click()
+    await planCard(page, nom).getByRole('button', { name: 'Supprimer', exact: true }).click()
     expect(dialogMsg).toContain('Aucun utilisateur n’y est rattaché.')
     await expect(planCard(page, nom)).toBeVisible()
 
     // TC-UI-322 : confirmation (OK) -> le plan disparaît de la liste.
     page.once('dialog', (d) => d.accept())
-    await planCard(page, nom).getByRole('button', { name: 'Supprimer' }).click()
+    await planCard(page, nom).getByRole('button', { name: 'Supprimer', exact: true }).click()
     await expect(planCard(page, nom)).toHaveCount(0)
   })
 
@@ -382,7 +412,7 @@ test.describe('ADMIN — console /admin', () => {
     // Plan jetable, qu'on affecte ensuite à Karim.
     const nom = `Utilisé ${Date.now()}`
     await section.getByRole('button', { name: '+ Nouveau plan' }).click()
-    const carte = planCard(page, 'Nouveau plan')
+    const carte = carteOuverte(page) // référence stable même après renommage (le nom « Nouveau plan » change)
     await carte.getByLabel('Nom du plan').fill(nom)
     await carte.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText(`Plan « ${nom} » enregistré.`)).toBeVisible()
@@ -392,10 +422,15 @@ test.describe('ADMIN — console /admin', () => {
     await planSelect.selectOption({ label: nom })
     await expect(userRow(page, DEMO.karim.email).locator('select').nth(1).locator('option:checked')).toHaveText(nom)
 
-    // Suppression : le confirm mentionne les N utilisateur(s) rattaché(s).
+    // L'affectation via le tableau des comptes ne rafraîchit pas le compteur du gestionnaire de
+    // plans → on recharge la page pour que nb_users reflète l'affectation, puis on rouvre la carte.
+    await page.reload()
+    const carteUtilisee = planCard(page, nom)
+    await carteUtilisee.getByRole('button').first().click() // ouvrir l'accordéon
+    // Suppression : le confirm mentionne le(s) utilisateur(s) rattaché(s).
     let dialogMsg = ''
     page.once('dialog', (d) => { dialogMsg = d.message(); return d.accept() })
-    await planCard(page, nom).getByRole('button', { name: 'Supprimer' }).click()
+    await carteUtilisee.getByRole('button', { name: 'Supprimer', exact: true }).click()
     expect(dialogMsg).toMatch(/utilisateur\(s\) rattaché\(s\) repasseront au niveau maximum/i)
 
     // Le plan disparaît ; Karim repasse à « Niveau max » ; les autres comptes restent affichés.
@@ -412,12 +447,11 @@ test.describe('ADMIN — console /admin', () => {
     await page.goto('/admin')
     const section = page.locator('section', { hasText: 'Plans d’abonnement' })
 
-    const nbPlans = await section.locator('.card').count()
-    if (nbPlans === 0) {
-      await expect(section.getByText('Aucun plan pour l’instant. Tous les utilisateurs ont accès à toutes les fonctionnalités.')).toBeVisible()
-    } else {
-      await expect(section.locator('.card').first()).toBeVisible()
-    }
+    // La liste des plans se charge de façon asynchrone : on attend qu'au moins une carte de plan
+    // OU le message d'état vide soit présent (contrat d'affichage), sans compter prématurément.
+    await expect(
+      section.locator('.card').first().or(section.getByText(/Aucun plan pour l’instant/)),
+    ).toBeVisible()
   })
 
   // ------------------------------------------------------------------

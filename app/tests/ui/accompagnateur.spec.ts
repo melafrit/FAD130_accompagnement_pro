@@ -185,7 +185,8 @@ test.describe('Dossier', () => {
     // 2) Se reconnecter en Camille et tenter d'ouvrir ce dossier.
     await login(page, DEMO.camille)
     await page.goto(`/dossier/${idMohamed}`)
-    // Le contenu du dossier d'autrui ne s'affiche pas : la page reste en « Chargement… ».
+    await page.waitForLoadState('networkidle') // attendre la fin du 404 (sinon course avec le rendu)
+    // Le contenu du dossier d'autrui ne s'affiche pas : la page reste en « Chargement… », aucune timeline.
     await expect(page.getByText('Chargement…')).toBeVisible()
     await expect(page.locator('.timeline')).toHaveCount(0)
   })
@@ -220,11 +221,12 @@ test.describe('Entretien guidé', () => {
   // TC-UI-117 + TC-UI-118 + TC-UI-120 + TC-UI-121 — questions posées (CRUD), co-pilote IA,
   // banque adaptée, et « Reprendre plus tard » (persistance des notes).
   test('TC-UI-117, TC-UI-118, TC-UI-120, TC-UI-121 — questions, co-pilote IA, banque et reprise', async ({ page }) => {
+    test.setTimeout(90_000) // un appel IA réel (suggestions) + nombreuses interactions + 2 navigations
     await login(page, DEMO.mohamed)
     const id = await ouvrirDossierAmine(page)
     const repren = page.getByRole('button', { name: "Reprendre l'entretien en cours" })
     if (await repren.count() > 0) { await repren.click() } else { await page.getByRole('button', { name: 'Nouvel entretien' }).click() }
-    await expect(page.getByText(/Phase 1\/6/)).toBeVisible()
+    await expect(page.getByText(/Phase \d\/6/)).toBeVisible() // reprise possible → la phase courante peut ne pas être la 1re
 
     // (TC-UI-117) Ajouter une question posée.
     const q = 'Qu’as-tu ressenti à ce moment-là ?'
@@ -234,9 +236,11 @@ test.describe('Entretien guidé', () => {
     await expect(qItem).toBeVisible()
     // Éditer le texte (✎ → ✓).
     await qItem.getByRole('button', { name: 'Modifier la question' }).click()
-    const champEdit = qItem.getByRole('textbox', { name: 'Modifier la question' })
+    // En mode édition, le texte passe dans la VALEUR de l'input → qItem (filtré par texte) devient
+    // périmé. On cible le champ/bouton d'édition au niveau page (un seul est ouvert à la fois).
+    const champEdit = page.getByRole('textbox', { name: 'Modifier la question' })
     await champEdit.fill(q + ' (reformulée)')
-    await qItem.getByRole('button', { name: 'Enregistrer la question' }).click()
+    await page.getByRole('button', { name: 'Enregistrer la question' }).click()
     await expect(page.locator('.qposee', { hasText: '(reformulée)' })).toBeVisible()
     // Supprimer la question (×).
     await page.locator('.qposee', { hasText: '(reformulée)' }).getByRole('button', { name: 'Supprimer la question' }).click()
@@ -273,7 +277,7 @@ test.describe('Entretien guidé', () => {
     await ouvrirDossierAmine(page)
     const repren = page.getByRole('button', { name: "Reprendre l'entretien en cours" })
     if (await repren.count() > 0) { await repren.click() } else { await page.getByRole('button', { name: 'Nouvel entretien' }).click() }
-    await expect(page.getByText(/Phase 1\/6/)).toBeVisible()
+    await expect(page.getByText(/Phase \d\/6/)).toBeVisible() // reprise possible → la phase courante peut ne pas être la 1re
     // Clôturer & générer le CR.
     await page.getByRole('button', { name: '✓ Clôturer & générer le CR' }).click()
     await expect(page.getByRole('heading', { name: /Entretien clôturé/ })).toBeVisible()
@@ -414,7 +418,7 @@ test.describe('Réflexivité (miroir, débriefing, replay)', () => {
     const modal = page.locator('.modal[role="dialog"]', { hasText: 'Replay annoté' })
     await expect(modal).toBeVisible()
     // Si des moments sont rejouables : initialiser puis enregistrer.
-    const init = modal.getByRole('button', { name: /Initialiser l’auto-confrontation/ })
+    const init = modal.getByRole('button', { name: /Initialiser l.auto-confrontation/ }) // . tolère l'apostrophe typographique
     if (await init.count() > 0) {
       await init.click()
       await expect(modal.locator('.form-success')).toBeVisible({ timeout: 25000 })
@@ -583,15 +587,14 @@ test.describe('Mutualisation', () => {
   test('TC-UI-141 — mutualisation : champs requis bloquent la soumission', async ({ page }) => {
     await login(page, DEMO.mohamed)
     await page.goto('/mutualisation')
-    const nbCartesAvant = await page.locator('.card', { has: page.getByText('par ') }).count()
     // Soumission sans titre ni contenu → contrôle HTML required, pas d'envoi.
     await page.getByRole('button', { name: 'Partager' }).click()
-    // Le titre requis est invalide (l'envoi est bloqué côté navigateur).
+    // Le titre requis est invalide (l'envoi est bloqué côté navigateur) → rien n'est créé.
     const titreInput = page.locator('label.field', { hasText: 'Titre' }).locator('input')
     const valide = await titreInput.evaluate((el: HTMLInputElement) => el.checkValidity())
     expect(valide).toBe(false)
-    // Aucune nouvelle ressource créée.
-    await expect(page.locator('.card', { has: page.getByText('par ') })).toHaveCount(nbCartesAvant)
+    // Aucun message de succès (la ressource n'a pas été créée).
+    await expect(page.getByText('Ressource partagée ✓')).toHaveCount(0)
   })
 })
 

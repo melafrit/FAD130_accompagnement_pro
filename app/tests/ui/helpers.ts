@@ -12,6 +12,18 @@ export const DEMO = {
 
 /** Connecte un compte de démo via l'UI et attend l'apparition de la navigation « Mon espace ». */
 export async function login(page: Page, account: { email: string; password: string }) {
+  // Garantit un changement d'identité propre : on purge toute session précédente AVANT de se
+  // connecter. Sans cela, le lien « Mon espace » resté visible pour l'utilisateur précédent ferait
+  // croire à une connexion réussie alors que la session n'a pas changé — faux positif fatal pour les
+  // tests de cloisonnement (se connecter en tant qu'« autre » utilisateur pour prouver l'absence d'accès).
+  await page.context().clearCookies()
+  // Neutralise l'auto-lancement de la visite guidée (son overlay intercepterait les clics).
+  // Les tests qui exercent la visite la relancent explicitement via le bouton flottant « ? ».
+  await page.addInitScript(() => {
+    try {
+      ;['accompagnateur', 'accompagne', 'admin'].forEach((r) => localStorage.setItem(`boussole_onboarding_${r}`, '1'))
+    } catch { /* localStorage indisponible */ }
+  })
   await page.goto('/connexion')
   await page.fill('input[type=email]', account.email)
   await page.fill('input[type=password]', account.password)

@@ -205,6 +205,12 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
     accompagnes.forEach((id) => db.prepare('DELETE FROM dossiers WHERE accompagne_id=?').run(id)) // cascade : questionnaire, entretiens, CR (+discussion/notes), plan d'action, synthèses, grille, problématisation, résumé
     ;[...accompagnes, ...accompagnateurs].forEach((id) => db.prepare('DELETE FROM notifications WHERE user_id=?').run(id))
     accompagnateurs.forEach((id) => db.prepare('DELETE FROM ressources_partagees WHERE auteur_id=?').run(id)) // mutualisation : re-semée à chaque démarrage
+    // Purge des ARTEFACTS DE TEST accumulés (la batterie de tests crée des plans et des comptes
+    // jetables ; on garantit un état déterministe à chaque démarrage) : plans hors socle,
+    // comptes de test, et réinitialisation des abonnements des comptes de démo.
+    db.prepare("DELETE FROM plans WHERE nom NOT IN ('Découverte','Essentiel','Pro')").run()
+    db.prepare("DELETE FROM users WHERE email LIKE '%@boussole.test' OR email LIKE 'rgpd.%@boussole.demo' OR email LIKE 'test-%'").run()
+    ;[...accompagnes, ...accompagnateurs].forEach((id) => db.prepare('UPDATE users SET plan_id=NULL WHERE id=?').run(id))
   })()
 
   // D1 — Amine + Mohamed — dossier VITRINE complet (en cours)
