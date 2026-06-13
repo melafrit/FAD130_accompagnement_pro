@@ -248,6 +248,15 @@ db.exec(`
     cree_le    TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Miroir réflexif : analyse IA de la posture de l'accompagnateur pour UN entretien (1 par session)
+  CREATE TABLE IF NOT EXISTS analyses_posture (
+    session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+    dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    contenu    TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT 'ia',
+    genere_le  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Demande de rendez-vous quand l'accompagnateur n'a pas de créneau disponible
   CREATE TABLE IF NOT EXISTS demandes_rdv (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,

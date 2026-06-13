@@ -14,6 +14,7 @@ import DictaInput from '../components/DictaInput'
 const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
 const NotesPriveesModal = lazy(() => import('../components/NotesPriveesModal'))
 const SyntheseModal = lazy(() => import('../components/SyntheseModal'))
+const MiroirReflexifModal = lazy(() => import('../components/MiroirReflexifModal'))
 
 interface DossierInfo { id: number; titre: string | null; statut: string; synthese: string | null; cree_le: string; accompagne_prenom: string | null; accompagne_email: string }
 interface Questionnaire { cr_recap: string | null; contenu: string | null; complete_le: string | null }
@@ -36,6 +37,7 @@ export default function Dossier() {
   const [notesSession, setNotesSession] = useState<number | null>(null)
   const [showSynthese, setShowSynthese] = useState(false)
   const [entretienDetail, setEntretienDetail] = useState<{ id: number; index: number } | null>(null)
+  const [miroirSession, setMiroirSession] = useState<{ id: number; index: number } | null>(null)
   const [showQDetail, setShowQDetail] = useState(false)
 
   async function load() {
@@ -115,6 +117,7 @@ export default function Dossier() {
                   📄 Compte rendu{s.crs.some((c) => c.publie) ? ' ✓ publié' : s.crs.length ? ' • brouillon' : ''}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setNotesSession(s.id)}>🔒 Notes privées</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setMiroirSession({ id: s.id, index: i + 1 })}>🪞 Analyser ma posture</button>
               </div>
             </div>
           </li>
@@ -173,6 +176,7 @@ export default function Dossier() {
         <Suspense fallback={null}>
           {crSession != null && <CompteRenduModal sessionId={crSession} role="accompagnateur" onClose={() => setCrSession(null)} onChanged={load} />}
           {notesSession != null && <NotesPriveesModal sessionId={notesSession} onClose={() => setNotesSession(null)} />}
+          {miroirSession && <MiroirReflexifModal sessionId={miroirSession.id} index={miroirSession.index} onClose={() => setMiroirSession(null)} />}
           {showSynthese && id && <SyntheseModal dossierId={id} role="accompagnateur" onClose={() => setShowSynthese(false)} onChanged={load} />}
         </Suspense>
       </ErrorBoundary>

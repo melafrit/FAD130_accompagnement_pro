@@ -243,6 +243,22 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 
 .cr-listen { margin: 0 0 10px; }
 
+/* === Miroir réflexif === */
+.mir-note { font-size: 13px; color: var(--texte); }
+.mir-synthese { background: var(--sauge-clair); border: 1px solid #d6e2d9; border-radius: 10px; padding: 12px 14px; font-size: 14px; margin: 10px 0 12px; color: var(--texte); }
+.mir-sec { margin: 14px 0; }
+.mir-sec h3 { font-size: 15px; color: var(--bleu-profond); margin: 0 0 8px; }
+.mir-item { border-left: 3px solid var(--bordure); padding: 4px 0 4px 12px; margin: 0 0 10px; font-size: 14px; color: var(--texte); }
+.mir-force { border-left-color: #2e9e63; }
+.mir-gliss { border-left-color: #c89a2b; }
+.mir-item-head { font-weight: 700; color: var(--bleu-profond); }
+.mir-verbatim { margin: 5px 0; padding: 3px 0 3px 10px; border-left: 2px solid var(--bordure); color: var(--texte-doux); font-style: italic; }
+.mir-conseil { margin-top: 4px; font-size: 13px; }
+.mir-score { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--bordure); }
+.mir-score-badge { flex: none; min-width: 54px; text-align: center; font-weight: 800; font-size: 18px; color: var(--bleu-profond); }
+.mir-score-badge small { font-size: 11px; font-weight: 400; color: var(--texte-doux); }
+.mir-score-lbl { font-size: 14px; }
+
 /* === Boussole du parcours === */
 .boussole { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); box-shadow: var(--ombre); padding: 14px 16px 16px; margin: 0 0 20px; }
 .boussole-svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; }

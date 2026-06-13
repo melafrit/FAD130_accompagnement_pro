@@ -207,7 +207,7 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
   })()
 
   // D1 — Amine + Mohamed — dossier VITRINE complet (en cours)
-  buildParcours({
+  const d1 = buildParcours({
     accompagne: ids.amine, accompagnateur: ids.mohamed, accompagneNom: 'Amine',
     titre: 'Mémoire — Refonte de l’appli commandes (Téaxis)', contexte: CONTEXTE_AMINE, statut: 'en_cours', creeOff: -34,
     questionnaire: { qa: QA_AMINE, recap: RECAP_AMINE, completeOff: -32 },
@@ -244,6 +244,32 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
       { from: 'p', texte: 'Merci, c’est très clair ! Ça me motive de voir tout ça posé.', dayOff: -26 },
     ],
   })
+
+  // Miroir réflexif pré-rempli sur le 1ᵉʳ entretien d'Amine (dossier vitrine)
+  const d1s1 = db.prepare('SELECT id FROM sessions WHERE dossier_id=? ORDER BY date LIMIT 1').get(d1) as { id: number } | undefined
+  if (d1s1) {
+    db.prepare("INSERT INTO analyses_posture (session_id, dossier_id, contenu, source, genere_le) VALUES (?,?,?,'ia',?)").run(
+      d1s1.id, d1, JSON.stringify({
+        forces: [
+          { principe: 'Le geste écologique', observation: 'Je fais raconter une situation précise sans induire la réponse.', verbatim: 'Raconte-moi une mission précise dont tu es fier, étape par étape.' },
+          { principe: 'Influencer par le cadre', observation: 'Je pose le cadre et l’alliance dès l’ouverture, ce qui rassure Amine.', verbatim: 'Avant de commencer, je t’explique comment je travaille — ça te va ?' },
+        ],
+        glissements: [
+          { principe: 'Faire émerger', observation: 'Rester vigilant à ne pas apporter mes propres analyses de consultant à la place d’Amine.', verbatim: '', conseil: 'Je transforme mes propositions en questions ouvertes pour qu’Amine structure lui-même.' },
+        ],
+        synthese: 'Sur ce premier entretien, je suis bien dans une posture d’écoute et de cadrage ; mon appui est l’alliance et les questions ouvertes. Ma vigilance : faire émerger plutôt qu’apporter mes analyses.',
+        scores: [
+          { indicateur: '1.1', score: 85, commentaire: 'J’ai posé le cadre et mis Amine en confiance dès le départ.' },
+          { indicateur: '1.4', score: 74, commentaire: 'Je questionne le travail, jamais la personne.' },
+          { indicateur: '2.1', score: 72, commentaire: 'J’ai fait formuler la demande et le besoin réel.' },
+          { indicateur: '2.4', score: 56, commentaire: 'Dosage du conseil : l’envie de donner la solution revient vite.' },
+          { indicateur: '2.5', score: 50, commentaire: 'Faire émerger : mon principal axe de progrès.' },
+          { indicateur: '2.6', score: 86, commentaire: 'Micro-objectifs et feedback : mon point fort.' },
+        ],
+        note: 70,
+      }), dayOffset(-27),
+    )
+  }
 
   // D2 — Amine + Camille — bilan de compétences vers Product Owner (en cours)  [multi-accompagnateur]
   buildParcours({
