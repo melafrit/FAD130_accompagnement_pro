@@ -15,6 +15,7 @@
           var t = localStorage.getItem('theme');
           if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           document.documentElement.setAttribute('data-theme', t);
+          document.documentElement.setAttribute('data-falc', localStorage.getItem('falc') === 'on' ? 'on' : 'off');
         } catch (e) { /* ignore */ }
       })();
     </script>

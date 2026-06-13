@@ -34,6 +34,8 @@ import Profil from './pages/Profil'
 import NotificationsBell from './components/NotificationsBell'
 import AuthMenu from './components/AuthMenu'
 import ThemeToggle from './components/ThemeToggle'
+import FalcToggle from './components/FalcToggle'
+import OnboardingManager from './components/OnboardingManager'
 import Protected from './components/Protected'
 
 function Header() {
@@ -49,7 +51,8 @@ function Header() {
         <NavLink to="/" end>Accueil</NavLink>
         <NavLink to="/methode">Méthode</NavLink>
         <NavLink to="/presentation">Présentation</NavLink>
-        {user && <NavLink to="/espace">Mon espace</NavLink>}
+        {user && <NavLink to="/espace" data-tour="espace">Mon espace</NavLink>}
+        <FalcToggle />
         {darkMode && <ThemeToggle />}
         {user && <NotificationsBell />}
         <AuthMenu />
@@ -122,6 +125,7 @@ export default function App() {
           </Routes>
         </main>
         <Footer />
+        <OnboardingManager />
       </div>
       </FeaturesProvider>
     </AuthProvider>

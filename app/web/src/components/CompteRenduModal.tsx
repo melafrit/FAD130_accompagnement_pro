@@ -4,6 +4,7 @@ import HtmlContent from './HtmlContent'
 import RichTextEditor from './RichTextEditor'
 import DictaInput from './DictaInput'
 import EcouterButton from './EcouterButton'
+import FalcButton from './FalcButton'
 
 interface CRCurrent { id: number; version: number; contenu_html: string | null; source: string; genere_le: string; publie: number }
 interface CRVersion { id: number; version: number; source: string; genere_le: string; publie: number }
@@ -179,7 +180,12 @@ export default function CompteRenduModal({
                 </>
               ) : (
                 <>
-                  {displayHtml && <div className="cr-listen"><EcouterButton html={displayHtml} label="Écouter le compte rendu" /></div>}
+                  {displayHtml && (
+                    <div className="cr-listen" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <EcouterButton html={displayHtml} label="Écouter le compte rendu" />
+                      <FalcButton html={displayHtml} />
+                    </div>
+                  )}
                   <HtmlContent className="cr-view" html={displayHtml} />
                 </>
               )}

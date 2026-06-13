@@ -26,6 +26,7 @@ import collaborationRouter from './collaboration'
 import visualisationRouter from './visualisation'
 import confortRouter from './confort'
 import ethiqueRouter, { sweepRetention } from './ethique'
+import adoptionRouter from './adoption'
 import { seed } from './seed'
 
 const app = express()
@@ -89,6 +90,9 @@ app.use('/api/confort', confortRouter)
 
 // Éthique (attestation de fin ; les actions RGPD admin sont dans /api/admin)
 app.use('/api/ethique', ethiqueRouter)
+
+// Adoption & accessibilité (reformulation FALC)
+app.use('/api/adoption', adoptionRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

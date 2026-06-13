@@ -332,6 +332,22 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
   .no-print { display: none !important; }
 }
 
+/* === Mode FALC (facile à lire) : texte plus grand, plus aéré, meilleur contraste === */
+html[data-falc="on"] { font-size: 18px; }
+html[data-falc="on"] body { line-height: 1.85; letter-spacing: .01em; }
+html[data-falc="on"] p, html[data-falc="on"] li { max-width: 68ch; }
+html[data-falc="on"] .muted { color: var(--texte) !important; opacity: .9; }
+html[data-falc="on"] .btn { padding: 10px 16px; }
+
+/* === Bouton flottant de visite guidée === */
+.onboarding-fab {
+  position: fixed; right: 18px; bottom: 18px; z-index: 900;
+  width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+  background: var(--bleu-profond, #16324f); color: #fff; font-size: 1.3rem; font-weight: 700;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25);
+}
+.onboarding-fab:hover { background: #1d6a96; }
+
 /* === Attestation de fin (document imprimable) === */
 .attestation { border: 2px solid var(--bleu-profond, #16324f); border-radius: 12px; padding: 32px; text-align: center; }
 .att-brand { color: var(--bleu-profond, #16324f); font-weight: 700; letter-spacing: .04em; margin: 0; }
