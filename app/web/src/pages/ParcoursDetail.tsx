@@ -13,6 +13,7 @@ import ResumeParcoursCard from '../components/ResumeParcoursCard'
 import ProblematisationCard from '../components/ProblematisationCard'
 import NuageThemes from '../components/NuageThemes'
 import RoueEmotions from '../components/RoueEmotions'
+import VisioButton from '../components/VisioButton'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { useFeature } from '../features/FeaturesContext'
 
@@ -110,6 +111,7 @@ export default function ParcoursDetail() {
               <div key={r.id} className="rdv-row">
                 <span className="rdv-when">{fslot(r.debut)}</span>
                 <span className="rdv-statut">{r.statut}</span>
+                <VisioButton rdvId={r.id} label="🎥 Visio" />
                 <a className="rdv-ics" href={`/api/rdv/${r.id}/ics`} title="Ajouter à l'agenda" aria-label="Ajouter à l'agenda">📅</a>
               </div>
             ))}

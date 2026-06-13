@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { api } from '../lib/api'
+import PushToggle from '../components/PushToggle'
 
 export default function Profil() {
   const { user, refresh } = useAuth()
@@ -72,6 +73,11 @@ export default function Profil() {
           <p className="hint">Un lien de confirmation sera envoyé à la nouvelle adresse. Le changement ne prend effet qu’après confirmation (l’ancienne adresse reste active entre-temps).</p>
           <div className="profil-actions"><button className="btn btn-primary" type="submit">Changer l’e-mail</button>{emailMsg && <span className="profil-msg">{emailMsg}</span>}</div>
         </form>
+      </section>
+
+      <section className="profil-card">
+        <h2>Application & notifications</h2>
+        <PushToggle />
       </section>
 
       <p style={{ marginTop: 18 }}><Link className="btn btn-ghost" to="/espace">← Mon espace</Link></p>

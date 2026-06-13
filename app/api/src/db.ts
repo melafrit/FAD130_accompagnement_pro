@@ -359,6 +359,16 @@ db.exec(`
     maj_le     TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Abonnements aux notifications push (Web Push / PWA), un appareil = une entrée
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint  TEXT NOT NULL UNIQUE,
+    p256dh    TEXT NOT NULL,
+    auth      TEXT NOT NULL,
+    cree_le   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Nuage de thèmes / carte mentale d'un parcours (1 par dossier, régénérable)
   CREATE TABLE IF NOT EXISTS nuages_themes (
     dossier_id INTEGER PRIMARY KEY REFERENCES dossiers(id) ON DELETE CASCADE,

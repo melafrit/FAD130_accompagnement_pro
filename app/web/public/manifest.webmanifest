@@ -1,0 +1,14 @@
+{
+  "name": "Boussole — Accompagnement des transitions",
+  "short_name": "Boussole",
+  "description": "Un compagnon d'entretien pour accompagner les personnes en transition professionnelle (UE FAD130, Cnam).",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16324f",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

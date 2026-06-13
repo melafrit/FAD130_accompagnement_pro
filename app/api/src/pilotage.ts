@@ -3,6 +3,7 @@ import { db } from './db'
 import { requireAuth, requireRole } from './auth'
 import { requireFeature, userFeatures } from './features'
 import { sendEmail, digestEmail } from './mailer'
+import { pushToUser } from './confort'
 
 // Pilotage & alertes (accompagnateur) :
 //  - Signaux faibles : détection de décrochage par règles déterministes → voyant 🟢🟠🔴 + alerte
@@ -183,7 +184,9 @@ export function sweepSignauxAlertes(): void {
       const monte = s.niveau !== 'vert'
       upsert.run(s.dossier_id, s.niveau, s.signature)
       if (monte && (!prev || prev.signature.split('|')[0] !== s.signature.split('|')[0] || !prev.signature.startsWith(s.niveau))) {
-        db.prepare('INSERT INTO notifications (user_id, texte) VALUES (?, ?)').run(a.id, `${EMOJI[s.niveau]} ${s.prenom} — signal de décrochage : ${s.raisons[0]}`)
+        const texte = `${EMOJI[s.niveau]} ${s.prenom} — signal de décrochage : ${s.raisons[0]}`
+        db.prepare('INSERT INTO notifications (user_id, texte) VALUES (?, ?)').run(a.id, texte)
+        if (userFeatures(a.id).has('pwa_push')) void pushToUser(a.id, { title: 'Signal de décrochage', body: texte, url: '/tableau-de-bord' })
       }
     }
   }

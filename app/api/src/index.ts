@@ -24,6 +24,7 @@ import pilotageRouter, { sweepSignauxAlertes, sweepDigestsHebdo } from './pilota
 import reflexiviteRouter from './reflexivite'
 import collaborationRouter from './collaboration'
 import visualisationRouter from './visualisation'
+import confortRouter from './confort'
 import { seed } from './seed'
 
 const app = express()
@@ -81,6 +82,9 @@ app.use('/api/collab', collaborationRouter)
 
 // Visualisation & émotionnel (nuage de thèmes, roue des émotions)
 app.use('/api/viz', visualisationRouter)
+
+// Confort & pratique (visio, PWA & push, export PDF)
+app.use('/api/confort', confortRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {
