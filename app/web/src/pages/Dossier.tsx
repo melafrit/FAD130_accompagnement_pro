@@ -9,6 +9,8 @@ import BoussoleParcours from '../components/BoussoleParcours'
 import MeteoWidget from '../components/MeteoWidget'
 import MicroJournal from '../components/MicroJournal'
 import FilRougeCard from '../components/FilRougeCard'
+import NuageThemes from '../components/NuageThemes'
+import RoueEmotions from '../components/RoueEmotions'
 import ErrorBoundary from '../components/ErrorBoundary'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
@@ -138,7 +140,9 @@ export default function Dossier() {
       </ol>
 
       <FilRougeCard dossierId={Number(id)} />
+      <NuageThemes dossierId={Number(id)} />
       <MeteoWidget dossierId={Number(id)} role="accompagnateur" accompagneNom={dossier.accompagne_prenom || undefined} />
+      <RoueEmotions dossierId={Number(id)} role="accompagnateur" />
       <MicroJournal dossierId={Number(id)} role="accompagnateur" />
 
       {rdvs.length > 0 && (

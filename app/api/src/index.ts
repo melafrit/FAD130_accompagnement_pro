@@ -23,6 +23,7 @@ import transparenceRouter from './transparence'
 import pilotageRouter, { sweepSignauxAlertes, sweepDigestsHebdo } from './pilotage'
 import reflexiviteRouter from './reflexivite'
 import collaborationRouter from './collaboration'
+import visualisationRouter from './visualisation'
 import { seed } from './seed'
 
 const app = express()
@@ -77,6 +78,9 @@ app.use('/api/reflexivite', reflexiviteRouter)
 
 // Collaboration & IA (mutualisation, problématisation, résumé « où j'en suis »)
 app.use('/api/collab', collaborationRouter)
+
+// Visualisation & émotionnel (nuage de thèmes, roue des émotions)
+app.use('/api/viz', visualisationRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

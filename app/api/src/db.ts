@@ -359,6 +359,25 @@ db.exec(`
     maj_le     TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Nuage de thèmes / carte mentale d'un parcours (1 par dossier, régénérable)
+  CREATE TABLE IF NOT EXISTS nuages_themes (
+    dossier_id INTEGER PRIMARY KEY REFERENCES dossiers(id) ON DELETE CASCADE,
+    contenu    TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT 'ia',
+    genere_le  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Roue des émotions (outil distinct de la météo) : émotions sélectionnées à un instant T
+  CREATE TABLE IF NOT EXISTS emotions_roue (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    auteur_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role       TEXT NOT NULL,
+    emotions   TEXT NOT NULL,
+    note       TEXT,
+    cree_le    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Mutualisation entre pairs : ressources partagées par les accompagnateurs (interne + lien public)
   CREATE TABLE IF NOT EXISTS ressources_partagees (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,

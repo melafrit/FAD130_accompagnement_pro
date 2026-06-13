@@ -11,6 +11,8 @@ import TransparenceModal from '../components/TransparenceModal'
 import CarteParcours from '../components/CarteParcours'
 import ResumeParcoursCard from '../components/ResumeParcoursCard'
 import ProblematisationCard from '../components/ProblematisationCard'
+import NuageThemes from '../components/NuageThemes'
+import RoueEmotions from '../components/RoueEmotions'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { useFeature } from '../features/FeaturesContext'
 
@@ -81,7 +83,9 @@ export default function ParcoursDetail() {
       <ResumeParcoursCard dossierId={Number(id)} />
       <ProblematisationCard dossierId={Number(id)} />
       <EmergencePartage dossierId={Number(id)} />
+      <NuageThemes dossierId={Number(id)} />
       <MeteoWidget dossierId={Number(id)} role="accompagne" />
+      <RoueEmotions dossierId={Number(id)} role="accompagne" />
 
       <section>
         <h2>Questionnaire initial</h2>

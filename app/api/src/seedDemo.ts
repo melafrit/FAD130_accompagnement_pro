@@ -361,6 +361,20 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
   insRes.run(ids.mohamed, 'Distinguer la demande du besoin réel', 'methode', 'Avant d’agir, reformuler la demande explicite (« réussir mon mémoire ») et faire émerger le besoin réel derrière (souvent : se sentir légitime).', 'interne', null, dayOffset(-18, '09:00'))
   insRes.run(ids.camille, 'Cadrer un bilan de compétences', 'astuce', 'Poser dès le 1ᵉʳ entretien que le bilan clarifie mais ne décide pas à la place de la personne : ça désamorce l’angoisse du « tout plaquer ».', 'interne', null, dayOffset(-12, '09:00'))
 
+  // Visualisation & émotionnel (vitrine D1) : nuage de thèmes + roue des émotions d'Amine
+  db.prepare("INSERT INTO nuages_themes (dossier_id, contenu, source, genere_le) VALUES (?,?,'ia',?)").run(
+    d1, JSON.stringify({ themes: [
+      { mot: 'refonte', poids: 10 }, { mot: 'légitimité', poids: 9 }, { mot: 'qualité technique', poids: 8 }, { mot: 'contraintes métier', poids: 8 },
+      { mot: 'autonomie de l’équipe', poids: 7 }, { mot: 'migration', poids: 6 }, { mot: 'mise en production', poids: 6 }, { mot: 'problématique', poids: 6 },
+      { mot: 'dette technique', poids: 5 }, { mot: 'valoriser', poids: 5 }, { mot: 'architecture', poids: 5 }, { mot: 'conduite du changement', poids: 4 },
+      { mot: 'fierté', poids: 4 }, { mot: 'React/Node', poids: 3 }, { mot: 'mémoire', poids: 3 }, { mot: 'récit', poids: 3 },
+    ] }), dayOffset(-14, '20:30'),
+  )
+  const insEmo = db.prepare('INSERT INTO emotions_roue (dossier_id, auteur_id, role, emotions, note, cree_le) VALUES (?,?,?,?,?,?)')
+  insEmo.run(d1, ids.amine, 'accompagne', JSON.stringify(['inquiet', 'depasse', 'curieux']), 'le grand saut', dayOffset(-30, '09:00'))
+  insEmo.run(d1, ids.amine, 'accompagne', JSON.stringify(['confiant', 'curieux']), 'ça prend forme', dayOffset(-16, '18:00'))
+  insEmo.run(d1, ids.amine, 'accompagne', JSON.stringify(['fier', 'enthousiaste', 'serein']), 'une vraie histoire à raconter', dayOffset(-6, '10:00'))
+
   // D2 — Amine + Camille — bilan de compétences vers Product Owner (en cours)  [multi-accompagnateur]
   buildParcours({
     accompagne: ids.amine, accompagnateur: ids.camille, accompagneNom: 'Amine',
