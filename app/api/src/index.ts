@@ -22,6 +22,7 @@ import emergenceRouter from './emergence'
 import transparenceRouter from './transparence'
 import pilotageRouter, { sweepSignauxAlertes, sweepDigestsHebdo } from './pilotage'
 import reflexiviteRouter from './reflexivite'
+import collaborationRouter from './collaboration'
 import { seed } from './seed'
 
 const app = express()
@@ -73,6 +74,9 @@ app.use('/api/pilotage', pilotageRouter)
 
 // Réflexivité (bilan de pratique, coach de posture, débriefing, replay annoté)
 app.use('/api/reflexivite', reflexiviteRouter)
+
+// Collaboration & IA (mutualisation, problématisation, résumé « où j'en suis »)
+app.use('/api/collab', collaborationRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

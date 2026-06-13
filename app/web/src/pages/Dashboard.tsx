@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [signaux, setSignaux] = useState<Record<number, Signal>>({})
   const signauxActifs = useFeature('signaux_faibles')
   const bilanActif = useFeature('bilan_pratique')
+  const mutualisationActive = useFeature('mutualisation')
 
   async function load() {
     const [d, t] = await Promise.all([
@@ -73,7 +74,10 @@ export default function Dashboard() {
       <p className="kicker">Accompagnateur</p>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <h1 className="page-title" style={{ margin: 0 }}>Tableau de bord</h1>
-        {bilanActif && <Link className="btn btn-ghost btn-sm" to="/bilan-pratique">🪞 Bilan de ma pratique</Link>}
+        <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {bilanActif && <Link className="btn btn-ghost btn-sm" to="/bilan-pratique">🪞 Bilan de ma pratique</Link>}
+          {mutualisationActive && <Link className="btn btn-ghost btn-sm" to="/mutualisation">🤝 Mutualisation</Link>}
+        </span>
       </div>
 
       <PilotageBoard />

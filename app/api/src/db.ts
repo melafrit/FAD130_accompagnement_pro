@@ -359,6 +359,34 @@ db.exec(`
     maj_le     TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Mutualisation entre pairs : ressources partagées par les accompagnateurs (interne + lien public)
+  CREATE TABLE IF NOT EXISTS ressources_partagees (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    auteur_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    titre     TEXT NOT NULL,
+    type      TEXT NOT NULL DEFAULT 'astuce',
+    contenu   TEXT NOT NULL,
+    portee    TEXT NOT NULL DEFAULT 'interne',
+    token     TEXT,
+    cree_le   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Assistant de problématisation (accompagné) : guidé puis libre (1 par dossier)
+  CREATE TABLE IF NOT EXISTS problematisations (
+    dossier_id INTEGER PRIMARY KEY REFERENCES dossiers(id) ON DELETE CASCADE,
+    contenu    TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT 'manuel',
+    maj_le     TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Résumé « où j'en suis » (accompagné) : synthèse IA de l'avancement (1 par dossier, régénérable)
+  CREATE TABLE IF NOT EXISTS resumes_parcours (
+    dossier_id INTEGER PRIMARY KEY REFERENCES dossiers(id) ON DELETE CASCADE,
+    contenu    TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT 'ia',
+    genere_le  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Demande de rendez-vous quand l'accompagnateur n'a pas de créneau disponible
   CREATE TABLE IF NOT EXISTS demandes_rdv (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,

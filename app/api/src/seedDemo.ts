@@ -202,8 +202,9 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
     accompagnateurs.forEach((id) => db.prepare('DELETE FROM rdv WHERE creneau_id IN (SELECT id FROM creneaux WHERE accompagnateur_id=?)').run(id))
     accompagnateurs.forEach((id) => db.prepare('DELETE FROM creneaux WHERE accompagnateur_id=?').run(id))
     accompagnes.forEach((id) => db.prepare('DELETE FROM demandes_rdv WHERE accompagne_id=?').run(id))
-    accompagnes.forEach((id) => db.prepare('DELETE FROM dossiers WHERE accompagne_id=?').run(id)) // cascade : questionnaire, entretiens, CR (+discussion/notes), plan d'action, synthèses, grille
+    accompagnes.forEach((id) => db.prepare('DELETE FROM dossiers WHERE accompagne_id=?').run(id)) // cascade : questionnaire, entretiens, CR (+discussion/notes), plan d'action, synthèses, grille, problématisation, résumé
     ;[...accompagnes, ...accompagnateurs].forEach((id) => db.prepare('DELETE FROM notifications WHERE user_id=?').run(id))
+    accompagnateurs.forEach((id) => db.prepare('DELETE FROM ressources_partagees WHERE auteur_id=?').run(id)) // mutualisation : re-semée à chaque démarrage
   })()
 
   // D1 — Amine + Mohamed — dossier VITRINE complet (en cours)
@@ -333,6 +334,32 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
       conseils: ['Transformer systématiquement mes propositions en questions ouvertes', 'Accueillir davantage l’émotionnel et le besoin de légitimité', 'Doser le conseil (Porter) en fin d’entretien'],
     }), dayOffset(-3, '18:00'),
   )
+
+  // Collaboration & IA (vitrine D1) : problématisation (guidée puis libre) + résumé « où j'en suis »
+  db.prepare("INSERT INTO problematisations (dossier_id, contenu, source, maj_le) VALUES (?,?,'manuel',?)").run(
+    d1, JSON.stringify({
+      reponses: [
+        'Une PME de distribution B2B (Téaxis), équipe technique réduite, application interne de gestion des commandes.',
+        'Concilier la pression du métier (livrer vite) avec la qualité technique et l’autonomie de l’équipe.',
+        'Entre contraintes métier/délais et qualité technique/dette — et, en filigrane, entre exécuter et se reconnaître comme concepteur légitime.',
+        'Pour mon organisation (maintenabilité, autonomie de l’équipe) et pour les développeurs en PME confrontés aux mêmes arbitrages.',
+      ],
+      problematique: 'Comment mener une refonte applicative en PME en conciliant contraintes métier, qualité technique et autonomie de l’équipe ?',
+    }), dayOffset(-15, '20:00'),
+  )
+  db.prepare("INSERT INTO resumes_parcours (dossier_id, contenu, source, genere_le) VALUES (?,?,'ia',?)").run(
+    d1, JSON.stringify({
+      etat: 'Tu es à l’étape « Plan d’action & engagement » : tu as posé ta problématique, exploré ton expérience de refonte et structuré ton plan en 3 parties. Beau chemin parcouru !',
+      faits: ['Ton questionnaire initial et ta problématique sont posés.', 'Deux comptes rendus publiés et une synthèse disponible.', 'Ton fil rouge « concilier métier et technique » est clair.'],
+      prochaines_etapes: ['Rédiger le chapitre « expérience » (la refonte).', 'Préparer un pitch de soutenance de 5 minutes.'],
+    }), dayOffset(-4, '11:00'),
+  )
+
+  // Mutualisation entre pairs : quelques ressources partagées (dont une publique)
+  const insRes = db.prepare('INSERT INTO ressources_partagees (auteur_id, titre, type, contenu, portee, token, cree_le) VALUES (?,?,?,?,?,?,?)')
+  insRes.run(ids.mohamed, 'Ouvrir l’exploration de l’expérience', 'question', 'Raconte-moi une situation précise dont tu es fier, étape par étape, comme si j’y étais.', 'public', 'demo-question-exploration', dayOffset(-20, '09:00'))
+  insRes.run(ids.mohamed, 'Distinguer la demande du besoin réel', 'methode', 'Avant d’agir, reformuler la demande explicite (« réussir mon mémoire ») et faire émerger le besoin réel derrière (souvent : se sentir légitime).', 'interne', null, dayOffset(-18, '09:00'))
+  insRes.run(ids.camille, 'Cadrer un bilan de compétences', 'astuce', 'Poser dès le 1ᵉʳ entretien que le bilan clarifie mais ne décide pas à la place de la personne : ça désamorce l’angoisse du « tout plaquer ».', 'interne', null, dayOffset(-12, '09:00'))
 
   // D2 — Amine + Camille — bilan de compétences vers Product Owner (en cours)  [multi-accompagnateur]
   buildParcours({

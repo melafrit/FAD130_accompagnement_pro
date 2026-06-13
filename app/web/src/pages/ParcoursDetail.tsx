@@ -9,6 +9,8 @@ import MicroJournal from '../components/MicroJournal'
 import EmergencePartage from '../components/EmergencePartage'
 import TransparenceModal from '../components/TransparenceModal'
 import CarteParcours from '../components/CarteParcours'
+import ResumeParcoursCard from '../components/ResumeParcoursCard'
+import ProblematisationCard from '../components/ProblematisationCard'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { useFeature } from '../features/FeaturesContext'
 
@@ -76,6 +78,8 @@ export default function ParcoursDetail() {
         cloture={d.statut === 'cloture'}
       />
 
+      <ResumeParcoursCard dossierId={Number(id)} />
+      <ProblematisationCard dossierId={Number(id)} />
       <EmergencePartage dossierId={Number(id)} />
       <MeteoWidget dossierId={Number(id)} role="accompagne" />
 

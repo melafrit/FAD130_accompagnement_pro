@@ -23,6 +23,8 @@ import Entretien from './pages/Entretien'
 import ComptesRendus from './pages/ComptesRendus'
 import Dashboard from './pages/Dashboard'
 import BilanPratique from './pages/BilanPratique'
+import Mutualisation from './pages/Mutualisation'
+import RessourcePublique from './pages/RessourcePublique'
 import Dossier from './pages/Dossier'
 import AutoEvaluation from './pages/AutoEvaluation'
 import PlanAction from './pages/PlanAction'
@@ -99,6 +101,7 @@ export default function App() {
             <Route path="/methode" element={<Methode />} />
             <Route path="/presentation" element={<Presentation />} />
             <Route path="/accessibilite" element={<Accessibilite />} />
+            <Route path="/ressource/:token" element={<RessourcePublique />} />
             <Route path="/espace" element={<Protected><Espace /></Protected>} />
             <Route path="/profil" element={<Protected><Profil /></Protected>} />
             <Route path="/nouveau-parcours" element={<Protected role="accompagne"><NouveauParcours /></Protected>} />
@@ -110,6 +113,7 @@ export default function App() {
             <Route path="/mes-comptes-rendus" element={<Protected role="accompagne"><ComptesRendus /></Protected>} />
             <Route path="/tableau-de-bord" element={<Protected role="accompagnateur"><Dashboard /></Protected>} />
             <Route path="/bilan-pratique" element={<Protected role="accompagnateur"><BilanPratique /></Protected>} />
+            <Route path="/mutualisation" element={<Protected role="accompagnateur"><Mutualisation /></Protected>} />
             <Route path="/dossier/:id" element={<Protected role="accompagnateur"><Dossier /></Protected>} />
             <Route path="/dossier/:id/auto-evaluation" element={<Protected role="accompagnateur"><AutoEvaluation /></Protected>} />
             <Route path="/plan-action/:dossierId" element={<Protected role="accompagnateur"><PlanAction /></Protected>} />
