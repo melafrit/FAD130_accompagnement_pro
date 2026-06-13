@@ -24,6 +24,9 @@ export default function EntretienDetailModal({
   const [notes, setNotes] = useState<Record<number, string>>({})
   const [eqs, setEqs] = useState<EQ[]>([])
   const tempId = useRef(-1)
+  const [moments, setMoments] = useState<{ verbatim: string; pourquoi: string }[] | null>(null)
+  const [momPartage, setMomPartage] = useState(0)
+  const [momBusy, setMomBusy] = useState(false)
 
   async function load() {
     const [p, s] = await Promise.all([
@@ -31,6 +34,16 @@ export default function EntretienDetailModal({
       api<{ reponses: Reponse[]; questions: QuestionPosee[] }>(`/entretien/sessions/${sessionId}`),
     ])
     setPhases(p.phases); setReponses(s.reponses); setQuestions(s.questions)
+    try { const m = await api<{ moments: { verbatim: string; pourquoi: string }[] | null; partage: number }>(`/emergence/session/${sessionId}/moments`); setMoments(m.moments); setMomPartage(m.partage) } catch { /* ignore */ }
+  }
+  async function genMoments() {
+    setMomBusy(true)
+    try { const m = await api<{ moments: { verbatim: string; pourquoi: string }[]; partage: number }>(`/emergence/session/${sessionId}/moments`, { method: 'POST' }); setMoments(m.moments); setMomPartage(m.partage) }
+    finally { setMomBusy(false) }
+  }
+  async function toggleMomPartage() {
+    await api(`/emergence/session/${sessionId}/moments/partage`, { method: 'PATCH', body: JSON.stringify({ partage: momPartage ? 0 : 1 }) })
+    setMomPartage((p) => (p ? 0 : 1))
   }
   useEffect(() => {
     void (async () => { try { await load() } catch { /* ignore */ } finally { setLoading(false) } })()
@@ -139,6 +152,31 @@ export default function EntretienDetailModal({
                   <button className="btn btn-ghost btn-sm" onClick={startEdit}>✎ Éditer</button>
                 </div>
               </div>
+
+              <div className="ent-moments">
+                <div className="ent-moments-head">
+                  <h3>🔑 Moments-clés <span className="muted">(IA)</span></h3>
+                  {moments && moments.length > 0 && (
+                    <span className="ent-moments-acts">
+                      <button className="btn btn-ghost btn-sm" disabled={momBusy} onClick={genMoments}>↻ Régénérer</button>
+                      <button className={`btn btn-sm ${momPartage ? 'btn-ghost' : 'btn-primary'}`} onClick={toggleMomPartage}>{momPartage ? '🔓 Partagés — retirer' : '📣 Partager'}</button>
+                    </span>
+                  )}
+                </div>
+                {!moments ? (
+                  <button className="btn btn-ghost btn-sm" disabled={momBusy} onClick={genMoments}>{momBusy ? 'Analyse…' : '✨ Repérer les moments-clés'}</button>
+                ) : moments.length === 0 ? (
+                  <p className="muted">Aucun moment-clé repéré.</p>
+                ) : (
+                  moments.map((m, i) => (
+                    <div key={i} className="emergence-moment">
+                      <blockquote>« {m.verbatim} »</blockquote>
+                      {m.pourquoi && <p className="muted">{m.pourquoi}</p>}
+                    </div>
+                  ))
+                )}
+              </div>
+
               {phaseIds.length === 0 ? (
                 <p className="muted">Aucune note ni question enregistrée. Clique sur « Éditer » pour en ajouter.</p>
               ) : phaseIds.map((pid) => {

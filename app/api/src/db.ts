@@ -279,6 +279,24 @@ db.exec(`
     maj_le        TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- IA au service de l'émergence : banque de questions personnalisée et fil rouge (par dossier)
+  CREATE TABLE IF NOT EXISTS emergence (
+    dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    type       TEXT NOT NULL,
+    contenu    TEXT NOT NULL,
+    partage    INTEGER NOT NULL DEFAULT 0,
+    genere_le  TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (dossier_id, type)
+  );
+  -- Moments-clés (verbatims pivots) d'un entretien
+  CREATE TABLE IF NOT EXISTS moments_cles (
+    session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+    dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    contenu    TEXT NOT NULL,
+    partage    INTEGER NOT NULL DEFAULT 0,
+    genere_le  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Demande de rendez-vous quand l'accompagnateur n'a pas de créneau disponible
   CREATE TABLE IF NOT EXISTS demandes_rdv (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,

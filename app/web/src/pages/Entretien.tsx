@@ -40,6 +40,7 @@ export default function Entretien() {
   const [editQText, setEditQText] = useState('')
   const [sugg, setSugg] = useState<Suggestion | null>(null)
   const [autoMode, setAutoMode] = useState(false)
+  const [banque, setBanque] = useState<Record<string, string[]> | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [showCr, setShowCr] = useState(false)
@@ -65,6 +66,13 @@ export default function Entretien() {
     s.questions.forEach((q) => { const p = Number(q.phase); (qmap[p] = qmap[p] || []).push({ id: q.id, texte: q.texte, reponse: q.reponse }) })
     setQuestionsByPhase(qmap)
     setCurrent(Number(s.session.phase_atteinte) || 0)
+    try { setBanque((await api<{ banque: Record<string, string[]> | null }>(`/emergence/dossier/${dId}/banque`)).banque) } catch { /* ignore */ }
+  }
+  async function genBanque() {
+    if (dossierId == null) return
+    setBusy(true)
+    try { setBanque((await api<{ banque: Record<string, string[]> }>(`/emergence/dossier/${dossierId}/banque`, { method: 'POST' })).banque) }
+    finally { setBusy(false) }
   }
 
   useEffect(() => {
@@ -240,6 +248,16 @@ export default function Entretien() {
           <div><h4>⚠️ Vigilance</h4><ul>{phase.vigilance.map((v, i) => <li key={i}>{v}</li>)}</ul></div>
           <div>
             <h4>💬 Questions à poser <span className="muted">(＋ ajouter · ✎ modifier)</span></h4>
+            {banque?.[current]?.length ? (
+              <ul className="phase-q phase-q-perso">{banque[current].map((q, i) => (
+                <li key={`p${i}`} className="sugg-item">
+                  <button className="phase-q-btn perso" onClick={() => addQuestion(q)} title="Ajouter telle quelle">✨ {q} <span className="phase-q-plus">＋</span></button>
+                  <button className="sugg-edit" onClick={() => editSuggestion(q)} title="Modifier avant d'ajouter">✎</button>
+                </li>
+              ))}</ul>
+            ) : (
+              <p><button className="btn btn-ghost btn-sm" disabled={busy} onClick={genBanque}>✨ Adapter les questions à cet étudiant</button></p>
+            )}
             <ul className="phase-q">{phase.questions.map((q, i) => (
               <li key={i} className="sugg-item">
                 <button className="phase-q-btn" onClick={() => addQuestion(q)} title="Ajouter telle quelle">{q} <span className="phase-q-plus">＋</span></button>

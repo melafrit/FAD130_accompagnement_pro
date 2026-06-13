@@ -284,6 +284,23 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .journal-tag { font-size: 12px; border: 1px solid var(--bordure); border-radius: 999px; padding: 2px 9px; background: var(--blanc); cursor: pointer; color: var(--texte-doux); }
 .journal-tag.partage { background: var(--sauge-clair); border-color: #d6e2d9; color: var(--bleu-profond); }
 
+/* === Émergence : banque perso, fil rouge, moments-clés === */
+.phase-q-perso { margin: 0 0 6px; }
+.phase-q-btn.perso { border-color: var(--sauge); background: var(--sauge-clair); }
+.emergence { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); box-shadow: var(--ombre); padding: 14px 18px; margin: 0 0 18px; }
+.emergence h2 { font-size: 18px; margin: 0 0 10px; }
+.emergence-fil { font-size: clamp(15px, 2vw, 18px); font-style: italic; color: var(--bleu-profond); border-left: 4px solid var(--sauge); padding: 4px 0 4px 14px; margin: 6px 0 10px; }
+.emergence-axes { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 0 0 10px; }
+.emergence-axes li { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--bleu-profond); }
+.emergence-acts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.emergence-moment { margin: 8px 0; }
+.emergence-moment blockquote { margin: 0; padding: 6px 0 6px 12px; border-left: 3px solid var(--sauge); font-style: italic; color: var(--texte); }
+.emergence-moment p { margin: 2px 0 0; font-size: 13px; }
+.ent-moments { margin: 12px 0; padding: 10px 0; border-top: 1px solid var(--bordure); border-bottom: 1px solid var(--bordure); }
+.ent-moments-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ent-moments-head h3 { margin: 0; font-size: 15px; color: var(--bleu-profond); }
+.ent-moments-acts { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+
 /* === Boussole du parcours === */
 .boussole { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); box-shadow: var(--ombre); padding: 14px 16px 16px; margin: 0 0 20px; }
 .boussole-svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; }

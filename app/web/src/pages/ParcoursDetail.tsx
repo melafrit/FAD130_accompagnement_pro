@@ -6,6 +6,7 @@ import QuestionnaireDetailModal from '../components/QuestionnaireDetailModal'
 import BoussoleParcours from '../components/BoussoleParcours'
 import MeteoWidget from '../components/MeteoWidget'
 import MicroJournal from '../components/MicroJournal'
+import EmergencePartage from '../components/EmergencePartage'
 import ErrorBoundary from '../components/ErrorBoundary'
 
 const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
@@ -68,6 +69,7 @@ export default function ParcoursDetail() {
         cloture={d.statut === 'cloture'}
       />
 
+      <EmergencePartage dossierId={Number(id)} />
       <MeteoWidget dossierId={Number(id)} role="accompagne" />
 
       <section>

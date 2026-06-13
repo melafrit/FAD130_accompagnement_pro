@@ -282,6 +282,29 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
   insJournal.run(d1, ids.amine, 'Bloqué sur l’intro : je n’ose pas écrire « j’ai conçu ».', 1, dayOffset(-15, '22:00'), dayOffset(-15, '22:00'))
   insJournal.run(d1, ids.amine, 'Note perso : penser à valoriser ce projet lors de mon prochain entretien annuel.', 0, dayOffset(-12, '08:00'), dayOffset(-12, '08:00'))
 
+  // Émergence (dossier vitrine) : banque personnalisée, fil rouge (partagé), moments-clés (partagés)
+  db.prepare("INSERT INTO emergence (dossier_id, type, contenu, partage, genere_le) VALUES (?,'banque',?,0,?)").run(d1, JSON.stringify({
+    '0': ['Avant de commencer, je t’explique comment je travaille — ça te va ?', 'Qu’est-ce qui t’amène aujourd’hui, au-delà de « réussir mon mémoire » ?'],
+    '1': ['Si tout se passait bien, à quoi ressemblerait ton mémoire — et toi — à la fin ?', 'Qu’est-ce qui te fait douter de ta légitimité comme professionnel ?'],
+    '2': ['Raconte-moi la refonte du module commandes, étape par étape, comme si j’y étais.', 'À quel moment t’es-tu senti vraiment fier ? Qu’as-tu fait précisément ?'],
+    '3': ['Quel fil rouge vois-tu entre cette refonte et ta problématique ?', 'Comment relierais-tu « métier » et « technique » dans ton plan ?'],
+    '4': ['Quelle est la toute petite première étape de rédaction, et pour quand ?', 'À quoi sauras-tu que ton chapitre « expérience » est réussi ?'],
+    '5': ['Qu’est-ce que tu retiens de notre échange, et comment te sens-tu maintenant ?', 'Qu’as-tu envie de faire d’ici la prochaine fois ?'],
+  }), dayOffset(-29))
+  db.prepare("INSERT INTO emergence (dossier_id, type, contenu, partage, genere_le) VALUES (?,'fil_rouge',?,1,?)").run(d1, JSON.stringify({
+    fil: 'Concilier contraintes métier, qualité technique et autonomie de l’équipe — et, ce faisant, se reconnaître comme professionnel légitime.',
+    axes: ['Diagnostic de la dette technique', 'Choix d’architecture justifiés', 'Conduite du changement & autonomie de l’équipe'],
+    explication: 'À travers la refonte de l’appli commandes, Amine raconte d’abord du code ; en réalité, il mène une démarche professionnelle structurée. Le fil rouge « concilier métier et technique » relie ses trois axes et porte la question, plus personnelle, de sa légitimité.',
+  }), dayOffset(-16))
+  if (d1s1) {
+    db.prepare("INSERT INTO moments_cles (session_id, dossier_id, contenu, partage, genere_le) VALUES (?,?,?,1,?)").run(d1s1.id, d1, JSON.stringify({
+      moments: [
+        { verbatim: 'J’ai fait tourner la prod le lundi matin sans bug.', pourquoi: 'Première fierté assumée : le point d’ancrage de la valorisation de son travail.' },
+        { verbatim: 'Je sais coder, mais j’ai du mal à raconter ce que je fais.', pourquoi: 'Le besoin réel affleure : se sentir légitime et savoir mettre en mots sa démarche.' },
+      ],
+    }), dayOffset(-27))
+  }
+
   // D2 — Amine + Camille — bilan de compétences vers Product Owner (en cours)  [multi-accompagnateur]
   buildParcours({
     accompagne: ids.amine, accompagnateur: ids.camille, accompagneNom: 'Amine',

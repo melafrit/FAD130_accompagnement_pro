@@ -8,6 +8,7 @@ import QuestionnaireDetailModal from '../components/QuestionnaireDetailModal'
 import BoussoleParcours from '../components/BoussoleParcours'
 import MeteoWidget from '../components/MeteoWidget'
 import MicroJournal from '../components/MicroJournal'
+import FilRougeCard from '../components/FilRougeCard'
 import ErrorBoundary from '../components/ErrorBoundary'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
@@ -126,6 +127,7 @@ export default function Dossier() {
         ))}
       </ol>
 
+      <FilRougeCard dossierId={Number(id)} />
       <MeteoWidget dossierId={Number(id)} role="accompagnateur" accompagneNom={dossier.accompagne_prenom || undefined} />
       <MicroJournal dossierId={Number(id)} role="accompagnateur" />
 
