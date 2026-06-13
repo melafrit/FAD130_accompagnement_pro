@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [nouveauTag, setNouveauTag] = useState<Record<number, string>>({})
   const [signaux, setSignaux] = useState<Record<number, Signal>>({})
   const signauxActifs = useFeature('signaux_faibles')
+  const bilanActif = useFeature('bilan_pratique')
 
   async function load() {
     const [d, t] = await Promise.all([
@@ -70,7 +71,10 @@ export default function Dashboard() {
   return (
     <div className="page">
       <p className="kicker">Accompagnateur</p>
-      <h1 className="page-title">Tableau de bord</h1>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <h1 className="page-title" style={{ margin: 0 }}>Tableau de bord</h1>
+        {bilanActif && <Link className="btn btn-ghost btn-sm" to="/bilan-pratique">🪞 Bilan de ma pratique</Link>}
+      </div>
 
       <PilotageBoard />
 

@@ -303,7 +303,36 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
         { verbatim: 'Je sais coder, mais j’ai du mal à raconter ce que je fais.', pourquoi: 'Le besoin réel affleure : se sentir légitime et savoir mettre en mots sa démarche.' },
       ],
     }), dayOffset(-27))
+
+    // Débriefing réflexif à chaud + replay annoté (auto-confrontation) sur le 1ᵉʳ entretien d'Amine
+    db.prepare("INSERT INTO debriefings (session_id, dossier_id, contenu, source, maj_le) VALUES (?,?,?,'manuel',?)").run(
+      d1s1.id, d1, JSON.stringify({ reponses: [
+        'J’ai réussi à poser un cadre rassurant et à faire raconter une situation très concrète : Amine s’est livré sans se justifier.',
+        'Un moment de bascule quand j’ai senti l’envie de lui proposer mon plan ; je me suis retenu pour le laisser structurer.',
+        'La prochaine fois, transformer encore davantage mes propositions en questions ouvertes pour soutenir l’émergence.',
+      ] }), dayOffset(-27, '19:00'),
+    )
+    const qs = db.prepare('SELECT id FROM questions_entretien WHERE session_id=? ORDER BY id').all(d1s1.id) as { id: number }[]
+    const annot = [
+      'Ici je pose le cadre et l’alliance : je sécurise la relation avant d’explorer.',
+      'Ici je reformule la demande pour entendre le besoin réel (la légitimité) derrière « réussir mon mémoire ».',
+      'Ici je fais raconter une situation précise, sans induire : geste écologique réussi.',
+    ]
+    db.prepare("INSERT INTO replays (session_id, dossier_id, contenu, source, maj_le) VALUES (?,?,?,'ia',?)").run(
+      d1s1.id, d1, JSON.stringify({ moments: qs.map((q, i) => ({ ref: `q${q.id}`, annotation: annot[i] || '' })) }), dayOffset(-26, '21:00'),
+    )
   }
+
+  // Bilan de pratique global pré-rempli pour Mohamed (réflexivité — vitrine)
+  db.prepare("INSERT OR REPLACE INTO bilans_pratique (accompagnateur_id, contenu, source, genere_le) VALUES (?,?,'ia',?)").run(
+    ids.mohamed, JSON.stringify({
+      forces: ['J’installe la confiance et je pose un cadre clair (1.1, 2.2)', 'Je structure et je donne des critères de réussite (2.6, 3.5)', 'Je m’engage dans un travail réflexif continu (3.7)'],
+      axes: ['Faire émerger plutôt qu’apporter mes analyses (2.5)', 'Écouter le niveau psychologique et l’émotionnel (1.5)', 'Rendre mes filtres de consultant plus conscients (3.1)'],
+      evolution: 'Sur mes parcours et entretiens, ma pratique se stabilise : des appuis nets sur le cadre et la structuration, et une posture d’écoute qui progresse entretien après entretien.',
+      synthese: 'Mon positionnement combine un cadre solide et une posture d’écoute en construction. Mon enjeu central reste de faire émerger la pensée de l’accompagné plutôt que d’apporter mes propres analyses.',
+      conseils: ['Transformer systématiquement mes propositions en questions ouvertes', 'Accueillir davantage l’émotionnel et le besoin de légitimité', 'Doser le conseil (Porter) en fin d’entretien'],
+    }), dayOffset(-3, '18:00'),
+  )
 
   // D2 — Amine + Camille — bilan de compétences vers Product Owner (en cours)  [multi-accompagnateur]
   buildParcours({

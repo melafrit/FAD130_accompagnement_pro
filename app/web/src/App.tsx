@@ -22,6 +22,7 @@ import RendezVous from './pages/RendezVous'
 import Entretien from './pages/Entretien'
 import ComptesRendus from './pages/ComptesRendus'
 import Dashboard from './pages/Dashboard'
+import BilanPratique from './pages/BilanPratique'
 import Dossier from './pages/Dossier'
 import AutoEvaluation from './pages/AutoEvaluation'
 import PlanAction from './pages/PlanAction'
@@ -108,6 +109,7 @@ export default function App() {
             <Route path="/entretien" element={<Protected role="accompagnateur"><Entretien /></Protected>} />
             <Route path="/mes-comptes-rendus" element={<Protected role="accompagne"><ComptesRendus /></Protected>} />
             <Route path="/tableau-de-bord" element={<Protected role="accompagnateur"><Dashboard /></Protected>} />
+            <Route path="/bilan-pratique" element={<Protected role="accompagnateur"><BilanPratique /></Protected>} />
             <Route path="/dossier/:id" element={<Protected role="accompagnateur"><Dossier /></Protected>} />
             <Route path="/dossier/:id/auto-evaluation" element={<Protected role="accompagnateur"><AutoEvaluation /></Protected>} />
             <Route path="/plan-action/:dossierId" element={<Protected role="accompagnateur"><PlanAction /></Protected>} />

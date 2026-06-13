@@ -21,6 +21,7 @@ import relationnelRouter from './relationnel'
 import emergenceRouter from './emergence'
 import transparenceRouter from './transparence'
 import pilotageRouter, { sweepSignauxAlertes, sweepDigestsHebdo } from './pilotage'
+import reflexiviteRouter from './reflexivite'
 import { seed } from './seed'
 
 const app = express()
@@ -69,6 +70,9 @@ app.use('/api/transparence', transparenceRouter)
 
 // Pilotage & alertes (signaux faibles, tableau d'impact, digest hebdomadaire)
 app.use('/api/pilotage', pilotageRouter)
+
+// Réflexivité (bilan de pratique, coach de posture, débriefing, replay annoté)
+app.use('/api/reflexivite', reflexiviteRouter)
 
 // Santé du service (checks de déploiement)
 app.get('/api/health', (_req, res) => {

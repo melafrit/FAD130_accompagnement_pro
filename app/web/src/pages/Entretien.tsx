@@ -6,6 +6,7 @@ import AiProgress from '../components/AiProgress'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
 import ErrorBoundary from '../components/ErrorBoundary'
+import CoachPosture from '../components/CoachPosture'
 const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
 
 interface Phase { id: number; titre: string; objectif: string; vigilance: string[]; questions: string[] }
@@ -313,6 +314,7 @@ export default function Entretien() {
           <DictaInput inputRef={newQRef} value={newQ} onChange={setNewQ} placeholder="Saisir, dicter ou modifier une question, puis Ajouter…" />
           <button className="btn btn-ghost" type="submit">＋ Ajouter</button>
         </form>
+        <CoachPosture question={newQ} onReformuler={editSuggestion} />
       </div>
 
       <div className="notes-block">

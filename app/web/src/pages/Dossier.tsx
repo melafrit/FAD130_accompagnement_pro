@@ -19,6 +19,8 @@ const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
 const NotesPriveesModal = lazy(() => import('../components/NotesPriveesModal'))
 const SyntheseModal = lazy(() => import('../components/SyntheseModal'))
 const MiroirReflexifModal = lazy(() => import('../components/MiroirReflexifModal'))
+const DebriefingModal = lazy(() => import('../components/DebriefingModal'))
+const ReplayModal = lazy(() => import('../components/ReplayModal'))
 
 interface DossierInfo { id: number; titre: string | null; statut: string; synthese: string | null; cree_le: string; accompagne_prenom: string | null; accompagne_email: string }
 interface Questionnaire { cr_recap: string | null; contenu: string | null; complete_le: string | null }
@@ -42,8 +44,12 @@ export default function Dossier() {
   const [showSynthese, setShowSynthese] = useState(false)
   const [entretienDetail, setEntretienDetail] = useState<{ id: number; index: number } | null>(null)
   const [miroirSession, setMiroirSession] = useState<{ id: number; index: number } | null>(null)
+  const [debriefSession, setDebriefSession] = useState<{ id: number; index: number } | null>(null)
+  const [replaySession, setReplaySession] = useState<{ id: number; index: number } | null>(null)
   const [showQDetail, setShowQDetail] = useState(false)
   const miroirActif = useFeature('miroir')
+  const debriefingActif = useFeature('debriefing')
+  const replayActif = useFeature('replay_annote')
 
   async function load() {
     const d = await api<Detail>(`/dossiers/${id}`)
@@ -123,6 +129,8 @@ export default function Dossier() {
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setNotesSession(s.id)}>🔒 Notes privées</button>
                 {miroirActif && <button className="btn btn-ghost btn-sm" onClick={() => setMiroirSession({ id: s.id, index: i + 1 })}>🪞 Analyser ma posture</button>}
+                {debriefingActif && <button className="btn btn-ghost btn-sm" onClick={() => setDebriefSession({ id: s.id, index: i + 1 })}>💬 Débriefing</button>}
+                {replayActif && <button className="btn btn-ghost btn-sm" onClick={() => setReplaySession({ id: s.id, index: i + 1 })}>🎬 Replay annoté</button>}
               </div>
             </div>
           </li>
@@ -186,6 +194,8 @@ export default function Dossier() {
           {crSession != null && <CompteRenduModal sessionId={crSession} role="accompagnateur" onClose={() => setCrSession(null)} onChanged={load} />}
           {notesSession != null && <NotesPriveesModal sessionId={notesSession} onClose={() => setNotesSession(null)} />}
           {miroirSession && <MiroirReflexifModal sessionId={miroirSession.id} index={miroirSession.index} onClose={() => setMiroirSession(null)} />}
+          {debriefSession && <DebriefingModal sessionId={debriefSession.id} index={debriefSession.index} onClose={() => setDebriefSession(null)} />}
+          {replaySession && <ReplayModal sessionId={replaySession.id} index={replaySession.index} onClose={() => setReplaySession(null)} />}
           {showSynthese && id && <SyntheseModal dossierId={id} role="accompagnateur" onClose={() => setShowSynthese(false)} onChanged={load} />}
         </Suspense>
       </ErrorBoundary>

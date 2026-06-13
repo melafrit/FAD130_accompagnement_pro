@@ -335,6 +335,30 @@ db.exec(`
     UNIQUE (user_id, semaine)
   );
 
+  -- Réflexivité (accompagnateur) : bilan de pratique global (1 courant par accompagnateur)
+  CREATE TABLE IF NOT EXISTS bilans_pratique (
+    accompagnateur_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    contenu           TEXT NOT NULL,
+    source            TEXT NOT NULL DEFAULT 'ia',
+    genere_le         TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  -- Débriefing réflexif à chaud, après un entretien (1 par session)
+  CREATE TABLE IF NOT EXISTS debriefings (
+    session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+    dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    contenu    TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT 'manuel',
+    maj_le     TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  -- Auto-confrontation / replay annoté : annotations par moment d'un entretien (1 blob par session)
+  CREATE TABLE IF NOT EXISTS replays (
+    session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+    dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    contenu    TEXT NOT NULL,
+    source     TEXT NOT NULL DEFAULT 'manuel',
+    maj_le     TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Demande de rendez-vous quand l'accompagnateur n'a pas de créneau disponible
   CREATE TABLE IF NOT EXISTS demandes_rdv (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
