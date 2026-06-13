@@ -4,6 +4,8 @@ import { api } from '../lib/api'
 import ActionList, { type Action } from '../components/ActionList'
 import QuestionnaireDetailModal from '../components/QuestionnaireDetailModal'
 import BoussoleParcours from '../components/BoussoleParcours'
+import MeteoWidget from '../components/MeteoWidget'
+import MicroJournal from '../components/MicroJournal'
 import ErrorBoundary from '../components/ErrorBoundary'
 
 const CompteRenduModal = lazy(() => import('../components/CompteRenduModal'))
@@ -65,6 +67,8 @@ export default function ParcoursDetail() {
         synthesePubliee={data.synthese_publiee}
         cloture={d.statut === 'cloture'}
       />
+
+      <MeteoWidget dossierId={Number(id)} role="accompagne" />
 
       <section>
         <h2>Questionnaire initial</h2>
@@ -132,6 +136,8 @@ export default function ParcoursDetail() {
           <button className="btn btn-primary btn-sm" onClick={() => setShowSyn(true)}>Consulter ma synthèse</button>
         ) : <p className="muted">Pas encore disponible (publiée par ton accompagnateur).</p>}
       </section>
+
+      <MicroJournal dossierId={Number(id)} role="accompagne" />
 
       <section>
         <h2>Mon plan d'action</h2>

@@ -257,6 +257,28 @@ db.exec(`
     genere_le  TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Météo intérieure : humeur (1-5) + un mot. role='accompagne' (vu par l'accompagnateur) ou 'accompagnateur' (privé).
+  CREATE TABLE IF NOT EXISTS meteo_humeur (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    dossier_id INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    auteur_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role       TEXT NOT NULL,
+    niveau     INTEGER NOT NULL,
+    mot        TEXT,
+    cree_le    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Micro-journal de l'accompagné, entre deux séances. partage=1 : visible par l'accompagnateur et l'IA.
+  CREATE TABLE IF NOT EXISTS journal_entrees (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    dossier_id    INTEGER NOT NULL REFERENCES dossiers(id) ON DELETE CASCADE,
+    accompagne_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    texte         TEXT NOT NULL,
+    partage       INTEGER NOT NULL DEFAULT 0,
+    cree_le       TEXT NOT NULL DEFAULT (datetime('now')),
+    maj_le        TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Demande de rendez-vous quand l'accompagnateur n'a pas de créneau disponible
   CREATE TABLE IF NOT EXISTS demandes_rdv (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,

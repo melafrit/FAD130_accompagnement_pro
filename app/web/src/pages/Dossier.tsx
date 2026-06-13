@@ -6,6 +6,8 @@ import ActionDetailModal from '../components/ActionDetailModal'
 import EntretienDetailModal from '../components/EntretienDetailModal'
 import QuestionnaireDetailModal from '../components/QuestionnaireDetailModal'
 import BoussoleParcours from '../components/BoussoleParcours'
+import MeteoWidget from '../components/MeteoWidget'
+import MicroJournal from '../components/MicroJournal'
 import ErrorBoundary from '../components/ErrorBoundary'
 import DictaTextarea from '../components/DictaTextarea'
 import DictaInput from '../components/DictaInput'
@@ -123,6 +125,9 @@ export default function Dossier() {
           </li>
         ))}
       </ol>
+
+      <MeteoWidget dossierId={Number(id)} role="accompagnateur" accompagneNom={dossier.accompagne_prenom || undefined} />
+      <MicroJournal dossierId={Number(id)} role="accompagnateur" />
 
       {rdvs.length > 0 && (
         <section className="rdv-section">

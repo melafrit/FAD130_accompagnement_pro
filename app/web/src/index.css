@@ -259,6 +259,31 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 .mir-score-badge small { font-size: 11px; font-weight: 400; color: var(--texte-doux); }
 .mir-score-lbl { font-size: 14px; }
 
+/* === Météo intérieure & micro-journal === */
+.meteo, .journal { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); box-shadow: var(--ombre); padding: 14px 18px; margin: 0 0 18px; }
+.meteo h2, .journal h2 { font-size: 18px; margin: 0 0 10px; }
+.meteo-pick { display: flex; gap: 8px; flex-wrap: wrap; }
+.meteo-emo { font-size: 25px; line-height: 1; background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 12px; width: 48px; height: 48px; cursor: pointer; transition: transform .1s ease, border-color .15s ease; }
+.meteo-emo:hover { transform: translateY(-2px); }
+.meteo-emo.sel { border-color: var(--bleu-profond); background: var(--sauge-clair); box-shadow: 0 0 0 2px var(--sauge); }
+.meteo-form { display: flex; gap: 10px; align-items: center; margin: 10px 0; }
+.meteo-form .dicta { flex: 1; }
+.meteo-hist h3 { font-size: 14px; color: var(--bleu-profond); margin: 10px 0 4px; }
+.meteo-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 2px 0; color: var(--texte-doux); }
+.meteo-emo-sm { font-size: 18px; }
+.meteo-mot { color: var(--texte); }
+.journal-add { margin-bottom: 12px; }
+.journal-add-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.journal-share { font-size: 14px; color: var(--texte-doux); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.journal-share input { accent-color: var(--bleu-profond); width: 16px; height: 16px; }
+.journal-list { display: flex; flex-direction: column; gap: 8px; }
+.journal-item { background: var(--sable-2); border: 1px solid var(--bordure); border-radius: 12px; padding: 10px 12px; }
+.journal-item-text { font-size: 14px; white-space: pre-wrap; color: var(--texte); }
+.journal-item-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.journal-acts { display: inline-flex; align-items: center; gap: 8px; }
+.journal-tag { font-size: 12px; border: 1px solid var(--bordure); border-radius: 999px; padding: 2px 9px; background: var(--blanc); cursor: pointer; color: var(--texte-doux); }
+.journal-tag.partage { background: var(--sauge-clair); border-color: #d6e2d9; color: var(--bleu-profond); }
+
 /* === Boussole du parcours === */
 .boussole { background: var(--blanc); border: 1px solid var(--bordure); border-radius: var(--radius); box-shadow: var(--ombre); padding: 14px 16px 16px; margin: 0 0 20px; }
 .boussole-svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; }

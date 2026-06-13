@@ -271,6 +271,17 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
     )
   }
 
+  // Météo intérieure & micro-journal pré-remplis (dossier vitrine)
+  const insMeteo = db.prepare('INSERT INTO meteo_humeur (dossier_id, auteur_id, role, niveau, mot, cree_le) VALUES (?,?,?,?,?,?)')
+  insMeteo.run(d1, ids.amine, 'accompagne', 2, 'un peu perdu', dayOffset(-30, '09:00'))
+  insMeteo.run(d1, ids.amine, 'accompagne', 4, 'plus confiant', dayOffset(-17, '18:00'))
+  insMeteo.run(d1, ids.amine, 'accompagne', 5, 'fier !', dayOffset(-6, '10:00'))
+  insMeteo.run(d1, ids.mohamed, 'accompagnateur', 4, 'posé, disponible', dayOffset(-28, '13:30'))
+  const insJournal = db.prepare('INSERT INTO journal_entrees (dossier_id, accompagne_id, texte, partage, cree_le, maj_le) VALUES (?,?,?,?,?,?)')
+  insJournal.run(d1, ids.amine, 'J’ai relu mes notes : j’ai vraiment piloté la migration, je ne m’en rendais pas compte.', 1, dayOffset(-20, '21:00'), dayOffset(-20, '21:00'))
+  insJournal.run(d1, ids.amine, 'Bloqué sur l’intro : je n’ose pas écrire « j’ai conçu ».', 1, dayOffset(-15, '22:00'), dayOffset(-15, '22:00'))
+  insJournal.run(d1, ids.amine, 'Note perso : penser à valoriser ce projet lors de mon prochain entretien annuel.', 0, dayOffset(-12, '08:00'), dayOffset(-12, '08:00'))
+
   // D2 — Amine + Camille — bilan de compétences vers Product Owner (en cours)  [multi-accompagnateur]
   buildParcours({
     accompagne: ids.amine, accompagnateur: ids.camille, accompagneNom: 'Amine',
