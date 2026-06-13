@@ -1,0 +1,1294 @@
+{
+  "domaine": "cr",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/cr/generer",
+      "role": "accompagnateur",
+      "summary": "Génère/régénère le CR d'une session via l'IA (repli déterministe sans clé). Crée une nouvelle version (publie=0, source=ia). À la 1re génération seulement, alimente le plan d'action du dossier.",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/session/:sid",
+      "role": "accompagnateur|accompagne",
+      "summary": "État du CR : accompagnateur reçoit la version courante + l'historique ; accompagné reçoit uniquement la version publiée (ou null).",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/version/:id",
+      "role": "accompagnateur",
+      "summary": "Lit une version précise (historique) du CR ; réservé à l'accompagnateur propriétaire du dossier.",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/cr/version/:id",
+      "role": "accompagnateur",
+      "summary": "Enregistre le contenu édité de la version COURANTE uniquement (source passe à 'edition'). 400 si la version visée n'est pas la dernière.",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cr/version/:id/publier",
+      "role": "accompagnateur",
+      "summary": "Publie une version (dépublie les autres de la session, transaction) et notifie l'accompagné.",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/mine",
+      "role": "accompagne",
+      "summary": "Liste les CR publiés de l'accompagné (avec date d'entretien et titre de dossier), triés par publie_le DESC.",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/session/:sid/messages",
+      "role": "accompagnateur|accompagne",
+      "summary": "Liste les messages de discussion du CR de la session ; l'accompagné n'y accède que si un CR est publié (canDiscuss). Ajoute is_me par message.",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cr/session/:sid/messages",
+      "role": "accompagnateur|accompagne",
+      "summary": "Poste un message de discussion (texte non vide après trim) et notifie l'autre partie. Accompagné gated par CR publié.",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/session/:sid/notes",
+      "role": "accompagnateur",
+      "summary": "Lit les notes privées de l'accompagnateur pour la session (jamais publiées). Retourne chaîne vide si absente.",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cr/session/:sid/notes",
+      "role": "accompagnateur",
+      "summary": "Crée/met à jour (upsert ON CONFLICT session_id) les notes privées de l'accompagnateur pour la session.",
+      "feature": "comptes_rendus"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-CR-001",
+      "titre": "Générer le CR — nominal (201 + forme de réponse)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Connecté en accompagnateur (Mohamed) propriétaire d'un dossier avec une session ayant des réponses par phase. Aucun CR encore généré pour cette session.",
+      "donnees": "POST /api/cr/generer body {sessionId: <session du dossier de Mohamed>}",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "Envoyer POST /api/cr/generer avec sessionId valide",
+        "Observer le statut et le corps"
+      ],
+      "attendu": "201. Corps JSON {id:number, version:1, contenu_html:string non vide, source:'ia', publie:0}. Une ligne comptes_rendus créée avec version=1.",
+      "tracabilite": "comptes_rendus | POST /api/cr/generer"
+    },
+    {
+      "id": "TC-CR-002",
+      "titre": "Régénérer le CR — incrémente la version, n'écrase pas l'historique",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "partition d'équivalence",
+      "preconditions": "Une session possède déjà un CR version 1 (prev existe).",
+      "donnees": "POST /api/cr/generer body {sessionId}",
+      "etapes": [
+        "Générer une 1re fois (v1)",
+        "Renvoyer POST /api/cr/generer sur la même session",
+        "Vérifier la version retournée et l'historique"
+      ],
+      "attendu": "201. version = (prev.version)+1 = 2. La v1 reste présente dans l'historique (ORDER BY version DESC). Nouvelle version source='ia', publie=0.",
+      "tracabilite": "comptes_rendus | POST /api/cr/generer (latestVersion)"
+    },
+    {
+      "id": "TC-CR-003",
+      "titre": "Génération — alimente le plan d'action uniquement à la 1re fois",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Session avec réponse en phase 4 (plan d'action) non vide. Pas de CR existant (prev absent).",
+      "donnees": "1er appel POST /api/cr/generer puis 2e appel sur la même session",
+      "etapes": [
+        "Compter les actions du dossier avant",
+        "1er POST /generer (prev absent → insertion d'actions)",
+        "Compter les actions après",
+        "2e POST /generer (prev présent → AUCUNE insertion d'action)",
+        "Recompter les actions"
+      ],
+      "attendu": "Après le 1er appel, les étapes du plan d'action (etape != '—') sont insérées dans actions (ordre = MAX(ordre)+1+i). Après le 2e appel, le nombre d'actions est inchangé (pas de doublon).",
+      "tracabilite": "comptes_rendus,plan_action | POST /api/cr/generer (bloc if(!prev))"
+    },
+    {
+      "id": "TC-CR-004",
+      "titre": "Génération — repli déterministe quand l'IA est indisponible (contrat)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "test du contrat",
+      "preconditions": "Stack sans ANTHROPIC_API_KEY (ou API Claude renvoyant une erreur). Session avec notes par phase.",
+      "donnees": "POST /api/cr/generer body {sessionId}",
+      "etapes": [
+        "S'assurer que la clé IA est absente côté stack de test",
+        "POST /api/cr/generer",
+        "Inspecter le HTML retourné"
+      ],
+      "attendu": "201 quand même. contenu_html non vide contenant les 6 sections (Contexte, Points clés, Émergence, Plan d'action, Propositions, Vigilance). Le contenu provient du repli (notes par phase). Pas d'échec serveur.",
+      "tracabilite": "comptes_rendus | POST /api/cr/generer → genererContenu (repli template)"
+    },
+    {
+      "id": "TC-CR-005",
+      "titre": "Générer le CR — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie d'authentification.",
+      "donnees": "POST /api/cr/generer body {sessionId:1}",
+      "etapes": [
+        "Envoyer la requête sans cookie boussole_token",
+        "Observer le statut"
+      ],
+      "attendu": "401 {error:'Non authentifié'}. Aucune version créée.",
+      "tracabilite": "comptes_rendus | POST /api/cr/generer (requireAuth)"
+    },
+    {
+      "id": "TC-CR-006",
+      "titre": "Générer le CR — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Connecté en accompagné (Amine).",
+      "donnees": "POST /api/cr/generer body {sessionId:<une session>}",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "POST /api/cr/generer",
+        "Observer le statut"
+      ],
+      "attendu": "403 {error:'Accès refusé'} (requireRole('accompagnateur')).",
+      "tracabilite": "comptes_rendus | POST /api/cr/generer (requireRole)"
+    },
+    {
+      "id": "TC-CR-007",
+      "titre": "Générer le CR — 403 mauvais rôle (admin)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Connecté en admin (mohamed@elafrit.com).",
+      "donnees": "POST /api/cr/generer body {sessionId:1}",
+      "etapes": [
+        "S'authentifier en admin",
+        "POST /api/cr/generer"
+      ],
+      "attendu": "403 {error:'Accès refusé'} : l'admin n'a pas le rôle accompagnateur.",
+      "tracabilite": "comptes_rendus | POST /api/cr/generer (requireRole)"
+    },
+    {
+      "id": "TC-CR-008",
+      "titre": "Générer le CR — 404 session d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Connecté en accompagnateur Camille ; cibler une session appartenant au dossier de Mohamed.",
+      "donnees": "POST /api/cr/generer body {sessionId:<session de Mohamed>}",
+      "etapes": [
+        "S'authentifier en accompagnateur Camille",
+        "POST /api/cr/generer avec une sessionId non possédée",
+        "Observer le statut"
+      ],
+      "attendu": "404 {error:'Session introuvable'} (s.accompagnateur_id !== me.id).",
+      "tracabilite": "comptes_rendus | POST /api/cr/generer (contrôle propriété)"
+    },
+    {
+      "id": "TC-CR-009",
+      "titre": "Générer le CR — 404 sessionId inexistant / invalide",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites",
+      "preconditions": "Connecté en accompagnateur.",
+      "donnees": "sessionId = 999999 ; puis sessionId absent (body vide) → Number(undefined)=NaN ; puis sessionId='abc'",
+      "etapes": [
+        "POST /generer avec sessionId=999999",
+        "POST /generer body {} (sessionId manquant)",
+        "POST /generer body {sessionId:'abc'}"
+      ],
+      "attendu": "404 {error:'Session introuvable'} dans les trois cas (sessionInfo introuvable / NaN).",
+      "tracabilite": "comptes_rendus | POST /api/cr/generer (sessionInfo)"
+    },
+    {
+      "id": "TC-CR-010",
+      "titre": "État du CR (accompagnateur) — courant + historique",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire ; session avec au moins 2 versions de CR.",
+      "donnees": "GET /api/cr/session/:sid",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "GET /api/cr/session/<sid>",
+        "Inspecter le corps"
+      ],
+      "attendu": "200 {role:'accompagnateur', cr:{id,version,contenu_html,source,genere_le,publie}, versions:[...] triés par version DESC, chaque item {id,version,source,genere_le,publie}}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid"
+    },
+    {
+      "id": "TC-CR-011",
+      "titre": "État du CR (accompagné) — version publiée uniquement",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagné Amine ; session de son dossier avec un CR publié.",
+      "donnees": "GET /api/cr/session/:sid",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "GET /api/cr/session/<sid de son dossier>",
+        "Inspecter le corps"
+      ],
+      "attendu": "200 {role:'accompagne', cr:{id,version,contenu_html,genere_le,publie:1}, versions:[]}. L'historique n'est jamais exposé à l'accompagné (versions vide).",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid (branche accompagne)"
+    },
+    {
+      "id": "TC-CR-012",
+      "titre": "État du CR (accompagné) — aucune version publiée → cr null (visibilité avant publication)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagné ; session de son dossier avec un CR existant mais NON publié (brouillon).",
+      "donnees": "GET /api/cr/session/:sid",
+      "etapes": [
+        "L'accompagnateur a généré un CR sans le publier",
+        "S'authentifier en accompagné",
+        "GET /api/cr/session/<sid>"
+      ],
+      "attendu": "200 {role:'accompagne', cr:null, versions:[]}. L'accompagné NE voit PAS le brouillon avant publication.",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid (publishedVersion absente)"
+    },
+    {
+      "id": "TC-CR-013",
+      "titre": "État du CR — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/cr/session/1",
+      "etapes": [
+        "GET sans cookie"
+      ],
+      "attendu": "401 {error:'Non authentifié'}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid (requireAuth)"
+    },
+    {
+      "id": "TC-CR-014",
+      "titre": "État du CR — 404 session d'un autre utilisateur (non rattaché)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagné Léa connecté ; cibler une session du dossier d'Amine (autre accompagné).",
+      "donnees": "GET /api/cr/session/<sid du dossier d'Amine>",
+      "etapes": [
+        "S'authentifier en accompagné Léa",
+        "GET /api/cr/session/<sid non rattaché>"
+      ],
+      "attendu": "404 {error:'Session introuvable'} (canAccess false).",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid (canAccess)"
+    },
+    {
+      "id": "TC-CR-015",
+      "titre": "État du CR — 404 accompagnateur non propriétaire",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur Camille ; session d'un dossier de Mohamed.",
+      "donnees": "GET /api/cr/session/<sid de Mohamed>",
+      "etapes": [
+        "S'authentifier en accompagnateur Camille",
+        "GET /api/cr/session/<sid non possédé>"
+      ],
+      "attendu": "404 {error:'Session introuvable'} (canAccess false car accompagnateur_id != me.id).",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid (canAccess)"
+    },
+    {
+      "id": "TC-CR-016",
+      "titre": "État du CR — 404 sid inexistant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "valeurs limites",
+      "preconditions": "Connecté (n'importe quel rôle valide).",
+      "donnees": "GET /api/cr/session/999999 ; GET /api/cr/session/abc",
+      "etapes": [
+        "GET avec sid inexistant",
+        "GET avec sid non numérique"
+      ],
+      "attendu": "404 {error:'Session introuvable'} (sessionInfo undefined / NaN).",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid"
+    },
+    {
+      "id": "TC-CR-017",
+      "titre": "Lire une version d'historique — nominal",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire ; il existe une version d'historique (id connu).",
+      "donnees": "GET /api/cr/version/:id",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "GET /api/cr/version/<id existant du dossier>"
+      ],
+      "attendu": "200 {cr:{id, session_id, version, contenu_html, source, genere_le, publie, accompagnateur_id}}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/version/:id"
+    },
+    {
+      "id": "TC-CR-018",
+      "titre": "Lire une version — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/cr/version/1",
+      "etapes": [
+        "GET sans cookie"
+      ],
+      "attendu": "401 {error:'Non authentifié'}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/version/:id (requireAuth)"
+    },
+    {
+      "id": "TC-CR-019",
+      "titre": "Lire une version — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagné connecté (même propriétaire d'un CR publié).",
+      "donnees": "GET /api/cr/version/<id d'une version publiée de son dossier>",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "GET /api/cr/version/<id>"
+      ],
+      "attendu": "403 {error:'Accès refusé'} : l'endpoint version est réservé à requireRole('accompagnateur'). L'accompagné ne peut pas naviguer l'historique par id.",
+      "tracabilite": "comptes_rendus | GET /api/cr/version/:id (requireRole)"
+    },
+    {
+      "id": "TC-CR-020",
+      "titre": "Lire une version — 404 version d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur Camille ; id d'une version appartenant au dossier de Mohamed.",
+      "donnees": "GET /api/cr/version/<id de Mohamed>",
+      "etapes": [
+        "S'authentifier en accompagnateur Camille",
+        "GET /api/cr/version/<id non possédé>"
+      ],
+      "attendu": "404 {error:'Compte rendu introuvable'} (cr.accompagnateur_id != me.id).",
+      "tracabilite": "comptes_rendus | GET /api/cr/version/:id (contrôle propriété)"
+    },
+    {
+      "id": "TC-CR-021",
+      "titre": "Lire une version — 404 id inexistant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "valeurs limites",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "GET /api/cr/version/999999 ; GET /api/cr/version/abc",
+      "etapes": [
+        "GET id inexistant",
+        "GET id non numérique"
+      ],
+      "attendu": "404 {error:'Compte rendu introuvable'}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/version/:id"
+    },
+    {
+      "id": "TC-CR-022",
+      "titre": "Éditer la version courante — nominal (source→edition)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire ; CR courant (dernière version) existant et identifié.",
+      "donnees": "PATCH /api/cr/version/:id body {contenu_html:'<h2>Modifié</h2><p>texte</p>'}",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "PATCH la version courante avec un nouveau HTML",
+        "GET /api/cr/session/:sid pour relecture"
+      ],
+      "attendu": "200 {ok:true}. Après relecture, contenu_html = nouveau HTML et source='edition'. La modification est immédiatement visible.",
+      "tracabilite": "comptes_rendus | PATCH /api/cr/version/:id"
+    },
+    {
+      "id": "TC-CR-023",
+      "titre": "Éditer une version publiée courante — reste publiée, modif visible aussitôt",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagnateur ; la version COURANTE est aussi la version publiée (publie=1).",
+      "donnees": "PATCH /api/cr/version/:id body {contenu_html:'<p>correction post-publication</p>'}",
+      "etapes": [
+        "Publier la version courante",
+        "PATCH cette même version courante",
+        "GET /api/cr/session/:sid côté accompagné"
+      ],
+      "attendu": "200 {ok:true}. Le statut publié n'est pas modifié (publie reste 1). L'accompagné voit aussitôt le contenu mis à jour.",
+      "tracabilite": "comptes_rendus | PATCH /api/cr/version/:id (édition version courante publiée)"
+    },
+    {
+      "id": "TC-CR-024",
+      "titre": "Éditer une version d'historique (non courante) — 400 figée",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagnateur ; il existe au moins 2 versions ; cibler une version ANCIENNE (non latest).",
+      "donnees": "PATCH /api/cr/version/<id version 1> alors que latest est version 2",
+      "etapes": [
+        "Générer v1 puis régénérer v2",
+        "PATCH /api/cr/version/<id de v1>"
+      ],
+      "attendu": "400 {error:'Seule la version courante est modifiable (les versions de l’historique sont figées).'}. Contenu de v1 inchangé.",
+      "tracabilite": "comptes_rendus | PATCH /api/cr/version/:id (latest.id !== cr.id)"
+    },
+    {
+      "id": "TC-CR-025",
+      "titre": "Éditer — contenu_html manquant → enregistre chaîne vide",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "valeurs limites",
+      "preconditions": "Accompagnateur ; CR courant.",
+      "donnees": "PATCH /api/cr/version/:id body {} (pas de contenu_html)",
+      "etapes": [
+        "PATCH sans champ contenu_html",
+        "GET /api/cr/session/:sid"
+      ],
+      "attendu": "200 {ok:true}. String(undefined ?? '') = '' : contenu_html devient '' (pas d'erreur). À documenter comme comportement permissif (pas de validation Zod).",
+      "tracabilite": "comptes_rendus | PATCH /api/cr/version/:id (String(req.body?.contenu_html ?? ''))"
+    },
+    {
+      "id": "TC-CR-026",
+      "titre": "Éditer — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "PATCH /api/cr/version/1 body {contenu_html:'x'}",
+      "etapes": [
+        "PATCH sans cookie"
+      ],
+      "attendu": "401 {error:'Non authentifié'}.",
+      "tracabilite": "comptes_rendus | PATCH /api/cr/version/:id (requireAuth)"
+    },
+    {
+      "id": "TC-CR-027",
+      "titre": "Éditer — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagné connecté.",
+      "donnees": "PATCH /api/cr/version/<id d'un CR publié de son dossier> body {contenu_html:'piratage'}",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "PATCH /api/cr/version/<id>"
+      ],
+      "attendu": "403 {error:'Accès refusé'}. L'accompagné ne peut jamais éditer un CR.",
+      "tracabilite": "comptes_rendus | PATCH /api/cr/version/:id (requireRole)"
+    },
+    {
+      "id": "TC-CR-028",
+      "titre": "Éditer — 404 version d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur Camille ; id d'une version du dossier de Mohamed.",
+      "donnees": "PATCH /api/cr/version/<id de Mohamed> body {contenu_html:'x'}",
+      "etapes": [
+        "S'authentifier en accompagnateur Camille",
+        "PATCH /api/cr/version/<id non possédé>"
+      ],
+      "attendu": "404 {error:'Compte rendu introuvable'}.",
+      "tracabilite": "comptes_rendus | PATCH /api/cr/version/:id (contrôle propriété)"
+    },
+    {
+      "id": "TC-CR-029",
+      "titre": "Éditer — 404 id inexistant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "valeurs limites",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "PATCH /api/cr/version/999999 body {contenu_html:'x'}",
+      "etapes": [
+        "PATCH id inexistant"
+      ],
+      "attendu": "404 {error:'Compte rendu introuvable'}.",
+      "tracabilite": "comptes_rendus | PATCH /api/cr/version/:id"
+    },
+    {
+      "id": "TC-CR-030",
+      "titre": "Publier une version — nominal (notif + dépublication des autres)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire ; CR brouillon (publie=0) existant.",
+      "donnees": "POST /api/cr/version/:id/publier",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "POST /api/cr/version/<id>/publier",
+        "Vérifier le statut publie via GET session",
+        "Vérifier la notification de l'accompagné"
+      ],
+      "attendu": "200 {ok:true}. La version visée passe publie=1 avec publie_le renseigné ; toutes les autres versions de la session passent publie=0, publie_le=NULL. Une notification 'Un compte rendu a été publié dans votre espace.' est insérée pour l'accompagné.",
+      "tracabilite": "comptes_rendus | POST /api/cr/version/:id/publier"
+    },
+    {
+      "id": "TC-CR-031",
+      "titre": "Publier une autre version — bascule l'unique publiée (exclusivité)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Session avec v1 publiée et v2 brouillon.",
+      "donnees": "POST /api/cr/version/<id v2>/publier",
+      "etapes": [
+        "Publier v1",
+        "Publier v2",
+        "GET /api/cr/session/:sid (accompagné)"
+      ],
+      "attendu": "200. Après publication de v2 : v2 publie=1, v1 publie=0. L'accompagné voit désormais v2 (publishedVersion = la plus haute version publiée).",
+      "tracabilite": "comptes_rendus | POST /api/cr/version/:id/publier (transaction dépublie d'abord)"
+    },
+    {
+      "id": "TC-CR-032",
+      "titre": "Publier — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "POST /api/cr/version/1/publier",
+      "etapes": [
+        "POST sans cookie"
+      ],
+      "attendu": "401 {error:'Non authentifié'}.",
+      "tracabilite": "comptes_rendus | POST /api/cr/version/:id/publier (requireAuth)"
+    },
+    {
+      "id": "TC-CR-033",
+      "titre": "Publier — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagné connecté.",
+      "donnees": "POST /api/cr/version/<id d'un CR de son dossier>/publier",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "POST /publier"
+      ],
+      "attendu": "403 {error:'Accès refusé'}. Seul l'accompagnateur publie.",
+      "tracabilite": "comptes_rendus | POST /api/cr/version/:id/publier (requireRole)"
+    },
+    {
+      "id": "TC-CR-034",
+      "titre": "Publier — 404 version d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur Camille ; id du dossier de Mohamed.",
+      "donnees": "POST /api/cr/version/<id de Mohamed>/publier",
+      "etapes": [
+        "S'authentifier en accompagnateur Camille",
+        "POST /publier sur id non possédé"
+      ],
+      "attendu": "404 {error:'Compte rendu introuvable'}. Aucune publication ni notification.",
+      "tracabilite": "comptes_rendus | POST /api/cr/version/:id/publier (contrôle propriété)"
+    },
+    {
+      "id": "TC-CR-035",
+      "titre": "Publier — 404 id inexistant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "valeurs limites",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "POST /api/cr/version/999999/publier",
+      "etapes": [
+        "POST /publier id inexistant"
+      ],
+      "attendu": "404 {error:'Compte rendu introuvable'}.",
+      "tracabilite": "comptes_rendus | POST /api/cr/version/:id/publier"
+    },
+    {
+      "id": "TC-CR-036",
+      "titre": "Mes comptes rendus publiés — nominal (accompagné)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagné Amine avec au moins un CR publié.",
+      "donnees": "GET /api/cr/mine",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "GET /api/cr/mine",
+        "Inspecter le corps"
+      ],
+      "attendu": "200 {comptesRendus:[{id, session_id, genere_le, publie_le, entretien_date, dossier_titre}...]} triés par publie_le DESC. Seuls les CR avec publie=1 et appartenant à l'accompagné apparaissent.",
+      "tracabilite": "comptes_rendus | GET /api/cr/mine"
+    },
+    {
+      "id": "TC-CR-037",
+      "titre": "Mes comptes rendus — exclut les brouillons non publiés",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "partition d'équivalence",
+      "preconditions": "Accompagné avec un CR brouillon (non publié) ET un CR publié.",
+      "donnees": "GET /api/cr/mine",
+      "etapes": [
+        "GET /api/cr/mine"
+      ],
+      "attendu": "200. La liste ne contient QUE le CR publié ; le brouillon est absent (WHERE cr.publie=1).",
+      "tracabilite": "comptes_rendus | GET /api/cr/mine (filtre publie=1)"
+    },
+    {
+      "id": "TC-CR-038",
+      "titre": "Mes comptes rendus — liste vide si aucun CR publié",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "valeurs limites",
+      "preconditions": "Accompagné (ex. Karim) sans aucun CR publié.",
+      "donnees": "GET /api/cr/mine",
+      "etapes": [
+        "GET /api/cr/mine"
+      ],
+      "attendu": "200 {comptesRendus:[]}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/mine"
+    },
+    {
+      "id": "TC-CR-039",
+      "titre": "Mes comptes rendus — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/cr/mine",
+      "etapes": [
+        "GET sans cookie"
+      ],
+      "attendu": "401 {error:'Non authentifié'}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/mine (requireAuth)"
+    },
+    {
+      "id": "TC-CR-040",
+      "titre": "Mes comptes rendus — 403 rôle accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "GET /api/cr/mine",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "GET /api/cr/mine"
+      ],
+      "attendu": "403 {error:'Accès refusé'} (requireRole('accompagne')).",
+      "tracabilite": "comptes_rendus | GET /api/cr/mine (requireRole)"
+    },
+    {
+      "id": "TC-CR-041",
+      "titre": "Lire les messages de discussion — nominal accompagnateur (is_me)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire ; session avec quelques messages.",
+      "donnees": "GET /api/cr/session/:sid/messages",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "GET /api/cr/session/<sid>/messages"
+      ],
+      "attendu": "200 {messages:[{id, auteur_id, texte, cree_le, auteur_prenom, auteur_role, is_me}...]} triés par cree_le ASC, id ASC. is_me=true pour les messages de l'accompagnateur courant.",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid/messages"
+    },
+    {
+      "id": "TC-CR-042",
+      "titre": "Lire les messages — accompagné autorisé seulement si CR publié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagné ; session de son dossier AVEC un CR publié.",
+      "donnees": "GET /api/cr/session/:sid/messages",
+      "etapes": [
+        "L'accompagnateur publie un CR",
+        "S'authentifier en accompagné",
+        "GET /api/cr/session/<sid>/messages"
+      ],
+      "attendu": "200 {messages:[...]}. is_me=true pour les messages de l'accompagné.",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid/messages (canDiscuss)"
+    },
+    {
+      "id": "TC-CR-043",
+      "titre": "Lire les messages — accompagné bloqué tant qu'aucun CR publié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagné ; session de son dossier SANS CR publié (brouillon ou rien).",
+      "donnees": "GET /api/cr/session/:sid/messages",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "GET /api/cr/session/<sid>/messages"
+      ],
+      "attendu": "404 {error:'Discussion indisponible'} (canDiscuss false : publishedVersion absente).",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid/messages (canDiscuss accompagne)"
+    },
+    {
+      "id": "TC-CR-044",
+      "titre": "Lire les messages — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/cr/session/1/messages",
+      "etapes": [
+        "GET sans cookie"
+      ],
+      "attendu": "401 {error:'Non authentifié'}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid/messages (requireAuth)"
+    },
+    {
+      "id": "TC-CR-045",
+      "titre": "Lire les messages — 404 utilisateur non rattaché à la session",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur Camille ou accompagné Léa ; session non rattachée.",
+      "donnees": "GET /api/cr/session/<sid d'un autre dossier>/messages",
+      "etapes": [
+        "S'authentifier en utilisateur non rattaché",
+        "GET /messages"
+      ],
+      "attendu": "404 {error:'Discussion indisponible'} (canDiscuss → canAccess false).",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid/messages (canAccess)"
+    },
+    {
+      "id": "TC-CR-046",
+      "titre": "Poster un message — nominal accompagnateur (201 + notif accompagné)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire de la session.",
+      "donnees": "POST /api/cr/session/:sid/messages body {texte:'Bonjour, voici mon retour.'}",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "POST /messages avec texte valide",
+        "GET /messages pour relecture"
+      ],
+      "attendu": "201 {id:number}. Le message apparaît à la relecture. Une notification 'Nouveau message sur un compte rendu.' est insérée pour l'accompagné (autre partie).",
+      "tracabilite": "comptes_rendus | POST /api/cr/session/:sid/messages"
+    },
+    {
+      "id": "TC-CR-047",
+      "titre": "Poster un message — nominal accompagné (CR publié) + notif accompagnateur",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagné ; session de son dossier avec CR publié.",
+      "donnees": "POST /api/cr/session/:sid/messages body {texte:'Merci, j'ai une question.'}",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "POST /messages",
+        "Relire la discussion"
+      ],
+      "attendu": "201 {id:number}. La notification est destinée à l'accompagnateur (autre = accompagnateur_id).",
+      "tracabilite": "comptes_rendus | POST /api/cr/session/:sid/messages (notif autre partie)"
+    },
+    {
+      "id": "TC-CR-048",
+      "titre": "Poster un message — 400 texte vide / espaces uniquement",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "valeurs limites",
+      "preconditions": "Accompagnateur ou accompagné autorisé.",
+      "donnees": "POST /messages body {texte:'   '} ; puis body {} (texte absent)",
+      "etapes": [
+        "POST avec texte=espaces",
+        "POST sans champ texte"
+      ],
+      "attendu": "400 {error:'Message vide'} dans les deux cas (String(...).trim() vide). Aucun message inséré.",
+      "tracabilite": "comptes_rendus | POST /api/cr/session/:sid/messages (validation trim)"
+    },
+    {
+      "id": "TC-CR-049",
+      "titre": "Poster un message — accompagné bloqué si CR non publié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagné ; session de son dossier SANS CR publié.",
+      "donnees": "POST /messages body {texte:'test'}",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "POST /messages"
+      ],
+      "attendu": "404 {error:'Discussion indisponible'} (canDiscuss false). Vérifie que la validation de propriété précède celle du texte.",
+      "tracabilite": "comptes_rendus | POST /api/cr/session/:sid/messages (canDiscuss)"
+    },
+    {
+      "id": "TC-CR-050",
+      "titre": "Poster un message — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "POST /api/cr/session/1/messages body {texte:'x'}",
+      "etapes": [
+        "POST sans cookie"
+      ],
+      "attendu": "401 {error:'Non authentifié'}.",
+      "tracabilite": "comptes_rendus | POST /api/cr/session/:sid/messages (requireAuth)"
+    },
+    {
+      "id": "TC-CR-051",
+      "titre": "Poster un message — 404 session non rattachée",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Utilisateur authentifié non rattaché à la session ciblée.",
+      "donnees": "POST /api/cr/session/<sid d'un autre dossier>/messages body {texte:'x'}",
+      "etapes": [
+        "S'authentifier en accompagnateur Camille (non propriétaire)",
+        "POST /messages"
+      ],
+      "attendu": "404 {error:'Discussion indisponible'} (canAccess false).",
+      "tracabilite": "comptes_rendus | POST /api/cr/session/:sid/messages (canAccess)"
+    },
+    {
+      "id": "TC-CR-052",
+      "titre": "Lire les notes privées — nominal (vide si absente)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire ; aucune note encore saisie pour la session.",
+      "donnees": "GET /api/cr/session/:sid/notes",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "GET /api/cr/session/<sid>/notes"
+      ],
+      "attendu": "200 {contenu_html:'', maj_le:null} si aucune note ; sinon {contenu_html:<html>, maj_le:<date>}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid/notes"
+    },
+    {
+      "id": "TC-CR-053",
+      "titre": "Notes privées — jamais visibles par l'accompagné (403)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagné ; session de son dossier (même avec CR publié).",
+      "donnees": "GET /api/cr/session/:sid/notes ; PUT /api/cr/session/:sid/notes body {contenu_html:'x'}",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "GET /notes",
+        "PUT /notes"
+      ],
+      "attendu": "403 {error:'Accès refusé'} sur GET et PUT (requireRole('accompagnateur')). Les notes privées restent confidentielles.",
+      "tracabilite": "comptes_rendus | GET+PUT /api/cr/session/:sid/notes (requireRole)"
+    },
+    {
+      "id": "TC-CR-054",
+      "titre": "Lire les notes privées — 404 accompagnateur non propriétaire",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur Camille ; session du dossier de Mohamed.",
+      "donnees": "GET /api/cr/session/<sid de Mohamed>/notes",
+      "etapes": [
+        "S'authentifier en accompagnateur Camille",
+        "GET /notes sur sid non possédé"
+      ],
+      "attendu": "404 {error:'Session introuvable'} (s.accompagnateur_id != me.id).",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid/notes (contrôle propriété)"
+    },
+    {
+      "id": "TC-CR-055",
+      "titre": "Lire les notes privées — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/cr/session/1/notes",
+      "etapes": [
+        "GET sans cookie"
+      ],
+      "attendu": "401 {error:'Non authentifié'}.",
+      "tracabilite": "comptes_rendus | GET /api/cr/session/:sid/notes (requireAuth)"
+    },
+    {
+      "id": "TC-CR-056",
+      "titre": "Écrire les notes privées — création puis relecture",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire ; aucune note existante.",
+      "donnees": "PUT /api/cr/session/:sid/notes body {contenu_html:'<p>Penser à explorer X</p>'}",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "PUT /notes avec contenu",
+        "GET /notes pour relecture"
+      ],
+      "attendu": "200 {ok:true}. À la relecture, contenu_html correspond et maj_le est renseigné (datetime now).",
+      "tracabilite": "comptes_rendus | PUT /api/cr/session/:sid/notes (INSERT)"
+    },
+    {
+      "id": "TC-CR-057",
+      "titre": "Écrire les notes privées — mise à jour (upsert ON CONFLICT)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagnateur ; une note existe déjà pour la session.",
+      "donnees": "PUT /api/cr/session/:sid/notes body {contenu_html:'<p>Nouvelle note remplaçante</p>'}",
+      "etapes": [
+        "PUT une 1re fois",
+        "PUT une 2e fois avec un autre contenu",
+        "GET /notes"
+      ],
+      "attendu": "200 {ok:true}. Le contenu est remplacé (pas de doublon : une seule ligne par session_id), maj_le actualisé (ON CONFLICT DO UPDATE).",
+      "tracabilite": "comptes_rendus | PUT /api/cr/session/:sid/notes (upsert)"
+    },
+    {
+      "id": "TC-CR-058",
+      "titre": "Écrire les notes privées — contenu vide accepté",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "valeurs limites",
+      "preconditions": "Accompagnateur propriétaire.",
+      "donnees": "PUT /api/cr/session/:sid/notes body {} (contenu_html absent)",
+      "etapes": [
+        "PUT sans contenu_html",
+        "GET /notes"
+      ],
+      "attendu": "200 {ok:true}. contenu_html enregistré = '' (String(undefined ?? '')). Pas de validation Zod, comportement permissif documenté.",
+      "tracabilite": "comptes_rendus | PUT /api/cr/session/:sid/notes (String(req.body?.contenu_html ?? ''))"
+    },
+    {
+      "id": "TC-CR-059",
+      "titre": "Écrire les notes privées — 404 accompagnateur non propriétaire",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur Camille ; session du dossier de Mohamed.",
+      "donnees": "PUT /api/cr/session/<sid de Mohamed>/notes body {contenu_html:'x'}",
+      "etapes": [
+        "S'authentifier en accompagnateur Camille",
+        "PUT /notes sur sid non possédé"
+      ],
+      "attendu": "404 {error:'Session introuvable'}. Aucune note écrite.",
+      "tracabilite": "comptes_rendus | PUT /api/cr/session/:sid/notes (contrôle propriété)"
+    },
+    {
+      "id": "TC-CR-060",
+      "titre": "Notes privées — non incluses dans le CR publié / non exposées à l'accompagné",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur a saisi des notes privées ET publié un CR sur la même session.",
+      "donnees": "GET /api/cr/session/:sid (accompagné) ; GET /api/cr/mine (accompagné)",
+      "etapes": [
+        "Saisir des notes privées",
+        "Publier le CR",
+        "Côté accompagné : GET /api/cr/session/:sid et /api/cr/mine"
+      ],
+      "attendu": "Le contenu des notes privées n'apparaît dans aucune réponse côté accompagné. Les notes sont une table distincte (cr_notes_privees), jamais jointe aux endpoints accompagné.",
+      "tracabilite": "comptes_rendus | cr_notes_privees vs GET /api/cr/session/:sid + /api/cr/mine"
+    },
+    {
+      "id": "TC-CR-061",
+      "titre": "Repli déterministe genererContenu — structure des 6 champs sans clé IA",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "ANTHROPIC_API_KEY non définie (KEY falsy). Appel direct de genererContenu(notesByPhase).",
+      "donnees": "notesByPhase = {0:'Contexte intro',1:'Demande',2:'Point clé',3:'Émergence',4:'Étape plan',5:'Proposition'}",
+      "etapes": [
+        "Appeler genererContenu(notes)",
+        "Inspecter l'objet CRContent retourné"
+      ],
+      "attendu": "Retour synchrone du template : contexte='Contexte intro\\nDemande', pointsCles='Point clé', emergence='Émergence', planAction=[{etape:'Étape plan',echeance:'',critere:''}], propositions='Proposition', vigilance='—'.",
+      "tracabilite": "comptes_rendus | compteRendu.ts genererContenu (repli template)"
+    },
+    {
+      "id": "TC-CR-062",
+      "titre": "Repli genererContenu — valeurs par défaut '—' quand phases manquantes",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "valeurs limites",
+      "preconditions": "KEY absente. notesByPhase = {} (aucune note).",
+      "donnees": "notesByPhase = {}",
+      "etapes": [
+        "Appeler genererContenu({})",
+        "Inspecter le retour"
+      ],
+      "attendu": "contexte='—', pointsCles='—', emergence='—', planAction=[] (phase 4 absente), propositions='—', vigilance='—'. Aucune exception.",
+      "tracabilite": "comptes_rendus | compteRendu.ts genererContenu (defaults)"
+    },
+    {
+      "id": "TC-CR-063",
+      "titre": "contentToHtml — restitue 6 sections h2 et liste de plan d'action",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Fonction contentToHtml(content, meta) pure.",
+      "donnees": "content avec planAction=[{etape:'Faire X',echeance:'2026-07-01',critere:'mesurable'}], meta={accompagne:'Amine',date:'2026-06-13'}",
+      "etapes": [
+        "Appeler contentToHtml(content, meta)",
+        "Inspecter le HTML"
+      ],
+      "attendu": "HTML contenant les 6 <h2> numérotés (1. Contexte... 6. Points de vigilance...), une <ul><li> pour le plan d'action affichant l'étape + 'échéance : 2026-07-01' + '(mesurable)', et l'en-tête '<em>Accompagné : Amine · Date : 2026-06-13</em>'.",
+      "tracabilite": "comptes_rendus | compteRendu.ts contentToHtml"
+    },
+    {
+      "id": "TC-CR-064",
+      "titre": "contentToHtml/esc — échappement des caractères HTML (anti-injection)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "partition d'équivalence",
+      "preconditions": "Fonction esc utilisée par contentToHtml/parasHtml.",
+      "donnees": "content.contexte = '<script>alert(1)</script> & \"guillemets\"' ; meta.accompagne = '<b>x</b>'",
+      "etapes": [
+        "Appeler contentToHtml avec du contenu contenant <, >, &",
+        "Inspecter la sortie"
+      ],
+      "attendu": "Les caractères &, <, > sont échappés en &amp; &lt; &gt;. Aucun tag <script> brut n'apparaît dans le HTML produit.",
+      "tracabilite": "comptes_rendus | compteRendu.ts esc"
+    },
+    {
+      "id": "TC-CR-065",
+      "titre": "parasHtml — plan d'action vide et paragraphes multi-lignes",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "valeurs limites",
+      "preconditions": "contentToHtml avec planAction=[] et un champ multi-lignes.",
+      "donnees": "planAction=[] ; pointsCles='ligne1\\n\\nligne2\\n  ' (lignes vides/espaces)",
+      "etapes": [
+        "Appeler contentToHtml",
+        "Inspecter section 4 et section 2"
+      ],
+      "attendu": "Section 4 Plan d'action affiche '<p>—</p>' (liste vide). Les lignes vides sont filtrées : pointsCles produit <p>ligne1</p><p>ligne2</p>. Texte vide → '<p>—</p>'.",
+      "tracabilite": "comptes_rendus | compteRendu.ts parasHtml"
+    },
+    {
+      "id": "TC-CR-066",
+      "titre": "genererContenu (IA) — parsing JSON robuste avec texte autour",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "test du contrat",
+      "preconditions": "KEY définie ; fetch simulé renvoyant un bloc texte contenant du JSON entouré de prose (préambule + JSON + suffixe).",
+      "donnees": "Réponse Claude simulée: 'Voici le compte rendu: {\"contexte\":\"C\",\"pointsCles\":\"P\",\"emergence\":\"E\",\"planAction\":[],\"propositions\":\"PR\",\"vigilance\":\"V\"} fin.'",
+      "etapes": [
+        "Stubber fetch pour renvoyer res.ok + ce texte",
+        "Appeler genererContenu(notes)"
+      ],
+      "attendu": "Le JSON est extrait via indexOf('{')..lastIndexOf('}') et parsé. Champs renseignés depuis Claude ; les champs absents retombent sur le template (|| template.*).",
+      "tracabilite": "comptes_rendus | compteRendu.ts genererContenu (extraction JSON)"
+    },
+    {
+      "id": "TC-CR-067",
+      "titre": "genererContenu (IA) — repli sur exception/réponse non-ok",
+      "niveau": "unitaire",
+      "type": "non-regression",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "KEY définie ; fetch simulé renvoie res.ok=false OU lève une exception OU renvoie un JSON invalide.",
+      "donnees": "Cas A: res.ok=false ; Cas B: fetch throw ; Cas C: texte sans accolade valide",
+      "etapes": [
+        "Stubber chaque cas",
+        "Appeler genererContenu(notes)"
+      ],
+      "attendu": "Dans les trois cas, retour du template de repli (try/catch + if(!res.ok)). Aucune exception propagée ; le flux POST /generer reste en 201.",
+      "tracabilite": "comptes_rendus | compteRendu.ts genererContenu (repli erreur)"
+    },
+    {
+      "id": "TC-CR-068",
+      "titre": "UI accompagnateur — générer puis voir le CR dans la modale",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Connecté en accompagnateur Mohamed sur http://localhost:8080 ; entretien sans CR.",
+      "donnees": "Compte mohamed / elafrit.mohamed@gmail.com, mdp BoussoleDemo2026",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Ouvrir la modale Compte rendu d'un entretien sans CR",
+        "Cliquer '✨ Générer le compte rendu (IA)'",
+        "Attendre la fin de génération"
+      ],
+      "attendu": "La modale affiche le CR généré avec badge '• Brouillon', mention 'v1 · généré IA', et les 6 sections. Boutons Éditer / Régénérer / Publier visibles.",
+      "tracabilite": "comptes_rendus | CompteRenduModal.tsx (generer)"
+    },
+    {
+      "id": "TC-CR-069",
+      "titre": "UI accompagnateur — éditer et enregistrer la version courante",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur ; CR courant affiché dans la modale.",
+      "donnees": "Modification de texte dans l'éditeur riche",
+      "etapes": [
+        "Cliquer '✎ Éditer'",
+        "Modifier le contenu dans RichTextEditor",
+        "Cliquer '💾 Enregistrer'"
+      ],
+      "attendu": "La modale repasse en lecture, le badge passe la source à 'édité', le contenu modifié est affiché. PATCH /cr/version/:id renvoie ok et le rechargement reflète la modification.",
+      "tracabilite": "comptes_rendus | CompteRenduModal.tsx (startEdit/save)"
+    },
+    {
+      "id": "TC-CR-070",
+      "titre": "UI accompagnateur — publier le CR et confirmation",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur ; CR brouillon affiché.",
+      "donnees": "Action Publier",
+      "etapes": [
+        "Cliquer '📣 Publier'"
+      ],
+      "attendu": "Le badge passe à '✓ Publié', le bouton Publier disparaît, message 'Compte rendu publié — l'accompagné peut le consulter.' affiché.",
+      "tracabilite": "comptes_rendus | CompteRenduModal.tsx (publier)"
+    },
+    {
+      "id": "TC-CR-071",
+      "titre": "UI accompagnateur — navigation dans l'historique des versions (lecture seule)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur ; session avec au moins 2 versions.",
+      "donnees": "Sélecteur 'Historique'",
+      "etapes": [
+        "Régénérer pour créer une 2e version",
+        "Ouvrir la modale",
+        "Sélectionner une version archivée dans le menu Historique"
+      ],
+      "attendu": "La version archivée s'affiche avec la mention '(version archivée, lecture seule)'. Les boutons Éditer/Régénérer/Publier sont masqués en mode historique.",
+      "tracabilite": "comptes_rendus | CompteRenduModal.tsx (voirVersion/onHistory)"
+    },
+    {
+      "id": "TC-CR-072",
+      "titre": "UI accompagné — page Mes comptes rendus et consultation",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Connecté en accompagné Amine (afrit_mohamed@yahoo.fr) ; au moins un CR publié (jeu démo).",
+      "donnees": "Compte Amine, mdp BoussoleDemo2026",
+      "etapes": [
+        "Se connecter en accompagné",
+        "Aller sur 'Mes comptes rendus'",
+        "Cliquer 'Consulter' sur un CR"
+      ],
+      "attendu": "La liste montre les CR publiés (date d'entretien + date de publication). La modale affiche le CR publié, sans bouton d'édition/publication (vue accompagné en lecture seule).",
+      "tracabilite": "comptes_rendus | ComptesRendus.tsx + CompteRenduModal.tsx (role=accompagne)"
+    },
+    {
+      "id": "TC-CR-073",
+      "titre": "UI accompagné — message 'pas encore disponible' avant publication",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagné ; entretien dont le CR est en brouillon (non publié).",
+      "donnees": "Vue accompagné de la modale d'un CR non publié",
+      "etapes": [
+        "Côté accompagnateur, générer un CR sans publier",
+        "Côté accompagné, ouvrir la modale pour cette session"
+      ],
+      "attendu": "La modale affiche 'Le compte rendu n'est pas encore disponible.' (cr null) et n'expose ni le brouillon ni la discussion.",
+      "tracabilite": "comptes_rendus | CompteRenduModal.tsx (!cr, role accompagne)"
+    },
+    {
+      "id": "TC-CR-074",
+      "titre": "UI discussion — échange bidirectionnel après publication",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "CR publié ; accompagnateur Mohamed et accompagné Amine.",
+      "donnees": "Saisie de messages des deux côtés",
+      "etapes": [
+        "Côté accompagnateur, envoyer un message dans la zone '💬 Échanges'",
+        "Côté accompagné, ouvrir la modale et répondre",
+        "Recharger des deux côtés"
+      ],
+      "attendu": "Les messages apparaissent dans l'ordre chronologique, alignés (is_me) selon l'auteur. Chaque envoi crée une notification pour l'autre partie.",
+      "tracabilite": "comptes_rendus | CompteRenduModal.tsx (envoyer/loadMessages)"
+    },
+    {
+      "id": "TC-CR-075",
+      "titre": "UI discussion — masquée côté accompagnateur avant publication (avertissement)",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "table de décision",
+      "preconditions": "Accompagnateur ; CR en brouillon.",
+      "donnees": "Modale CR non publié",
+      "etapes": [
+        "Ouvrir la modale d'un CR brouillon côté accompagnateur"
+      ],
+      "attendu": "La section discussion affiche 'La discussion sera visible par l'accompagné une fois le compte rendu publié.' L'accompagnateur peut écrire mais sait que l'accompagné ne verra rien tant que non publié.",
+      "tracabilite": "comptes_rendus | CompteRenduModal.tsx (!cr.publie && accompagnateur)"
+    }
+  ]
+}

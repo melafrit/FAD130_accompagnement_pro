@@ -1,0 +1,554 @@
+{
+  "domaine": "quest",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/questionnaire/next",
+      "summary": "Étape suivante du questionnaire initial : appelle Claude (questionnaireNext) et renvoie {question, propositions[], termine, recapitulatif}. Repli déterministe (fallbackNext) si pas de clé API ou erreur. Gating : requireAuth seulement (tout rôle authentifié).",
+      "feature": "questionnaire",
+      "role": "authentifié (tout rôle)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/questionnaire/save",
+      "summary": "Enregistre le questionnaire complété : crée/réutilise un dossier (auto-assigné ou parcours ciblé via dossierId), persiste contenu+cr_recap dans questionnaires_initiaux, notifie l'accompagnateur. Gating : requireAuth + rôle 'accompagne' (contrôlé en code, 403 sinon).",
+      "feature": "questionnaire",
+      "role": "accompagne"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-QUEST-001",
+      "titre": "POST /next — première étape (history vide) renvoie une question et le contrat de forme",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Utilisateur authentifié (accompagne Amine). Repli actif si pas de clé Claude.",
+      "donnees": "{ \"history\": [] }",
+      "etapes": [
+        "Se connecter en tant qu'accompagné (afrit_mohamed@yahoo.fr)",
+        "POST /api/questionnaire/next avec body { history: [] }"
+      ],
+      "attendu": "200. Corps JSON avec les 4 champs : question (string), propositions (array de string), termine (boolean=false), recapitulatif (null ou string). En repli, question = 'Dans quelle entreprise et sur quel poste se déroule ton alternance ?'.",
+      "technique": "test du contrat ; partition d'équivalence (history vide)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/next"
+    },
+    {
+      "id": "TC-QUEST-002",
+      "titre": "POST /next — étape intermédiaire (history partiel) renvoie l'étape suivante non terminée",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Authentifié.",
+      "donnees": "history avec 3 paires {question, answer} valides",
+      "etapes": [
+        "POST /api/questionnaire/next avec history de longueur 3"
+      ],
+      "attendu": "200. termine=false, question non vide, propositions est un tableau. En repli, la question correspond à FALLBACK_STEPS[3] ('Quels sont les enjeux — pour toi et pour l'entreprise ?').",
+      "technique": "test du contrat ; partition d'équivalence (history partiel)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/next"
+    },
+    {
+      "id": "TC-QUEST-003",
+      "titre": "POST /next — fin de parcours (history complet) renvoie termine=true + récapitulatif non vide",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Authentifié.",
+      "donnees": "history avec 6 paires {question, answer} valides (= FALLBACK_STEPS.length)",
+      "etapes": [
+        "POST /api/questionnaire/next avec history de longueur 6"
+      ],
+      "attendu": "200. termine=true, recapitulatif est une string non vide (commence par 'Récapitulatif de ta situation' en repli) et contient le rappel des questions/réponses ; question = ''.",
+      "technique": "valeurs limites (longueur = seuil 6) ; test du contrat",
+      "tracabilite": "questionnaire — POST /api/questionnaire/next (claude.ts fallbackNext)"
+    },
+    {
+      "id": "TC-QUEST-004",
+      "titre": "POST /next — gating accès : non authentifié -> 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie boussole_token.",
+      "donnees": "{ \"history\": [] }",
+      "etapes": [
+        "POST /api/questionnaire/next sans cookie d'auth"
+      ],
+      "attendu": "401 { error: 'Non authentifié' } (requireAuth).",
+      "technique": "test basé sur les rôles ; test du contrat",
+      "tracabilite": "questionnaire — POST /api/questionnaire/next (auth.ts requireAuth)"
+    },
+    {
+      "id": "TC-QUEST-005",
+      "titre": "POST /next — cookie/jeton invalide -> 401 session invalide",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Cookie boussole_token présent mais non décodable.",
+      "donnees": "Cookie boussole_token = 'jeton.bidon.invalide'",
+      "etapes": [
+        "POST /api/questionnaire/next avec un JWT corrompu"
+      ],
+      "attendu": "401 { error: 'Session invalide' }.",
+      "technique": "test basé sur les rôles ; partition d'équivalence (jeton invalide)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/next (auth.ts requireAuth)"
+    },
+    {
+      "id": "TC-QUEST-006",
+      "titre": "POST /next — accessible aussi à l'accompagnateur et à l'admin (pas de restriction de rôle)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Comptes accompagnateur (camille.laurent@boussole.demo) et admin (mohamed@elafrit.com).",
+      "donnees": "{ \"history\": [] }",
+      "etapes": [
+        "Se connecter en accompagnateur puis POST /api/questionnaire/next",
+        "Se connecter en admin puis POST /api/questionnaire/next"
+      ],
+      "attendu": "200 dans les deux cas : /next n'impose aucun rôle ni requireFeature, seul requireAuth s'applique.",
+      "technique": "test basé sur les rôles (couverture de toutes les classes de rôle)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/next"
+    },
+    {
+      "id": "TC-QUEST-007",
+      "titre": "POST /next — history absent ou non-tableau est toléré (coercition vers [])",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Authentifié.",
+      "donnees": "Cas A : body {} (history absent). Cas B : { \"history\": \"abc\" }. Cas C : { \"history\": 123 }.",
+      "etapes": [
+        "POST /api/questionnaire/next avec chacun des corps A/B/C"
+      ],
+      "attendu": "200 dans tous les cas : Array.isArray(history) faux -> history=[] -> renvoie la première étape (termine=false), pas de 400.",
+      "technique": "partition d'équivalence (valide vs invalide non rejeté) ; robustesse d'entrée",
+      "tracabilite": "questionnaire — POST /api/questionnaire/next"
+    },
+    {
+      "id": "TC-QUEST-008",
+      "titre": "POST /next — corps JSON malformé géré par le parseur (400 du middleware JSON)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Authentifié.",
+      "donnees": "Corps brut non-JSON : '{ history: '",
+      "etapes": [
+        "POST /api/questionnaire/next avec Content-Type application/json et un corps JSON invalide"
+      ],
+      "attendu": "400 (rejet par express.json avant d'atteindre le handler) ; pas de 500 applicatif.",
+      "technique": "partition d'équivalence (entrée malformée)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/next"
+    },
+    {
+      "id": "TC-QUEST-009",
+      "titre": "POST /next — erreur interne de génération -> 500 contrat d'erreur",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Authentifié. Simuler que questionnaireNext rejette (ex. dépendance indisponible).",
+      "donnees": "{ \"history\": [] } avec questionnaireNext forcé en rejet",
+      "etapes": [
+        "Provoquer une exception dans questionnaireNext (mock/stub)",
+        "POST /api/questionnaire/next"
+      ],
+      "attendu": "500 { error: 'Erreur lors de la génération de la question' } (bloc catch du handler).",
+      "technique": "test du contrat (chemin d'erreur) ; analyse des branches",
+      "tracabilite": "questionnaire — POST /api/questionnaire/next"
+    },
+    {
+      "id": "TC-QUEST-010",
+      "titre": "UNITAIRE fallbackNext — étape n renvoie FALLBACK_STEPS[n] tant que history.length < 6",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Fonction fallbackNext(history) isolée (claude.ts), sans clé Claude.",
+      "donnees": "history de longueurs 0,1,2,3,4,5",
+      "etapes": [
+        "Appeler fallbackNext avec chaque longueur 0..5",
+        "Comparer question/propositions à FALLBACK_STEPS[length]"
+      ],
+      "attendu": "Pour chaque n in [0..5] : retourne {question: FALLBACK_STEPS[n].question, propositions: FALLBACK_STEPS[n].propositions, termine:false, recapitulatif:null}. Étapes 4 et 5 ont des propositions non vides, étapes 0-3 ont propositions=[].",
+      "technique": "partition d'équivalence ; valeurs limites (n=0 et n=5)",
+      "tracabilite": "questionnaire — claude.ts fallbackNext"
+    },
+    {
+      "id": "TC-QUEST-011",
+      "titre": "UNITAIRE fallbackNext — à length>=6 renvoie termine=true et récapitulatif agrégé depuis l'historique",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "fallbackNext isolée.",
+      "donnees": "history de longueur 6 (et 7) avec paires {question, answer} connues",
+      "etapes": [
+        "Appeler fallbackNext avec history de longueur 6",
+        "Vérifier la structure du recap"
+      ],
+      "attendu": "termine=true, question='', propositions=[], recapitulatif commence par 'Récapitulatif de ta situation (à valider) :' et liste chaque '• question\\n  → answer'. Pour length 7 (>seuil), même comportement (couvre toutes les paires).",
+      "technique": "valeurs limites (seuil exact =6 et >6) ; test du contrat",
+      "tracabilite": "questionnaire — claude.ts fallbackNext"
+    },
+    {
+      "id": "TC-QUEST-012",
+      "titre": "UNITAIRE extractJson — extrait le bloc JSON entouré de texte parasite",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Fonction extractJson(text) isolée (claude.ts).",
+      "donnees": "Cas A : 'blabla {\"question\":\"x\"} fin'. Cas B : 'pas de json'. Cas C : '{\"a\":1} et {\"b\":2}'.",
+      "etapes": [
+        "Appeler extractJson avec chaque cas"
+      ],
+      "attendu": "A -> '{\"question\":\"x\"}'. B (pas d'accolade) -> renvoie le texte original. C -> du premier '{' au dernier '}' inclus (gère imbrication/multiples).",
+      "technique": "partition d'équivalence ; valeurs limites (absence d'accolade)",
+      "tracabilite": "questionnaire — claude.ts extractJson"
+    },
+    {
+      "id": "TC-QUEST-013",
+      "titre": "UNITAIRE questionnaireNext — bascule en repli si pas de clé API",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "ANTHROPIC_API_KEY non défini.",
+      "donnees": "history de longueur 0",
+      "etapes": [
+        "S'assurer que KEY est vide",
+        "Appeler questionnaireNext([])"
+      ],
+      "attendu": "Retourne directement fallbackNext([]) (première étape), sans appel réseau.",
+      "technique": "table de décision (clé présente/absente x history) ; test du contrat",
+      "tracabilite": "questionnaire — claude.ts questionnaireNext"
+    },
+    {
+      "id": "TC-QUEST-014",
+      "titre": "UNITAIRE questionnaireNext — repli si réponse HTTP non-ok ou JSON inattendu",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "ANTHROPIC_API_KEY défini ; fetch mocké.",
+      "donnees": "Cas A : fetch renvoie status 500. Cas B : fetch renvoie 200 mais corps sans bloc JSON parsable.",
+      "etapes": [
+        "Mock fetch pour A (res.ok=false)",
+        "Mock fetch pour B (text sans accolade -> JSON.parse échoue)",
+        "Appeler questionnaireNext(history)"
+      ],
+      "attendu": "Dans A et B : retombe sur fallbackNext(history) (jamais d'exception remontée).",
+      "technique": "analyse des branches ; test du contrat (chemins de repli)",
+      "tracabilite": "questionnaire — claude.ts questionnaireNext"
+    },
+    {
+      "id": "TC-QUEST-015",
+      "titre": "UNITAIRE questionnaireNext — normalise les champs de la réponse IA (defaults sûrs)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Clé définie ; fetch mocké renvoyant un JSON partiel.",
+      "donnees": "content texte = '{\"question\":\"Q?\"}' (propositions/termine/recapitulatif absents)",
+      "etapes": [
+        "Mock fetch 200 avec ce contenu",
+        "Appeler questionnaireNext"
+      ],
+      "attendu": "Retourne {question:'Q?', propositions:[] (défaut si non-array), termine:false (défaut !!undefined), recapitulatif:null}.",
+      "technique": "partition d'équivalence (champs manquants) ; test du contrat",
+      "tracabilite": "questionnaire — claude.ts questionnaireNext"
+    },
+    {
+      "id": "TC-QUEST-016",
+      "titre": "POST /save — nominal sans dossierId : crée dossier auto-assigné + persiste + notifie",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné authentifié SANS dossier préexistant. Au moins un accompagnateur actif existe.",
+      "donnees": "{ history:[{question,answer}...], recapitulatif:'Récap…' } (sans dossierId)",
+      "etapes": [
+        "Se connecter en accompagné neuf",
+        "POST /api/questionnaire/save"
+      ],
+      "attendu": "200 { ok:true, dossierId:<nombre> }. Un lien_accompagnement et un dossier 'Accompagnement mémoire' sont créés ; une ligne questionnaires_initiaux (cr_recap=recapitulatif) est insérée ; une notification 'Un accompagné a complété son questionnaire initial.' est créée pour l'accompagnateur.",
+      "technique": "test du contrat ; partition d'équivalence (branche sans dossierId)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-017",
+      "titre": "POST /save — sans dossierId, ré-appel : réutilise le dossier auto-assigné existant (pas de doublon)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné ayant déjà un dossier auto-assigné avec un accompagnateur.",
+      "donnees": "{ history:[…], recapitulatif:'Récap 2' } sans dossierId",
+      "etapes": [
+        "POST /api/questionnaire/save une 1re fois",
+        "POST /api/questionnaire/save une 2e fois"
+      ],
+      "attendu": "200 et dossierId identique aux deux appels (SELECT dossier existant réutilisé via INSERT OR IGNORE sur le lien). Une nouvelle ligne questionnaires_initiaux est ajoutée (la lecture prend ORDER BY id DESC).",
+      "technique": "test du contrat ; analyse des branches (réutilisation)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-018",
+      "titre": "POST /save — avec dossierId valide appartenant à l'accompagné : rattache au parcours",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné (Amine) possédant un dossier D dont il est accompagne_id.",
+      "donnees": "{ history:[…], recapitulatif:'Récap', dossierId: <id de D> }",
+      "etapes": [
+        "POST /api/questionnaire/save avec dossierId de D"
+      ],
+      "attendu": "200 { ok:true, dossierId:<id de D> }. La ligne questionnaires_initiaux est rattachée à D ; la notification va à l'accompagnateur de D (accompagnateur_id du dossier).",
+      "technique": "test du contrat ; partition d'équivalence (branche dossierId)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save (multi_parcours)"
+    },
+    {
+      "id": "TC-QUEST-019",
+      "titre": "POST /save — dossierId d'un autre utilisateur : 404 Parcours introuvable",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné A authentifié ; dossier D appartenant à un AUTRE accompagné B.",
+      "donnees": "{ history:[…], recapitulatif:'x', dossierId: <id du dossier de B> }",
+      "etapes": [
+        "Se connecter en accompagné A",
+        "POST /api/questionnaire/save avec dossierId de B"
+      ],
+      "attendu": "404 { error: 'Parcours introuvable' } (WHERE id=? AND accompagne_id=? ne matche pas). Aucune insertion/notification.",
+      "technique": "test basé sur les rôles (non-propriétaire) ; test du contrat",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-020",
+      "titre": "POST /save — dossierId inexistant : 404 Parcours introuvable",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné authentifié.",
+      "donnees": "{ history:[], recapitulatif:'x', dossierId: 999999 }",
+      "etapes": [
+        "POST /api/questionnaire/save avec un dossierId qui n'existe pas"
+      ],
+      "attendu": "404 { error: 'Parcours introuvable' }.",
+      "technique": "valeurs limites (id hors domaine) ; partition d'équivalence",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-021",
+      "titre": "POST /save — gating rôle : accompagnateur -> 403 Réservé aux personnes accompagnées",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Compte accompagnateur authentifié (camille.laurent@boussole.demo).",
+      "donnees": "{ history:[], recapitulatif:'x' }",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "POST /api/questionnaire/save"
+      ],
+      "attendu": "403 { error: 'Réservé aux personnes accompagnées' } (contrôle user.role !== 'accompagne').",
+      "technique": "test basé sur les rôles ; test du contrat",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-022",
+      "titre": "POST /save — gating rôle : admin -> 403 Réservé aux personnes accompagnées",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Compte admin authentifié (mohamed@elafrit.com).",
+      "donnees": "{ history:[], recapitulatif:'x' }",
+      "etapes": [
+        "Se connecter en admin",
+        "POST /api/questionnaire/save"
+      ],
+      "attendu": "403 { error: 'Réservé aux personnes accompagnées' } (seul le rôle 'accompagne' passe).",
+      "technique": "test basé sur les rôles (couverture exhaustive des rôles)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-023",
+      "titre": "POST /save — gating accès : non authentifié -> 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie d'auth.",
+      "donnees": "{ history:[], recapitulatif:'x' }",
+      "etapes": [
+        "POST /api/questionnaire/save sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' } (requireAuth avant le contrôle de rôle).",
+      "technique": "test basé sur les rôles ; test du contrat",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save (auth.ts requireAuth)"
+    },
+    {
+      "id": "TC-QUEST-024",
+      "titre": "POST /save — sans dossierId et aucun accompagnateur actif -> 400 Aucun accompagnateur disponible",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné authentifié ; AUCUN user role='accompagnateur' actif=1 en base (environnement contrôlé).",
+      "donnees": "{ history:[], recapitulatif:'x' } (sans dossierId)",
+      "etapes": [
+        "Désactiver/supprimer tous les accompagnateurs actifs",
+        "POST /api/questionnaire/save"
+      ],
+      "attendu": "400 { error: 'Aucun accompagnateur disponible' }. Aucune insertion de questionnaire ni notification.",
+      "technique": "analyse des branches ; partition d'équivalence (cas dégradé)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-025",
+      "titre": "POST /save — recapitulatif absent : persiste cr_recap = null",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné authentifié avec dossier auto-assignable ou dossierId valide.",
+      "donnees": "{ history:[{question:'q',answer:'r'}] } (recapitulatif omis)",
+      "etapes": [
+        "POST /api/questionnaire/save sans champ recapitulatif"
+      ],
+      "attendu": "200 { ok:true, dossierId }. La ligne questionnaires_initiaux est créée avec cr_recap NULL (recapitulatif ?? null) et contenu = JSON de history.",
+      "technique": "partition d'équivalence (champ optionnel manquant) ; valeurs limites (null)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-026",
+      "titre": "POST /save — history absent : persiste contenu = '[]' (défaut)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagné authentifié avec dossierId valide.",
+      "donnees": "{ recapitulatif:'Récap', dossierId:<valide> } (history omis)",
+      "etapes": [
+        "POST /api/questionnaire/save sans champ history"
+      ],
+      "attendu": "200 { ok:true, dossierId }. contenu stocké = JSON.stringify([]) car history = req.body?.history ?? [].",
+      "technique": "partition d'équivalence (champ optionnel) ; robustesse",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-027",
+      "titre": "POST /save — dossierId non numérique : coercition Number() puis 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagné authentifié.",
+      "donnees": "Cas A : { dossierId:'abc', history:[] } -> Number('abc')=NaN -> falsy -> branche auto-assignée. Cas B : { dossierId:'0', history:[] } -> Number('0')=0 -> falsy -> branche auto-assignée.",
+      "etapes": [
+        "POST /api/questionnaire/save avec dossierId='abc'",
+        "POST avec dossierId='0'"
+      ],
+      "attendu": "Comme Number(...) donne NaN ou 0 (falsy), dossierIdIn est null -> on passe en branche auto-assignée (200 si accompagnateur dispo). Documente cette coercition (pas un 404).",
+      "technique": "valeurs limites (0, NaN) ; table de décision (truthy/falsy)",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-028",
+      "titre": "POST /save — persistance relue : le récapitulatif réapparaît dans le détail du dossier",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "haute",
+      "preconditions": "Accompagné ayant enregistré un questionnaire (cr_recap connu) sur dossier D.",
+      "donnees": "recapitulatif='Récap unique 12345' enregistré sur D",
+      "etapes": [
+        "POST /api/questionnaire/save avec recapitulatif sur D",
+        "GET du détail du parcours/dossier D (route dossier accompagné)"
+      ],
+      "attendu": "Le détail renvoie questionnaire.cr_recap = 'Récap unique 12345' et complete_le renseigné (relecture cohérente avec l'insertion).",
+      "technique": "test du contrat (persistance/relecture) ; test de bout en bout",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save + GET /api/dossiers/.. (questionnaires_initiaux)"
+    },
+    {
+      "id": "TC-QUEST-029",
+      "titre": "POST /save — la notification atteint le bon accompagnateur (ciblage)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossier D avec accompagnateur_id = celui de Mohamed ; compte Mohamed accompagnateur.",
+      "donnees": "{ history:[], recapitulatif:'x', dossierId:<id de D> }",
+      "etapes": [
+        "Accompagné de D POST /api/questionnaire/save sur D",
+        "Se connecter en tant qu'accompagnateur de D et lister ses notifications"
+      ],
+      "attendu": "Une notification 'Un accompagné a complété son questionnaire initial.' apparaît pour l'accompagnateur du dossier D et pour aucun autre.",
+      "technique": "test du contrat ; test basé sur les rôles",
+      "tracabilite": "questionnaire — POST /api/questionnaire/save (notifications)"
+    },
+    {
+      "id": "TC-QUEST-030",
+      "titre": "UI — l'accompagné déroule le questionnaire et arrive au récapitulatif",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné connecté (Amine), repli déterministe actif. Page /questionnaire.",
+      "donnees": "Réponses libres saisies à chaque étape",
+      "etapes": [
+        "Ouvrir la page Questionnaire",
+        "Répondre via le champ DictaInput puis 'Envoyer' à chaque question jusqu'à la fin",
+        "Observer l'apparition du bloc Récapitulatif"
+      ],
+      "attendu": "Chaque question s'affiche (qa-q-active), l'historique se remplit (qa-history). En fin, le bloc 'Récapitulatif' (pre.recap-text) et le bouton 'Valider et enregistrer' apparaissent.",
+      "technique": "test de bout en bout ; test du contrat (UI<->API)",
+      "tracabilite": "questionnaire — app/web/src/pages/Questionnaire.tsx + POST /api/questionnaire/next"
+    },
+    {
+      "id": "TC-QUEST-031",
+      "titre": "UI — choix d'une proposition pré-remplie soumet la réponse",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné connecté, à une étape proposant des boutons (étapes 5/6 en repli).",
+      "donnees": "Clic sur une proposition (ex. 'Trouver une problématique')",
+      "etapes": [
+        "Atteindre une étape avec propositions (qa-props)",
+        "Cliquer sur un bouton de proposition"
+      ],
+      "attendu": "La proposition est ajoutée à l'historique comme réponse et l'étape suivante se charge (submit(p)).",
+      "technique": "test de bout en bout ; partition d'équivalence (réponse par bouton vs saisie)",
+      "tracabilite": "questionnaire — Questionnaire.tsx (qa-prop)"
+    },
+    {
+      "id": "TC-QUEST-032",
+      "titre": "UI — bouton Envoyer désactivé/sans effet si réponse vide",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné connecté, à une étape active, champ réponse vide.",
+      "donnees": "Champ réponse = '' (ou espaces)",
+      "etapes": [
+        "Soumettre le formulaire sans saisir de texte"
+      ],
+      "attendu": "submit() retourne tôt (if !ans.trim()) : aucune nouvelle entrée d'historique, pas d'appel /next supplémentaire.",
+      "technique": "valeurs limites (chaîne vide / espaces) ; partition d'équivalence",
+      "tracabilite": "questionnaire — Questionnaire.tsx submit()"
+    },
+    {
+      "id": "TC-QUEST-033",
+      "titre": "UI — 'Valider et enregistrer' persiste puis affiche la confirmation et le CTA parcours",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné au récapitulatif. Cas A : sans ?dossier (espace). Cas B : avec ?dossier=<id>.",
+      "donnees": "URL /questionnaire (A) puis /questionnaire?dossier=<id valide> (B)",
+      "etapes": [
+        "Cliquer 'Valider et enregistrer'",
+        "Observer le message de succès et le bouton de navigation"
+      ],
+      "attendu": "Appel POST /questionnaire/save ; message '✅ Enregistré…' ; bouton 'Retour à mon espace' (A, nav /espace) ou 'Voir mon parcours' (B, nav /parcours/<id>).",
+      "technique": "table de décision (présence dossierId x cible de navigation) ; test de bout en bout",
+      "tracabilite": "questionnaire — Questionnaire.tsx save() + POST /api/questionnaire/save"
+    },
+    {
+      "id": "TC-QUEST-034",
+      "titre": "UI — indicateur de progression IA pendant le chargement de l'étape",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Accompagné connecté, latence sur /next.",
+      "donnees": "N/A",
+      "etapes": [
+        "Soumettre une réponse",
+        "Observer l'état pendant l'appel /next"
+      ],
+      "attendu": "Le composant AiProgress (busy=true) s'affiche ('L'assistant prépare la prochaine question…'), puis l'étape suivante remplace l'indicateur quand busy repasse à false.",
+      "technique": "test de bout en bout (états transitoires)",
+      "tracabilite": "questionnaire — Questionnaire.tsx (AiProgress)"
+    }
+  ]
+}

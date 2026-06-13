@@ -1,0 +1,956 @@
+{
+  "domaine": "pilot",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/pilotage/signaux",
+      "summary": "Signaux faibles de décrochage par dossier (voyant vert/orange/rouge + raisons) pour tous les parcours suivis",
+      "role": "accompagnateur",
+      "feature": "signaux_faibles"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pilotage/impact",
+      "summary": "Tableau d'impact : indicateurs agrégés (dossiers actifs/clôturés, entretiens, CR, actions, progression, météo, répartition des signaux)",
+      "role": "accompagnateur",
+      "feature": "tableau_impact"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pilotage/digest",
+      "summary": "Aperçu du digest hebdomadaire (période, lignes par dossier, impact, résumé, HTML)",
+      "role": "accompagnateur",
+      "feature": "digest_email"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pilotage/digest/envoyer",
+      "summary": "Envoie par email à l'accompagnateur connecté le digest de la semaine",
+      "role": "accompagnateur",
+      "feature": "digest_email"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-PILOT-001",
+      "titre": "GET /pilotage/signaux — réponse nominale 200 et forme de la réponse",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur (Mohamed elafrit.mohamed@gmail.com), sans plan (accès à tout), avec au moins un dossier suivi",
+      "donnees": "Cookie de session accompagnateur valide",
+      "etapes": [
+        "GET /api/pilotage/signaux avec cookie accompagnateur"
+      ],
+      "attendu": "200 ; corps { signaux: [...] } ; chaque élément a dossier_id (number), prenom (string non vide), niveau ∈ {vert,orange,rouge}, raisons (array non vide de strings), signature (string de forme 'niveau|...')",
+      "technique": "Test du contrat",
+      "tracabilite": "signaux_faibles · GET /api/pilotage/signaux"
+    },
+    {
+      "id": "TC-PILOT-002",
+      "titre": "GET /pilotage/signaux — ne renvoie que les dossiers de l'accompagnateur connecté",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Deux accompagnateurs (Mohamed et Camille) ont chacun leurs dossiers",
+      "donnees": "Session de Camille (camille.laurent@boussole.demo)",
+      "etapes": [
+        "Se connecter en Camille",
+        "GET /api/pilotage/signaux",
+        "Vérifier les dossier_id retournés"
+      ],
+      "attendu": "200 ; seuls les dossiers dont accompagnateur_id = id de Camille sont présents (BASE_SQL filtre WHERE d.accompagnateur_id=?) ; aucun dossier de Mohamed",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "signaux_faibles · GET /api/pilotage/signaux"
+    },
+    {
+      "id": "TC-PILOT-003",
+      "titre": "GET /pilotage/signaux — 401 si non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session",
+      "donnees": "Aucun cookie boussole_token",
+      "etapes": [
+        "GET /api/pilotage/signaux sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth · GET /api/pilotage/signaux"
+    },
+    {
+      "id": "TC-PILOT-004",
+      "titre": "GET /pilotage/signaux — 401 si jeton invalide/expiré",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Cookie présent mais corrompu",
+      "donnees": "boussole_token = 'jeton.bidon.123'",
+      "etapes": [
+        "GET /api/pilotage/signaux avec cookie corrompu"
+      ],
+      "attendu": "401 ; { error: 'Session invalide' }",
+      "technique": "Partition d'équivalence (jeton invalide)",
+      "tracabilite": "requireAuth · GET /api/pilotage/signaux"
+    },
+    {
+      "id": "TC-PILOT-005",
+      "titre": "GET /pilotage/signaux — 403 si rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné (Amine afrit_mohamed@yahoo.fr)",
+      "donnees": "Session accompagné",
+      "etapes": [
+        "Se connecter en accompagné",
+        "GET /api/pilotage/signaux"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' } (requireRole('accompagnateur'))",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole · GET /api/pilotage/signaux"
+    },
+    {
+      "id": "TC-PILOT-006",
+      "titre": "GET /pilotage/signaux — 403 si rôle admin",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en admin (mohamed@elafrit.com)",
+      "donnees": "Session admin",
+      "etapes": [
+        "Se connecter en admin",
+        "GET /api/pilotage/signaux"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' } (le rôle admin n'est pas autorisé, seul 'accompagnateur')",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole · GET /api/pilotage/signaux"
+    },
+    {
+      "id": "TC-PILOT-007",
+      "titre": "GET /pilotage/signaux — 403 si offre sans la fonctionnalité signaux_faibles",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur affecté à un plan (ex. Découverte/Essentiel) ne contenant pas 'signaux_faibles'",
+      "donnees": "plan_id pointant vers un plan dont features n'inclut pas signaux_faibles",
+      "etapes": [
+        "Affecter à l'accompagnateur un plan sans signaux_faibles",
+        "GET /api/pilotage/signaux"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' } (requireFeature)",
+      "technique": "Table de décision (rôle OK × feature absente)",
+      "tracabilite": "requireFeature('signaux_faibles') · GET /api/pilotage/signaux"
+    },
+    {
+      "id": "TC-PILOT-008",
+      "titre": "GET /pilotage/signaux — accès OK avec plan Pro (signaux_faibles inclus)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur affecté au plan Pro (toutes features)",
+      "donnees": "plan_id = Pro",
+      "etapes": [
+        "Affecter le plan Pro à l'accompagnateur",
+        "GET /api/pilotage/signaux"
+      ],
+      "attendu": "200 ; corps { signaux: [...] }",
+      "technique": "Table de décision (rôle OK × feature présente)",
+      "tracabilite": "requireFeature('signaux_faibles') · GET /api/pilotage/signaux"
+    },
+    {
+      "id": "TC-PILOT-009",
+      "titre": "GET /pilotage/signaux — accompagnateur sans aucun dossier renvoie une liste vide",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur (rôle correct, accès feature) sans dossier suivi",
+      "donnees": "Compte accompagnateur fraîchement créé sans dossiers",
+      "etapes": [
+        "Se connecter avec un accompagnateur sans dossiers",
+        "GET /api/pilotage/signaux"
+      ],
+      "attendu": "200 ; { signaux: [] }",
+      "technique": "Valeurs limites (0 dossier)",
+      "tracabilite": "signaux_faibles · GET /api/pilotage/signaux"
+    },
+    {
+      "id": "TC-PILOT-010",
+      "titre": "Unitaire signauxDossier — dossier clôturé renvoie toujours vert 'Parcours clôturé'",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Fonction signauxDossier accessible en test (import direct du module pilotage)",
+      "donnees": "DossierRow avec statut='cloture' et toutes valeurs d'alerte fortes (actions_retard=5, inactif>30, etc.)",
+      "etapes": [
+        "Appeler signauxDossier(d) avec statut='cloture'"
+      ],
+      "attendu": "{ niveau:'vert', raisons:['Parcours clôturé'] } — court-circuit en début de fonction, aucune autre règle évaluée",
+      "technique": "Table de décision (règle prioritaire)",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-011",
+      "titre": "Unitaire signauxDossier — inactivité > 30 jours déclenche un rouge",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Pas de relevé météo (ou neutre)",
+      "donnees": "last_session/last_cr/last_journal null, cree_le il y a 40 jours, statut='actif'",
+      "etapes": [
+        "Appeler signauxDossier(d)"
+      ],
+      "attendu": "niveau='rouge' ; raisons contient 'Aucune activité depuis 40 jours' (inactif>30 → rouge)",
+      "technique": "Valeurs limites (seuil 30 jours)",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-012",
+      "titre": "Unitaire signauxDossier — valeurs limites du seuil d'inactivité (14 et 30)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Aucune autre règle déclenchée",
+      "donnees": "Cas A inactif=14j (limite basse), Cas B inactif=15j, Cas C inactif=30j, Cas D inactif=31j",
+      "etapes": [
+        "Appeler signauxDossier pour chaque cas en fixant la dernière activité"
+      ],
+      "attendu": "14j → ni orange ni rouge (vert) ; 15j → orange 'Activité en baisse (15 jours...)' ; 30j → orange ; 31j → rouge 'Aucune activité depuis 31 jours' (>14 et >30 stricts)",
+      "technique": "Valeurs limites",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-013",
+      "titre": "Unitaire signauxDossier — questionnaire non complété et âge > 7 jours → orange",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Aucune règle rouge active",
+      "donnees": "questionnaire_complete=null, cree_le il y a 10 jours, activité récente pour ne pas déclencher l'inactivité",
+      "etapes": [
+        "Appeler signauxDossier(d)"
+      ],
+      "attendu": "raisons contient 'Questionnaire initial non complété' ; niveau au moins orange",
+      "technique": "Valeurs limites (seuil 7 jours)",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-014",
+      "titre": "Unitaire signauxDossier — questionnaire non complété mais âge ≤ 7 jours → pas d'alerte",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Aucune autre règle active",
+      "donnees": "questionnaire_complete=null, cree_le il y a 5 jours, activité récente",
+      "etapes": [
+        "Appeler signauxDossier(d)"
+      ],
+      "attendu": "La raison 'Questionnaire initial non complété' n'apparaît pas (ageCreation>7 strict) ; niveau='vert' avec raisons ['Parcours en bonne santé']",
+      "technique": "Valeurs limites (juste sous le seuil 7)",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-015",
+      "titre": "Unitaire signauxDossier — partition du nombre d'actions en retard (0 / 1-2 / ≥3)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Aucune règle d'inactivité active",
+      "donnees": "Cas A actions_retard=0, Cas B=1, Cas C=2, Cas D=3",
+      "etapes": [
+        "Appeler signauxDossier pour chaque valeur"
+      ],
+      "attendu": "0 → pas de raison action ; 1 → orange '1 action en retard' (singulier) ; 2 → orange '2 actions en retard' (pluriel) ; 3 → rouge '3 actions en retard'",
+      "technique": "Partition d'équivalence + valeurs limites + accord singulier/pluriel",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-016",
+      "titre": "Unitaire signauxDossier — demande de RDV en attente → orange",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Aucune règle rouge active",
+      "donnees": "demandes_rdv=1, reste neutre",
+      "etapes": [
+        "Appeler signauxDossier(d)"
+      ],
+      "attendu": "raisons contient 'Demande de rendez-vous en attente' ; niveau='orange'",
+      "technique": "Partition d'équivalence",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-017",
+      "titre": "Unitaire signauxDossier — aucun RDV planifié après dernier entretien > 14 jours → orange",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "nb_sessions>0, rdv_avenir=0",
+      "donnees": "nb_sessions=2, rdv_avenir=0, last_session il y a 20 jours (mais autre activité récente pour ne pas déclencher l'inactivité globale)",
+      "etapes": [
+        "Appeler signauxDossier(d)"
+      ],
+      "attendu": "raisons contient 'Aucun rendez-vous planifié' ; condition (nb_sessions>0 && rdv_avenir===0 && joursDernierEntretien>14)",
+      "technique": "Table de décision (3 conditions combinées)",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-018",
+      "titre": "Unitaire signauxDossier — météo au plus bas (niveau ≤ 2) → orange avec mot cité",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Table meteo_humeur avec un relevé récent role='accompagne'",
+      "donnees": "Dernier relevé niveau=2, mot='fatigué'",
+      "etapes": [
+        "Insérer le relevé météo",
+        "Appeler signauxDossier(d)"
+      ],
+      "attendu": "raisons contient 'Météo au plus bas (« fatigué »)' ; niveau='orange'",
+      "technique": "Valeurs limites (seuil météo ≤ 2)",
+      "tracabilite": "signaux_faibles · signauxDossier() (requête meteo_humeur)"
+    },
+    {
+      "id": "TC-PILOT-019",
+      "titre": "Unitaire signauxDossier — tendance météo à la baisse (delta ≥ 2 entre 2 derniers relevés) → 'Moral en baisse'",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Deux relevés météo, le dernier en premier (ORDER BY cree_le DESC LIMIT 2)",
+      "donnees": "meteo[0].niveau=3 (récent), meteo[1].niveau=5 (précédent) → 5-3=2",
+      "etapes": [
+        "Insérer 2 relevés météo",
+        "Appeler signauxDossier(d)"
+      ],
+      "attendu": "raisons contient 'Moral en baisse' (branche else-if : meteo[0].niveau>2 mais meteo[1]-meteo[0]>=2) ; niveau='orange'",
+      "technique": "Valeurs limites (delta ≥ 2)",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-020",
+      "titre": "Unitaire signauxDossier — dossier sain → vert avec raison 'Parcours en bonne santé'",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Aucune règle déclenchée",
+      "donnees": "statut='actif', activité récente (<14j), questionnaire complété, 0 action en retard, 0 demande RDV, RDV à venir, météo haute",
+      "etapes": [
+        "Appeler signauxDossier(d)"
+      ],
+      "attendu": "{ niveau:'vert', raisons:['Parcours en bonne santé'] }",
+      "technique": "Partition d'équivalence (classe nominale)",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-021",
+      "titre": "Unitaire signauxDossier — niveau rouge agrège rouges PUIS oranges dans raisons",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Au moins une cause rouge et une cause orange simultanées",
+      "donnees": "actions_retard=3 (rouge) + demandes_rdv=1 (orange)",
+      "etapes": [
+        "Appeler signauxDossier(d)"
+      ],
+      "attendu": "niveau='rouge' ; raisons = [...rouges, ...oranges] : '3 actions en retard' avant 'Demande de rendez-vous en attente'",
+      "technique": "Table de décision (priorité + ordre de concaténation)",
+      "tracabilite": "signaux_faibles · signauxDossier()"
+    },
+    {
+      "id": "TC-PILOT-022",
+      "titre": "Unitaire joursDepuis — robustesse (null, date invalide, date valide)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Fonction joursDepuis testable",
+      "donnees": "Cas A null, Cas B 'pas-une-date', Cas C une date ISO il y a ~5 jours, Cas D format 'YYYY-MM-DD HH:MM:SS' (espace)",
+      "etapes": [
+        "Appeler joursDepuis pour chaque entrée"
+      ],
+      "attendu": "null → null ; date invalide → null (Number.isNaN) ; date valide → entier ≈5 ; format avec espace converti en T et parsé correctement",
+      "technique": "Partition d'équivalence + cas limites de parsing",
+      "tracabilite": "signaux_faibles · joursDepuis()"
+    },
+    {
+      "id": "TC-PILOT-023",
+      "titre": "Unitaire computeSignaux — signature stable et triée pour la déduplication",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Un dossier avec plusieurs raisons",
+      "donnees": "Dossier produisant niveau='orange' avec raisons multiples",
+      "etapes": [
+        "Appeler computeSignaux(accId)",
+        "Inspecter signature"
+      ],
+      "attendu": "signature = 'niveau|raisons triées jointes par ;' ; déterministe et indépendante de l'ordre d'insertion des raisons (sort())",
+      "technique": "Test du contrat (idempotence de la signature)",
+      "tracabilite": "signaux_faibles · computeSignaux()"
+    },
+    {
+      "id": "TC-PILOT-024",
+      "titre": "Unitaire computeSignaux — prenom retombe sur l'email si prenom null",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagné sans prénom",
+      "donnees": "DossierRow prenom=null, email='lea.martin@boussole.demo'",
+      "etapes": [
+        "Appeler computeSignaux(accId)"
+      ],
+      "attendu": "signal.prenom === email de l'accompagné (fallback d.prenom || d.email)",
+      "technique": "Partition d'équivalence (valeur nulle)",
+      "tracabilite": "signaux_faibles · computeSignaux()"
+    },
+    {
+      "id": "TC-PILOT-025",
+      "titre": "GET /pilotage/impact — réponse nominale 200 et contrat des indicateurs",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur connecté, accès tableau_impact, dossiers suivis",
+      "donnees": "Session accompagnateur (sans plan)",
+      "etapes": [
+        "GET /api/pilotage/impact"
+      ],
+      "attendu": "200 ; corps contient dossiers_actifs, dossiers_clotures, entretiens_total, cr_publies, syntheses_publiees, actions_total, actions_faites, taux_actions, progression_moyenne (tous number), meteo_evolution (number|null), signaux {vert,orange,rouge} (number)",
+      "technique": "Test du contrat",
+      "tracabilite": "tableau_impact · GET /api/pilotage/impact"
+    },
+    {
+      "id": "TC-PILOT-026",
+      "titre": "GET /pilotage/impact — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session",
+      "donnees": "Aucun cookie",
+      "etapes": [
+        "GET /api/pilotage/impact sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth · GET /api/pilotage/impact"
+    },
+    {
+      "id": "TC-PILOT-027",
+      "titre": "GET /pilotage/impact — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné",
+      "donnees": "Session Amine afrit_mohamed@yahoo.fr",
+      "etapes": [
+        "GET /api/pilotage/impact"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole · GET /api/pilotage/impact"
+    },
+    {
+      "id": "TC-PILOT-028",
+      "titre": "GET /pilotage/impact — 403 si offre sans tableau_impact",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur sur plan sans 'tableau_impact'",
+      "donnees": "plan_id sans tableau_impact",
+      "etapes": [
+        "Affecter le plan restreint",
+        "GET /api/pilotage/impact"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' }",
+      "technique": "Table de décision (rôle OK × feature absente)",
+      "tracabilite": "requireFeature('tableau_impact') · GET /api/pilotage/impact"
+    },
+    {
+      "id": "TC-PILOT-029",
+      "titre": "GET /pilotage/impact — agrégats restreints aux dossiers de l'accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Deux accompagnateurs avec dossiers distincts",
+      "donnees": "Session Camille",
+      "etapes": [
+        "GET /api/pilotage/impact en Camille",
+        "Comparer aux dossiers d'un autre accompagnateur"
+      ],
+      "attendu": "200 ; les totaux ne comptent que les dossiers accompagnateur_id=Camille ; aucun chevauchement avec Mohamed",
+      "technique": "Test basé sur les rôles (isolation des données)",
+      "tracabilite": "tableau_impact · GET /api/pilotage/impact"
+    },
+    {
+      "id": "TC-PILOT-030",
+      "titre": "Unitaire computeImpact — taux_actions = 0 quand actions_total = 0 (pas de division par zéro)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Dossiers sans aucune action",
+      "donnees": "Tous dossiers actions_total=0",
+      "etapes": [
+        "Appeler computeImpact(accId)"
+      ],
+      "attendu": "taux_actions=0 (garde actionsTotal ? ... : 0) ; pas de NaN",
+      "technique": "Valeurs limites (dénominateur nul)",
+      "tracabilite": "tableau_impact · computeImpact()"
+    },
+    {
+      "id": "TC-PILOT-031",
+      "titre": "Unitaire computeImpact — taux_actions calculé et arrondi",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossiers avec actions",
+      "donnees": "actions_total cumulé=8, actions_faites cumulé=3 → 37.5%",
+      "etapes": [
+        "Appeler computeImpact(accId)"
+      ],
+      "attendu": "taux_actions = Math.round(3/8*100) = 38",
+      "technique": "Valeurs limites (arrondi)",
+      "tracabilite": "tableau_impact · computeImpact()"
+    },
+    {
+      "id": "TC-PILOT-032",
+      "titre": "Unitaire computeImpact — progression_moyenne basée sur phase_max des dossiers actifs uniquement",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Mix de dossiers actifs/clôturés",
+      "donnees": "2 actifs phase_max=2 et 5 ((2+1)/6 et (5+1)/6) ; 1 clôturé ignoré",
+      "etapes": [
+        "Appeler computeImpact(accId)"
+      ],
+      "attendu": "progressions calculées sur les actifs seulement ; phase_max null → 0 ; progression_moyenne = round(moyenne*100)",
+      "technique": "Partition d'équivalence (actif vs clôturé, phase null)",
+      "tracabilite": "tableau_impact · computeImpact()"
+    },
+    {
+      "id": "TC-PILOT-033",
+      "titre": "Unitaire computeImpact — progression_moyenne = 0 quand aucun dossier actif",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Tous les dossiers clôturés",
+      "donnees": "actifs = []",
+      "etapes": [
+        "Appeler computeImpact(accId)"
+      ],
+      "attendu": "progression_moyenne=0 (progressions.length ? ... : 0) ; dossiers_actifs=0 ; dossiers_clotures = nombre total",
+      "technique": "Valeurs limites (0 dossier actif)",
+      "tracabilite": "tableau_impact · computeImpact()"
+    },
+    {
+      "id": "TC-PILOT-034",
+      "titre": "Unitaire computeImpact — meteo_evolution null si aucun dossier n'a ≥ 2 relevés",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Relevés météo absents ou ≤ 1 par dossier",
+      "donnees": "Chaque dossier a 0 ou 1 relevé météo accompagné",
+      "etapes": [
+        "Appeler computeImpact(accId)"
+      ],
+      "attendu": "meteo_evolution = null (nDeltas=0)",
+      "technique": "Valeurs limites (pas de delta calculable)",
+      "tracabilite": "tableau_impact · computeImpact()"
+    },
+    {
+      "id": "TC-PILOT-035",
+      "titre": "Unitaire computeImpact — meteo_evolution = moyenne des (dernier - premier) arrondie au dixième",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Au moins un dossier avec ≥ 2 relevés (ORDER BY cree_le ASC)",
+      "donnees": "Dossier A : premier=2, dernier=4 → +2 ; Dossier B : premier=3, dernier=3 → 0 ; moyenne=1.0",
+      "etapes": [
+        "Insérer les relevés",
+        "Appeler computeImpact(accId)"
+      ],
+      "attendu": "meteo_evolution = Math.round((deltas/nDeltas)*10)/10 = 1 ; signe positif possible",
+      "technique": "Valeurs limites (arrondi au dixième, delta négatif/positif)",
+      "tracabilite": "tableau_impact · computeImpact()"
+    },
+    {
+      "id": "TC-PILOT-036",
+      "titre": "Unitaire computeImpact — répartition des signaux cohérente avec computeSignaux",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossiers de niveaux mixtes",
+      "donnees": "Dossiers produisant 1 vert, 1 orange, 1 rouge",
+      "etapes": [
+        "Appeler computeImpact(accId)"
+      ],
+      "attendu": "signaux = {vert:1, orange:1, rouge:1} ; somme = nombre total de dossiers (clôturés inclus, comptés vert)",
+      "technique": "Test du contrat (cohérence d'agrégat)",
+      "tracabilite": "tableau_impact · computeImpact()"
+    },
+    {
+      "id": "TC-PILOT-037",
+      "titre": "GET /pilotage/digest — réponse nominale 200 et contrat de l'aperçu",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur connecté, accès digest_email",
+      "donnees": "Session accompagnateur",
+      "etapes": [
+        "GET /api/pilotage/digest"
+      ],
+      "attendu": "200 ; corps { periode:'7 derniers jours', lignes:[...], impact:{...}, resume:{alertes, actifs}, html:string non vide } ; chaque ligne a dossier_id, prenom, niveau, cr_semaine, meteo_semaine, journal_semaine, actions_retard, rdv_7j",
+      "technique": "Test du contrat",
+      "tracabilite": "digest_email · GET /api/pilotage/digest"
+    },
+    {
+      "id": "TC-PILOT-038",
+      "titre": "GET /pilotage/digest — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session",
+      "donnees": "Aucun cookie",
+      "etapes": [
+        "GET /api/pilotage/digest sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth · GET /api/pilotage/digest"
+    },
+    {
+      "id": "TC-PILOT-039",
+      "titre": "GET /pilotage/digest — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné",
+      "donnees": "Session Léa lea.martin@boussole.demo",
+      "etapes": [
+        "GET /api/pilotage/digest"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole · GET /api/pilotage/digest"
+    },
+    {
+      "id": "TC-PILOT-040",
+      "titre": "GET /pilotage/digest — 403 si offre sans digest_email",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur sur plan sans 'digest_email'",
+      "donnees": "plan_id sans digest_email",
+      "etapes": [
+        "Affecter le plan restreint",
+        "GET /api/pilotage/digest"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' }",
+      "technique": "Table de décision (rôle OK × feature absente)",
+      "tracabilite": "requireFeature('digest_email') · GET /api/pilotage/digest"
+    },
+    {
+      "id": "TC-PILOT-041",
+      "titre": "Unitaire buildDigest — fenêtre 7 jours pour CR/météo/journal/RDV",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Données réparties autour de la limite des 7 jours",
+      "donnees": "CR publié il y a 3j (compté) et il y a 10j (exclu) ; journal partagé (partage=1) <7j ; RDV dans 5j (compté) et dans 9j (exclu)",
+      "etapes": [
+        "Appeler buildDigest(accId)",
+        "Inspecter la ligne du dossier"
+      ],
+      "attendu": "cr_semaine ne compte que les CR publie=1 ET publie_le >= -7 days ; journal_semaine ne compte que partage=1 ; rdv_7j ne compte que c.debut entre now et +7 days",
+      "technique": "Valeurs limites (fenêtre temporelle)",
+      "tracabilite": "digest_email · buildDigest()"
+    },
+    {
+      "id": "TC-PILOT-042",
+      "titre": "Unitaire buildDigest — section 'Points de vigilance' présente quand au moins une alerte (niveau ≠ vert)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Au moins un dossier orange/rouge",
+      "donnees": "1 dossier rouge avec actions_retard=2",
+      "etapes": [
+        "Appeler buildDigest(accId)",
+        "Inspecter html et resume.alertes"
+      ],
+      "attendu": "html contient '<h4>Points de vigilance</h4>' et une ligne avec l'emoji du niveau et '2 action(s) en retard' ; resume.alertes >= 1",
+      "technique": "Table de décision (présence/absence d'alerte)",
+      "tracabilite": "digest_email · buildDigest()"
+    },
+    {
+      "id": "TC-PILOT-043",
+      "titre": "Unitaire buildDigest — message 'Aucun signal' quand tous les dossiers sont verts",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Tous les dossiers verts",
+      "donnees": "Dossiers sains uniquement",
+      "etapes": [
+        "Appeler buildDigest(accId)"
+      ],
+      "attendu": "html contient '✅ Aucun signal de décrochage cette semaine.' ; resume.alertes=0",
+      "technique": "Partition d'équivalence (0 alerte)",
+      "tracabilite": "digest_email · buildDigest()"
+    },
+    {
+      "id": "TC-PILOT-044",
+      "titre": "Unitaire buildDigest — message 'Aucune nouvelle activité' quand aucune activité sur 7j",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Aucune activité récente, aucune action en retard",
+      "donnees": "cr_semaine=meteo_semaine=journal_semaine=rdv_7j=0 et actions_retard=0 pour tous",
+      "etapes": [
+        "Appeler buildDigest(accId)"
+      ],
+      "attendu": "html contient 'Aucune nouvelle activité des accompagnés cette semaine.' (actives.length=0)",
+      "technique": "Valeurs limites (aucune activité)",
+      "tracabilite": "digest_email · buildDigest()"
+    },
+    {
+      "id": "TC-PILOT-045",
+      "titre": "Unitaire esc — échappement HTML du prénom (anti-injection dans le digest)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Fonction esc testable ; prénom contenant des caractères spéciaux",
+      "donnees": "prenom = '<script>&\"x'",
+      "etapes": [
+        "Appeler buildDigest avec un accompagné dont le prénom contient des balises",
+        "Inspecter html"
+      ],
+      "attendu": "Le prénom est échappé : < → &lt; , > → &gt; , & → &amp; , \" → &quot; ; aucune balise <script> brute dans le HTML",
+      "technique": "Test du contrat (sanitization) + sécurité XSS",
+      "tracabilite": "digest_email · esc() · buildDigest()"
+    },
+    {
+      "id": "TC-PILOT-046",
+      "titre": "Unitaire buildDigest — en-tête reprend les indicateurs d'impact",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "computeImpact retourne des valeurs connues",
+      "donnees": "impact.dossiers_actifs=2, taux_actions=50, progression_moyenne=33",
+      "etapes": [
+        "Appeler buildDigest(accId)",
+        "Inspecter html"
+      ],
+      "attendu": "html contient '2' parcours actifs, '50%' d'actions réalisées et 'progression moyenne 33%'",
+      "technique": "Test du contrat (cohérence digest ↔ impact)",
+      "tracabilite": "digest_email · buildDigest()"
+    },
+    {
+      "id": "TC-PILOT-047",
+      "titre": "POST /pilotage/digest/envoyer — envoi nominal 200 { ok:true, envoye_a }",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur connecté, accès digest_email ; mailer disponible (SMTP dev/maildev)",
+      "donnees": "Session accompagnateur (email connu)",
+      "etapes": [
+        "POST /api/pilotage/digest/envoyer"
+      ],
+      "attendu": "200 ; { ok:true, envoye_a:<email de l'accompagnateur connecté> } ; un email 'Boussole — Votre digest de la semaine' est émis vers cet email",
+      "technique": "Test du contrat",
+      "tracabilite": "digest_email · POST /api/pilotage/digest/envoyer"
+    },
+    {
+      "id": "TC-PILOT-048",
+      "titre": "POST /pilotage/digest/envoyer — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session",
+      "donnees": "Aucun cookie",
+      "etapes": [
+        "POST /api/pilotage/digest/envoyer sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' } ; aucun email envoyé",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth · POST /api/pilotage/digest/envoyer"
+    },
+    {
+      "id": "TC-PILOT-049",
+      "titre": "POST /pilotage/digest/envoyer — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné",
+      "donnees": "Session Karim karim.benali@boussole.demo",
+      "etapes": [
+        "POST /api/pilotage/digest/envoyer"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' } ; aucun email envoyé",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole · POST /api/pilotage/digest/envoyer"
+    },
+    {
+      "id": "TC-PILOT-050",
+      "titre": "POST /pilotage/digest/envoyer — 403 si offre sans digest_email",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur sur plan sans 'digest_email'",
+      "donnees": "plan_id sans digest_email",
+      "etapes": [
+        "Affecter le plan restreint",
+        "POST /api/pilotage/digest/envoyer"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' } ; aucun email envoyé",
+      "technique": "Table de décision (rôle OK × feature absente)",
+      "tracabilite": "requireFeature('digest_email') · POST /api/pilotage/digest/envoyer"
+    },
+    {
+      "id": "TC-PILOT-051",
+      "titre": "POST /pilotage/digest/envoyer — envoie au PROPRE email, pas à celui d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Deux accompagnateurs distincts",
+      "donnees": "Session Camille",
+      "etapes": [
+        "POST /api/pilotage/digest/envoyer en Camille"
+      ],
+      "attendu": "envoye_a = email de Camille (SELECT email WHERE id = me.id) ; jamais l'email de Mohamed",
+      "technique": "Test basé sur les rôles (isolation destinataire)",
+      "tracabilite": "digest_email · POST /api/pilotage/digest/envoyer"
+    },
+    {
+      "id": "TC-PILOT-052",
+      "titre": "UI Signaux faibles — voyant coloré et raisons sur les cartes du tableau de bord",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur (Mohamed) connecté avec feature signaux_faibles, au moins un dossier orange/rouge",
+      "donnees": "Compte démo Mohamed (mdp BoussoleDemo2026)",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Ouvrir /tableau-de-bord",
+        "Observer la pastille colorée à côté du nom d'un accompagné",
+        "Survoler la pastille (title) et lire la première raison sous le nom"
+      ],
+      "attendu": "Une pastille de couleur (vert/orange/rouge) s'affiche par dossier ; pour orange/rouge la 1re raison est visible ; aria-label et title listent les raisons",
+      "technique": "Test bout-en-bout basé sur le rôle",
+      "tracabilite": "signaux_faibles · Dashboard.tsx (GET /api/pilotage/signaux)"
+    },
+    {
+      "id": "TC-PILOT-053",
+      "titre": "UI Signaux faibles — pastilles masquées quand la feature est absente",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sur un plan sans signaux_faibles",
+      "donnees": "Plan Découverte/Essentiel sans signaux_faibles",
+      "etapes": [
+        "Se connecter",
+        "Ouvrir /tableau-de-bord",
+        "Observer les cartes des dossiers"
+      ],
+      "attendu": "Aucune pastille de signal n'est affichée (useFeature('signaux_faibles') faux ; l'appel /pilotage/signaux n'est pas déclenché)",
+      "technique": "Test bout-en-bout (gating UI)",
+      "tracabilite": "signaux_faibles · Dashboard.tsx"
+    },
+    {
+      "id": "TC-PILOT-054",
+      "titre": "UI Tableau d'impact — tuiles d'indicateurs affichées",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur connecté avec feature tableau_impact",
+      "donnees": "Compte démo Mohamed",
+      "etapes": [
+        "Ouvrir /tableau-de-bord",
+        "Repérer la section '📊 Tableau d’impact'",
+        "Lire les tuiles"
+      ],
+      "attendu": "Section visible avec tuiles : Parcours actifs, Progression moyenne %, Actions réalisées %, Entretiens menés, Comptes rendus publiés, Évolution météo (— si null), et la répartition 🟢🟠🔴 + clôturés/synthèses",
+      "technique": "Test bout-en-bout basé sur le rôle",
+      "tracabilite": "tableau_impact · PilotageBoard.tsx (GET /api/pilotage/impact)"
+    },
+    {
+      "id": "TC-PILOT-055",
+      "titre": "UI Digest — aperçu et envoi du digest hebdomadaire",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur connecté avec feature digest_email",
+      "donnees": "Compte démo Mohamed",
+      "etapes": [
+        "Ouvrir /tableau-de-bord",
+        "Section '✉️ Digest hebdomadaire'",
+        "Cliquer 'Aperçu' pour afficher le HTML",
+        "Cliquer 'M’envoyer le digest'"
+      ],
+      "attendu": "Le bouton Aperçu affiche/masque le contenu HTML du digest ; après envoi, message 'Digest envoyé à <email> ✓' ; le bouton est désactivé pendant l'envoi (busy)",
+      "technique": "Test bout-en-bout basé sur le rôle",
+      "tracabilite": "digest_email · PilotageBoard.tsx (GET /api/pilotage/digest, POST /api/pilotage/digest/envoyer)"
+    },
+    {
+      "id": "TC-PILOT-056",
+      "titre": "UI Pilotage — section entièrement masquée si ni tableau_impact ni digest_email",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sur un plan sans tableau_impact ni digest_email",
+      "donnees": "Plan restreint",
+      "etapes": [
+        "Ouvrir /tableau-de-bord",
+        "Chercher les sections impact et digest"
+      ],
+      "attendu": "PilotageBoard ne rend rien (if !impactActif && !digestActif return null) ; aucune section impact/digest affichée",
+      "technique": "Test bout-en-bout (gating UI combiné)",
+      "tracabilite": "tableau_impact + digest_email · PilotageBoard.tsx"
+    },
+    {
+      "id": "TC-PILOT-057",
+      "titre": "Non-régression — accès pilotage inchangé pour un accompagnateur sans plan (accès à tout)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sans plan_id (userFeatures renvoie ALL_FEATURE_KEYS)",
+      "donnees": "Compte démo Mohamed (sans plan)",
+      "etapes": [
+        "GET /api/pilotage/signaux",
+        "GET /api/pilotage/impact",
+        "GET /api/pilotage/digest",
+        "POST /api/pilotage/digest/envoyer"
+      ],
+      "attendu": "Les 4 endpoints répondent 200 (aucun plan → toutes features activées)",
+      "technique": "Test du contrat (configuration par défaut)",
+      "tracabilite": "features.userFeatures · GET/POST /api/pilotage/*"
+    },
+    {
+      "id": "TC-PILOT-058",
+      "titre": "Unitaire sweepSignauxAlertes — déduplication par signature et gating signaux_faibles",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Table signaux_etat et notifications accessibles ; au moins un accompagnateur avec feature signaux_faibles",
+      "donnees": "Un dossier passant de vert à rouge, puis sweep relancé sans changement",
+      "etapes": [
+        "Appeler sweepSignauxAlertes() une 1re fois (montée vert→rouge)",
+        "Relancer sweepSignauxAlertes() sans changement d'état"
+      ],
+      "attendu": "1er passage : upsert signaux_etat + 1 notification insérée (montée) ; 2e passage : prev.signature === s.signature → aucune nouvelle notification ; accompagnateur sans 'signaux_faibles' ignoré (continue)",
+      "technique": "Table de décision (changement d'état × gating)",
+      "tracabilite": "signaux_faibles · sweepSignauxAlertes()"
+    },
+    {
+      "id": "TC-PILOT-059",
+      "titre": "Unitaire sweepDigestsHebdo — désactivé par défaut et un envoi par semaine ISO",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Fonction sweepDigestsHebdo testable ; contrôle de DIGEST_CRON et de l'heure",
+      "donnees": "Cas A DIGEST_CRON non défini ; Cas B DIGEST_CRON=1 un lundi 08h avec digest_envois déjà présent pour la semaine",
+      "etapes": [
+        "Appeler sweepDigestsHebdo() sans DIGEST_CRON",
+        "Appeler avec DIGEST_CRON=1 hors lundi 08h",
+        "Appeler lundi 08h avec envoi déjà enregistré"
+      ],
+      "attendu": "Sans DIGEST_CRON ou hors lundi 08h → retour immédiat, aucun email ; lundi 08h mais déjà envoyé (digest_envois) → skip (continue) ; gating digest_email respecté",
+      "technique": "Table de décision (cron × créneau × idempotence)",
+      "tracabilite": "digest_email · sweepDigestsHebdo()"
+    }
+  ]
+}

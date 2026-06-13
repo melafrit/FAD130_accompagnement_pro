@@ -1,0 +1,966 @@
+{
+  "domaine": "ui_admin",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/admin/users",
+      "role": "admin",
+      "summary": "Liste de tous les comptes avec plan eventuel (alimente le tableau de gestion des comptes)",
+      "feature": "—"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/users",
+      "role": "admin",
+      "summary": "Creer un compte (email + role) et envoyer un lien d activation",
+      "feature": "—"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/users/:id",
+      "role": "admin",
+      "summary": "Modifier actif / role / plan_id d un compte (selects et bouton Activer-Desactiver)",
+      "feature": "—"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/lien",
+      "role": "admin",
+      "summary": "Rattacher un accompagne a un accompagnateur",
+      "feature": "—"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/features",
+      "role": "admin",
+      "summary": "Registre des fonctionnalites activables (cases par categorie du PlansManager)",
+      "feature": "—"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/plans",
+      "role": "admin",
+      "summary": "Liste des plans avec nb_users et features sanitises",
+      "feature": "—"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/plans",
+      "role": "admin",
+      "summary": "Creer un plan (bouton + Nouveau plan)",
+      "feature": "—"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/plans/:id",
+      "role": "admin",
+      "summary": "Enregistrer nom / description / features d un plan",
+      "feature": "—"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/plans/:id/duplication",
+      "role": "admin",
+      "summary": "Dupliquer un plan (suffixe (copie))",
+      "feature": "—"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/plans/:id",
+      "role": "admin",
+      "summary": "Supprimer un plan (les users rattaches repassent au niveau max)",
+      "feature": "—"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/effacements",
+      "role": "admin",
+      "summary": "Demandes d effacement en attente (console RGPD)",
+      "feature": "transparence"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/effacements/:id",
+      "role": "admin",
+      "summary": "Traiter une demande : anonymiser ou supprimer",
+      "feature": "transparence"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/rgpd/:userId",
+      "role": "admin",
+      "summary": "Action RGPD directe (hors demande) sur un compte : anonymiser ou supprimer",
+      "feature": "transparence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/retention",
+      "role": "admin",
+      "summary": "Politique de retention : comptes eligibles a l anonymisation",
+      "feature": "transparence"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/retention/appliquer",
+      "role": "admin",
+      "summary": "Appliquer la retention maintenant (anonymise les comptes eligibles)",
+      "feature": "transparence"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-UI-300",
+      "titre": "Acces a /admin en tant qu admin : la page Gestion des comptes s affiche",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecte en admin (mohamed@elafrit.com / BoussoleDemo2026)",
+      "donnees": "URL http://localhost:8080/admin",
+      "etapes": [
+        "Se connecter avec le compte admin",
+        "Naviguer vers /admin",
+        "Observer le titre, le tableau des comptes, les cartes de creation, le PlansManager et la console RGPD"
+      ],
+      "attendu": "Le titre 'Gestion des comptes' s affiche ; le tableau liste les comptes (colonnes Email, Nom, Role, Abonnement, Valide, Statut) ; les sections 'Plans d abonnement' et 'Confidentialite & RGPD' sont presentes.",
+      "technique": "test du contrat (forme de page), test base sur les roles",
+      "tracabilite": "GET /admin/users + page Admin.tsx"
+    },
+    {
+      "id": "TC-UI-301",
+      "titre": "Acces a /admin en anonyme : redirection vers /connexion",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session active (deconnecte)",
+      "donnees": "URL /admin",
+      "etapes": [
+        "S assurer d etre deconnecte",
+        "Saisir directement l URL /admin dans le navigateur"
+      ],
+      "attendu": "Redirection vers /connexion (Protected sans user -> Navigate to /connexion) ; la page Admin n est jamais rendue.",
+      "technique": "test base sur les roles (role anonyme)",
+      "tracabilite": "Protected.tsx (route /admin) + GET /admin/users -> 401"
+    },
+    {
+      "id": "TC-UI-302",
+      "titre": "Acces a /admin en accompagnateur : redirection vers /espace",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecte en accompagnateur (camille.laurent@boussole.demo)",
+      "donnees": "URL /admin",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Saisir directement l URL /admin"
+      ],
+      "attendu": "Redirection vers /espace (Protected role='admin' avec role different) ; la console admin n est pas affichee.",
+      "technique": "test base sur les roles (mauvais role)",
+      "tracabilite": "Protected.tsx (role='admin') + GET /admin/users -> 403"
+    },
+    {
+      "id": "TC-UI-303",
+      "titre": "Acces a /admin en accompagne : redirection vers /espace",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecte en accompagne (afrit_mohamed@yahoo.fr)",
+      "donnees": "URL /admin",
+      "etapes": [
+        "Se connecter en accompagne",
+        "Saisir directement l URL /admin"
+      ],
+      "attendu": "Redirection vers /espace ; aucun appel admin abouti.",
+      "technique": "test base sur les roles (mauvais role)",
+      "tracabilite": "Protected.tsx (role='admin') + GET /admin/users -> 403"
+    },
+    {
+      "id": "TC-UI-304",
+      "titre": "Tableau des comptes : tri par date de creation descendante et colonnes peuplees",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte, plusieurs comptes seedes",
+      "donnees": "Jeu de demo (2 accompagnateurs, 3 accompagnes, 1 admin)",
+      "etapes": [
+        "Ouvrir /admin",
+        "Lire les lignes du tableau"
+      ],
+      "attendu": "Chaque ligne montre email, nom (prenom+nom ou '—'), un select de role positionne sur le role courant, un select d abonnement positionne sur le plan (ou 'Niveau max'), '✓' ou '—' pour Valide, et un bouton Desactiver/Activer ; ordre par cree_le DESC.",
+      "technique": "test du contrat (mapping reponse->tableau)",
+      "tracabilite": "GET /admin/users + Admin.tsx tbody"
+    },
+    {
+      "id": "TC-UI-305",
+      "titre": "Ligne inactive : style 'row-inactif' applique quand actif=0",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Admin connecte, au moins un compte desactive",
+      "donnees": "Un compte avec actif=0",
+      "etapes": [
+        "Desactiver un compte de test",
+        "Observer sa ligne dans le tableau"
+      ],
+      "attendu": "La ligne du compte desactive recoit la classe 'row-inactif' (style grise) et le bouton affiche 'Activer'.",
+      "technique": "partition d equivalence (actif=0 vs actif=1)",
+      "tracabilite": "Admin.tsx (className row-inactif) + PATCH /admin/users/:id"
+    },
+    {
+      "id": "TC-UI-306",
+      "titre": "Changer le role d un compte via le select : persistance apres rechargement",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte, un compte cible distinct de l admin",
+      "donnees": "Cible : lea.martin@boussole.demo ; nouveau role : accompagnateur",
+      "etapes": [
+        "Ouvrir /admin",
+        "Sur la ligne de la cible, choisir 'Accompagnateur' dans le select Role",
+        "Attendre le rechargement du tableau (load())",
+        "Rafraichir la page"
+      ],
+      "attendu": "Le PATCH part avec {role:'accompagnateur'} ; apres reload le select reste sur Accompagnateur ; le changement persiste apres rafraichissement.",
+      "technique": "test du contrat + table de decision (champ role seul)",
+      "tracabilite": "PATCH /admin/users/:id {role} + Admin.tsx setRole"
+    },
+    {
+      "id": "TC-UI-307",
+      "titre": "Affecter un plan d abonnement via le select Abonnement",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte, au moins un plan existant (ex. Essentiel)",
+      "donnees": "Cible : karim.benali@boussole.demo ; plan : Essentiel",
+      "etapes": [
+        "Ouvrir /admin",
+        "Sur la ligne cible, selectionner 'Essentiel' dans le select Abonnement",
+        "Observer la colonne apres reload"
+      ],
+      "attendu": "PATCH {plan_id:<id Essentiel>} ; apres reload la colonne Abonnement affiche Essentiel ; le compte voit desormais ses fonctionnalites filtrees.",
+      "technique": "test du contrat (jointure plan)",
+      "tracabilite": "PATCH /admin/users/:id {plan_id} + Admin.tsx setPlan"
+    },
+    {
+      "id": "TC-UI-308",
+      "titre": "Retirer le plan (Niveau max) : plan_id repasse a NULL = acces a tout",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte, compte cible deja rattache a un plan",
+      "donnees": "Cible avec plan ; choix 'Niveau max' (valeur '')",
+      "etapes": [
+        "Sur la ligne cible (avec plan), choisir l option 'Niveau max'",
+        "Observer apres reload"
+      ],
+      "attendu": "setPlan envoie plan_id=null (planId==='' -> null) ; backend met plan_id=NULL ; colonne affiche 'Niveau max' ; userFeatures renvoie ALL_FEATURE_KEYS.",
+      "technique": "valeurs limites (valeur vide -> null)",
+      "tracabilite": "PATCH /admin/users/:id {plan_id:null} + features.userFeatures"
+    },
+    {
+      "id": "TC-UI-309",
+      "titre": "Activer / desactiver un compte via le bouton bascule",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte, compte cible actif distinct de l admin",
+      "donnees": "Cible : un accompagne actif",
+      "etapes": [
+        "Cliquer 'Desactiver' sur la ligne cible",
+        "Observer la bascule du libelle et le style de la ligne",
+        "Cliquer 'Activer' pour rebasculer"
+      ],
+      "attendu": "Premier clic : PATCH {actif:0}, libelle -> 'Activer', ligne grisee ; second clic : PATCH {actif:1}, retour a l etat actif. Un compte desactive ne peut plus se connecter (login 403).",
+      "technique": "test du contrat + table de decision (bascule)",
+      "tracabilite": "PATCH /admin/users/:id {actif} + Admin.tsx toggleActif"
+    },
+    {
+      "id": "TC-UI-310",
+      "titre": "Auto-modification interdite : modifier son propre compte admin renvoie une erreur",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin connecte (mohamed@elafrit.com)",
+      "donnees": "Ligne de l admin lui-meme",
+      "etapes": [
+        "Sur la ligne correspondant a l admin connecte, tenter de changer son role ou cliquer Desactiver"
+      ],
+      "attendu": "Le backend renvoie 400 'Vous ne pouvez pas modifier votre propre compte administrateur' ; le changement n est pas applique (apres reload, l etat est inchange).",
+      "technique": "table de decision (id == meId)",
+      "tracabilite": "PATCH /admin/users/:id (garde id===meId) + Admin.tsx"
+    },
+    {
+      "id": "TC-UI-311",
+      "titre": "Creer un compte : email + role valides -> message de succes et ligne ajoutee",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte",
+      "donnees": "email=nouveau.test+TC311@boussole.demo, prenom=Test, nom=Compte, role=Accompagne",
+      "etapes": [
+        "Renseigner le formulaire 'Creer un compte'",
+        "Cliquer 'Creer et envoyer l activation'"
+      ],
+      "attendu": "POST /admin/users 201 ; message 'Compte cree, email d activation envoye.' ; le formulaire se reinitialise ; le tableau se recharge et contient le nouveau compte (email_verifie=1, sans mot de passe).",
+      "technique": "partition d equivalence (entree valide)",
+      "tracabilite": "POST /admin/users + Admin.tsx createUser"
+    },
+    {
+      "id": "TC-UI-312",
+      "titre": "Creer un compte : email vide bloque par la validation HTML5 (champ required)",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte",
+      "donnees": "email vide, role=Accompagne",
+      "etapes": [
+        "Laisser le champ Email vide",
+        "Cliquer 'Creer et envoyer l activation'"
+      ],
+      "attendu": "Le navigateur bloque la soumission (input type=email required) ; aucun appel reseau n est emis.",
+      "technique": "valeurs limites (champ obligatoire vide)",
+      "tracabilite": "Admin.tsx (input email required) "
+    },
+    {
+      "id": "TC-UI-313",
+      "titre": "Creer un compte : email deja utilise -> message d erreur 409 affiche",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin connecte ; l email cible existe deja",
+      "donnees": "email=afrit_mohamed@yahoo.fr (deja existant), role=Accompagne",
+      "etapes": [
+        "Saisir un email deja present en base",
+        "Soumettre le formulaire"
+      ],
+      "attendu": "POST /admin/users 409 ; le bloc msg affiche 'Email deja utilise' ; aucune nouvelle ligne ; le formulaire n est pas reinitialise.",
+      "technique": "partition d equivalence (doublon) ; test du contrat (409)",
+      "tracabilite": "POST /admin/users -> 409 + Admin.tsx catch(err)"
+    },
+    {
+      "id": "TC-UI-314",
+      "titre": "Rattacher un accompagne a un accompagnateur : succes",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte ; au moins un accompagnateur et un accompagne",
+      "donnees": "accompagnateur=camille.laurent@boussole.demo, accompagne=lea.martin@boussole.demo",
+      "etapes": [
+        "Dans la carte 'Rattacher un accompagne', selectionner l accompagnateur puis l accompagne",
+        "Cliquer 'Rattacher'"
+      ],
+      "attendu": "POST /admin/lien 200 ; message 'Rattachement effectue.' ; le lien est cree (INSERT OR IGNORE, idempotent si deja existant).",
+      "technique": "test du contrat (lien)",
+      "tracabilite": "POST /admin/lien + Admin.tsx createLien"
+    },
+    {
+      "id": "TC-UI-315",
+      "titre": "Rattacher : selection incomplete (accompagnateur ou accompagne manquant) -> erreur",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte",
+      "donnees": "accompagnateurId vide ('—') et/ou accompagneId vide",
+      "etapes": [
+        "Laisser un des deux selects sur '—'",
+        "Cliquer 'Rattacher'"
+      ],
+      "attendu": "Number('') -> NaN cote front ; backend renvoie 400 'Selection invalide (accompagnateur et accompagne requis)' ; le message d erreur s affiche.",
+      "technique": "table de decision (les deux ids requis)",
+      "tracabilite": "POST /admin/lien -> 400 + Admin.tsx createLien"
+    },
+    {
+      "id": "TC-UI-316",
+      "titre": "Gestionnaire de plans : creation d un plan via '+ Nouveau plan'",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte sur /admin",
+      "donnees": "Aucune (defaut nom='Nouveau plan', features=[])",
+      "etapes": [
+        "Dans la section 'Plans d abonnement', cliquer '+ Nouveau plan'",
+        "Observer la liste et l accordeon"
+      ],
+      "attendu": "POST /admin/plans 201 ; un plan 'Nouveau plan' apparait avec '0 fonctionnalite' et '0 utilisateur' ; l accordeon du nouveau plan s ouvre automatiquement (setOpen(d.id)).",
+      "technique": "test du contrat (creation)",
+      "tracabilite": "POST /admin/plans + PlansManager create()"
+    },
+    {
+      "id": "TC-UI-317",
+      "titre": "Plan : cocher/decocher une fonctionnalite individuelle puis Enregistrer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte, un plan ouvert (accordeon deplie)",
+      "donnees": "Feature 'audio' (categorie Visuel)",
+      "etapes": [
+        "Ouvrir un plan",
+        "Cocher la case 'Lecture audio (CR / synthese)'",
+        "Cliquer 'Enregistrer'",
+        "Recharger la page et rouvrir le plan"
+      ],
+      "attendu": "Le compteur de fonctionnalites augmente ; PATCH {features:[...,'audio']} ; message 'Plan ... enregistre.' ; apres reload la case reste cochee (persistance).",
+      "technique": "test du contrat (toggle feature)",
+      "tracabilite": "PATCH /admin/plans/:id {features} + PlansManager toggle/save"
+    },
+    {
+      "id": "TC-UI-318",
+      "titre": "Plan : 'Tout cocher' / 'Tout decocher' une categorie",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte, un plan ouvert",
+      "donnees": "Categorie 'IA & posture' (7 fonctionnalites)",
+      "etapes": [
+        "Ouvrir le plan",
+        "Dans la fieldset 'IA & posture', cliquer 'Tout cocher'",
+        "Verifier que les 7 cases sont cochees et le libelle bascule en 'Tout decocher'",
+        "Cliquer 'Tout decocher' puis Enregistrer"
+      ],
+      "attendu": "toggleCat ajoute/retire l ensemble des cles de la categorie ; le bouton bascule selon allOn ; apres Enregistrer + reload l etat est conforme.",
+      "technique": "table de decision (allOn -> on/off de categorie)",
+      "tracabilite": "PlansManager toggleCat + PATCH /admin/plans/:id"
+    },
+    {
+      "id": "TC-UI-319",
+      "titre": "Plan : modifier le nom et la description puis Enregistrer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte, un plan ouvert",
+      "donnees": "nom='Essentiel+', description='Offre intermediaire'",
+      "etapes": [
+        "Ouvrir le plan",
+        "Modifier le champ 'Nom du plan' et la zone Description",
+        "Cliquer 'Enregistrer'"
+      ],
+      "attendu": "PATCH {nom,description,features} 200 ; message succes ; apres reload le nouveau nom apparait dans l en-tete et dans le select Abonnement du tableau des comptes.",
+      "technique": "partition d equivalence (entree valide)",
+      "tracabilite": "PATCH /admin/plans/:id {nom,description} + PlansManager save"
+    },
+    {
+      "id": "TC-UI-320",
+      "titre": "Plan : nom vide a l enregistrement -> erreur backend affichee",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte, un plan ouvert",
+      "donnees": "nom=' ' (espaces uniquement)",
+      "etapes": [
+        "Vider le champ 'Nom du plan' (ou ne laisser que des espaces)",
+        "Cliquer 'Enregistrer'"
+      ],
+      "attendu": "PATCH renvoie 400 'Le nom du plan ne peut pas etre vide' ; le bloc msg affiche l erreur ; le plan n est pas renomme.",
+      "technique": "valeurs limites (chaine vide apres trim)",
+      "tracabilite": "PATCH /admin/plans/:id -> 400 + PlansManager save catch"
+    },
+    {
+      "id": "TC-UI-321",
+      "titre": "Plan : duplication cree une copie suffixee '(copie)'",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte, un plan existant (ex. Pro)",
+      "donnees": "Plan source : Pro",
+      "etapes": [
+        "Ouvrir le plan Pro",
+        "Cliquer 'Dupliquer'"
+      ],
+      "attendu": "POST /admin/plans/:id/duplication 201 ; un nouveau plan 'Pro (copie)' apparait avec les memes fonctionnalites et 0 utilisateur ; son accordeon s ouvre.",
+      "technique": "test du contrat (duplication)",
+      "tracabilite": "POST /admin/plans/:id/duplication + PlansManager duplicate"
+    },
+    {
+      "id": "TC-UI-322",
+      "titre": "Plan : suppression d un plan sans utilisateur (confirmation)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte, un plan sans utilisateur rattache (nb_users=0)",
+      "donnees": "Plan jetable cree pour le test",
+      "etapes": [
+        "Ouvrir le plan",
+        "Cliquer 'Supprimer'",
+        "Verifier le texte de la boite de confirmation puis confirmer (OK)"
+      ],
+      "attendu": "Le confirm indique 'Aucun utilisateur n y est rattache.' ; apres OK, DELETE /admin/plans/:id 200 ; le plan disparait de la liste et du select Abonnement.",
+      "technique": "table de decision (nb_users===0)",
+      "tracabilite": "DELETE /admin/plans/:id + PlansManager remove"
+    },
+    {
+      "id": "TC-UI-323",
+      "titre": "Plan : suppression d un plan avec utilisateurs -> message d avertissement et rattachement perdu",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte, un plan avec nb_users > 0",
+      "donnees": "Plan rattache a >=1 utilisateur",
+      "etapes": [
+        "Affecter le plan a un compte de test (TC-UI-307)",
+        "Cliquer 'Supprimer' sur ce plan",
+        "Lire le confirm puis confirmer"
+      ],
+      "attendu": "Le confirm precise 'Les N utilisateur(s) rattache(s) repasseront au niveau maximum' ; apres OK, le backend met plan_id=NULL pour ces comptes puis supprime le plan ; le compte de test affiche 'Niveau max'.",
+      "technique": "table de decision (nb_users>0) ; test du contrat (cascade plan_id=NULL)",
+      "tracabilite": "DELETE /admin/plans/:id (UPDATE users plan_id=NULL) + PlansManager remove"
+    },
+    {
+      "id": "TC-UI-324",
+      "titre": "Plan : annulation de la suppression dans la boite de confirmation",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Admin connecte, un plan ouvert",
+      "donnees": "N importe quel plan",
+      "etapes": [
+        "Cliquer 'Supprimer'",
+        "Cliquer 'Annuler' dans la boite de confirmation"
+      ],
+      "attendu": "Aucun appel DELETE n est emis (remove retourne si !ok) ; le plan reste present.",
+      "technique": "table de decision (confirm=false)",
+      "tracabilite": "PlansManager remove (window.confirm)"
+    },
+    {
+      "id": "TC-UI-325",
+      "titre": "PlansManager : etat vide quand aucun plan",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Admin connecte, base sans aucun plan",
+      "donnees": "Table plans vide",
+      "etapes": [
+        "Supprimer tous les plans",
+        "Observer la section 'Plans d abonnement'"
+      ],
+      "attendu": "Le message 'Aucun plan pour l instant. Tous les utilisateurs ont acces a toutes les fonctionnalites.' s affiche ; le select Abonnement du tableau ne propose que 'Niveau max'.",
+      "technique": "partition d equivalence (liste vide)",
+      "tracabilite": "PlansManager (plans.length===0) + GET /admin/plans"
+    },
+    {
+      "id": "TC-UI-326",
+      "titre": "PlansManager : les categories sont affichees dans l ordre du registre features",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Admin connecte, un plan ouvert",
+      "donnees": "GET /admin/features",
+      "etapes": [
+        "Ouvrir un plan",
+        "Lister l ordre des fieldsets de categories"
+      ],
+      "attendu": "Les categories apparaissent dans l ordre de premiere occurrence du registre (Socle, Visuel, IA & posture, Relationnel, Emergence, Pilotage, Collaboration, Ethique, Confort, Adoption) ; chaque feature est sous sa categorie.",
+      "technique": "test du contrat (registre features)",
+      "tracabilite": "GET /admin/features + PlansManager categories"
+    },
+    {
+      "id": "TC-UI-327",
+      "titre": "Console RGPD : affichage des demandes d effacement en attente",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte ; au moins une demande_effacement statut='en_attente'",
+      "donnees": "Une demande seedee avec motif et parcours",
+      "etapes": [
+        "Faire emettre une demande d effacement par un accompagne",
+        "Ouvrir /admin et la section 'Confidentialite & RGPD'"
+      ],
+      "attendu": "Le compteur 'Demandes d effacement (N)' est correct ; chaque carte montre nom/email, date (10 caracteres), parcours eventuel, motif entre guillemets, et boutons 'Anonymiser' / 'Supprimer'.",
+      "technique": "test du contrat (mapping demande->carte)",
+      "tracabilite": "GET /admin/effacements + RgpdConsole"
+    },
+    {
+      "id": "TC-UI-328",
+      "titre": "Console RGPD : etat vide quand aucune demande",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Admin connecte, aucune demande en attente",
+      "donnees": "Table demandes_effacement sans statut en_attente",
+      "etapes": [
+        "Ouvrir la section RGPD sans demande en attente"
+      ],
+      "attendu": "Le message 'Aucune demande en attente.' s affiche ; aucune carte de demande.",
+      "technique": "partition d equivalence (liste vide)",
+      "tracabilite": "GET /admin/effacements (vide) + RgpdConsole"
+    },
+    {
+      "id": "TC-UI-329",
+      "titre": "Console RGPD : anonymiser une demande (confirmation) puis disparition de la liste",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte ; une demande en attente",
+      "donnees": "Demande d un accompagne de test ; action=anonymiser",
+      "etapes": [
+        "Cliquer 'Anonymiser' sur la carte",
+        "Confirmer la boite 'Confirmer : anonymiser les donnees de ...'",
+        "Observer le message et la liste"
+      ],
+      "attendu": "POST /admin/effacements/:id {action:'anonymiser'} 200 ; message 'Demande traitee (anonymiser).' ; la demande passe a 'traitee' et disparait de la liste ; le compte est anonymise (email anonyme-<id>@boussole.local, actif=0, anonymise=1).",
+      "technique": "test du contrat (action anonymiser)",
+      "tracabilite": "POST /admin/effacements/:id + RgpdConsole traiter + ethique.processEffacement"
+    },
+    {
+      "id": "TC-UI-330",
+      "titre": "Console RGPD : supprimer une demande (confirmation) -> suppression definitive du compte",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte ; une demande en attente",
+      "donnees": "Demande d un accompagne jetable ; action=supprimer",
+      "etapes": [
+        "Cliquer 'Supprimer' sur la carte",
+        "Confirmer la boite 'Confirmer : SUPPRIMER definitivement les donnees de ...'",
+        "Observer le message et la liste"
+      ],
+      "attendu": "POST /admin/effacements/:id {action:'supprimer'} 200 ; message 'Demande traitee (supprimer).' ; le compte est supprime (cascade) et la demande disparait ; il n apparait plus dans GET /admin/users.",
+      "technique": "test du contrat (action supprimer)",
+      "tracabilite": "POST /admin/effacements/:id + ethique.deleteUser"
+    },
+    {
+      "id": "TC-UI-331",
+      "titre": "Console RGPD : annuler la boite de confirmation laisse la demande intacte",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Admin connecte ; une demande en attente",
+      "donnees": "Action anonymiser, confirm=Annuler",
+      "etapes": [
+        "Cliquer 'Anonymiser'",
+        "Cliquer 'Annuler' dans la boite de confirmation"
+      ],
+      "attendu": "Aucun appel POST n est emis (traiter retourne si !confirm) ; la demande reste en attente.",
+      "technique": "table de decision (confirm=false)",
+      "tracabilite": "RgpdConsole traiter (window.confirm)"
+    },
+    {
+      "id": "TC-UI-332",
+      "titre": "Retention : affichage du seuil, du mode (auto/manuel) et de la liste des eligibles",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte ; au moins un compte eligible a la retention",
+      "donnees": "RETENTION_MONTHS=36 (defaut) ; un accompagne dont tous les parcours sont clotures et inactifs > 36 mois",
+      "etapes": [
+        "Ouvrir le bloc 'Retention des donnees'"
+      ],
+      "attendu": "Le texte indique le seuil en mois (36) et '(automatique activee)' ou '(anonymisation manuelle)' selon RETENTION_AUTO ; le nombre d eligibles est correct ; la liste montre email + date de derniere activite (10 caracteres).",
+      "technique": "test du contrat (parametres retention)",
+      "tracabilite": "GET /admin/retention + RgpdConsole + ethique.retentionEligibles"
+    },
+    {
+      "id": "TC-UI-333",
+      "titre": "Retention : appliquer maintenant anonymise les comptes eligibles (confirmation)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecte ; eligibles.length > 0",
+      "donnees": "N comptes eligibles",
+      "etapes": [
+        "Cliquer 'Appliquer la retention maintenant'",
+        "Confirmer la boite 'Anonymiser N compte(s) inactif(s) au-dela de M mois ?'",
+        "Observer le message"
+      ],
+      "attendu": "POST /admin/retention/appliquer 200 {anonymises:N} ; message 'N compte(s) anonymise(s) par retention.' ; apres reload la liste des eligibles se vide (comptes desormais anonymise=1).",
+      "technique": "test du contrat (application retention)",
+      "tracabilite": "POST /admin/retention/appliquer + RgpdConsole appliquerRetention"
+    },
+    {
+      "id": "TC-UI-334",
+      "titre": "Retention : bouton 'Appliquer' absent quand aucun eligible",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Admin connecte ; aucun compte eligible",
+      "donnees": "eligibles.length === 0",
+      "etapes": [
+        "Ouvrir le bloc Retention sans eligibles"
+      ],
+      "attendu": "Le texte affiche '0 compte(s) eligible(s) aujourd hui.' ; la liste et le bouton 'Appliquer la retention maintenant' ne sont pas rendus.",
+      "technique": "partition d equivalence (liste vide)",
+      "tracabilite": "RgpdConsole (eligibles.length>0 conditionnel)"
+    },
+    {
+      "id": "TC-UI-335",
+      "titre": "GET /admin/users nominal : 200 et structure de chaque compte",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Cookie de session admin valide",
+      "donnees": "GET /api/admin/users",
+      "etapes": [
+        "Appeler GET /api/admin/users avec le cookie admin"
+      ],
+      "attendu": "200 ; { users: [...] } ; chaque user porte id, email, role, nom, prenom, actif, email_verifie, plan_id, plan_nom (null si pas de plan) ; tri cree_le DESC.",
+      "technique": "test du contrat",
+      "tracabilite": "GET /admin/users"
+    },
+    {
+      "id": "TC-UI-336",
+      "titre": "Endpoints admin non authentifie -> 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie de session",
+      "donnees": "GET /api/admin/users, /admin/plans, /admin/features, /admin/effacements, /admin/retention",
+      "etapes": [
+        "Appeler chaque endpoint admin sans cookie"
+      ],
+      "attendu": "401 'Non authentifie' (requireAuth) pour tous ; aucune donnee renvoyee.",
+      "technique": "test base sur les roles (anonyme)",
+      "tracabilite": "requireAuth sur routes /admin/*"
+    },
+    {
+      "id": "TC-UI-337",
+      "titre": "Endpoints admin avec role non-admin -> 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Cookie de session accompagnateur ou accompagne",
+      "donnees": "GET /api/admin/plans (et autres routes /admin/*)",
+      "etapes": [
+        "S authentifier en accompagnateur",
+        "Appeler GET /api/admin/plans et POST /api/admin/plans"
+      ],
+      "attendu": "403 'Acces refuse' (requireRole('admin')) ; aucune lecture/ecriture effectuee.",
+      "technique": "test base sur les roles (mauvais role)",
+      "tracabilite": "requireRole('admin') sur routes /admin/*"
+    },
+    {
+      "id": "TC-UI-338",
+      "titre": "PATCH /admin/users/:id avec plan_id inexistant -> 400 'Plan introuvable'",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Cookie admin ; compte cible distinct de l admin",
+      "donnees": "PATCH {plan_id: 999999} (id inexistant)",
+      "etapes": [
+        "Appeler PATCH /api/admin/users/<cible> avec un plan_id inexistant"
+      ],
+      "attendu": "400 'Plan introuvable' ; le plan_id du compte n est pas modifie.",
+      "technique": "partition d equivalence (id invalide)",
+      "tracabilite": "PATCH /admin/users/:id (verif plan existe)"
+    },
+    {
+      "id": "TC-UI-339",
+      "titre": "PATCH/DELETE /admin/plans/:id sur id inexistant -> 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Cookie admin",
+      "donnees": "id=999999 inexistant",
+      "etapes": [
+        "Appeler PATCH /api/admin/plans/999999",
+        "Appeler DELETE /api/admin/plans/999999",
+        "Appeler POST /api/admin/plans/999999/duplication"
+      ],
+      "attendu": "404 'Plan introuvable' pour les trois cas ; aucune modification.",
+      "technique": "partition d equivalence (ressource inexistante)",
+      "tracabilite": "PATCH/DELETE /admin/plans/:id + POST /admin/plans/:id/duplication"
+    },
+    {
+      "id": "TC-UI-340",
+      "titre": "POST /admin/effacements/:id avec action invalide -> 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Cookie admin ; une demande en attente",
+      "donnees": "POST {action:'effacer'} (valeur hors {anonymiser,supprimer})",
+      "etapes": [
+        "Appeler POST /api/admin/effacements/<id> avec action invalide"
+      ],
+      "attendu": "400 'Action invalide (anonymiser | supprimer)' ; demande inchangee.",
+      "technique": "partition d equivalence (valeur hors domaine)",
+      "tracabilite": "POST /admin/effacements/:id (garde action)"
+    },
+    {
+      "id": "TC-UI-341",
+      "titre": "POST /admin/effacements/:id sur demande inexistante -> 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Cookie admin",
+      "donnees": "id=999999 inexistant, action=anonymiser",
+      "etapes": [
+        "Appeler POST /api/admin/effacements/999999 {action:'anonymiser'}"
+      ],
+      "attendu": "404 'Demande introuvable' (processEffacement retourne false).",
+      "technique": "partition d equivalence (ressource inexistante)",
+      "tracabilite": "POST /admin/effacements/:id + ethique.processEffacement"
+    },
+    {
+      "id": "TC-UI-342",
+      "titre": "POST /admin/rgpd/:userId sur son propre compte -> 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Cookie admin",
+      "donnees": "userId = id de l admin connecte, action=anonymiser",
+      "etapes": [
+        "Appeler POST /api/admin/rgpd/<monId> {action:'anonymiser'}"
+      ],
+      "attendu": "400 'Action impossible sur votre propre compte' ; aucun changement.",
+      "technique": "table de decision (userId===meId)",
+      "tracabilite": "POST /admin/rgpd/:userId (garde meId)"
+    },
+    {
+      "id": "TC-UI-343",
+      "titre": "POST /admin/rgpd/:userId sur compte inexistant -> 404 ; action invalide -> 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Cookie admin",
+      "donnees": "userId inexistant ; puis userId valide avec action='xxx'",
+      "etapes": [
+        "POST /api/admin/rgpd/999999 {action:'supprimer'}",
+        "POST /api/admin/rgpd/<valide> {action:'xxx'}"
+      ],
+      "attendu": "Cas 1 : 404 'Utilisateur introuvable' ; cas 2 : 400 'Action invalide'.",
+      "technique": "partition d equivalence (id et action)",
+      "tracabilite": "POST /admin/rgpd/:userId"
+    },
+    {
+      "id": "TC-UI-344",
+      "titre": "POST /admin/plans nom vide -> 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Cookie admin",
+      "donnees": "POST {nom:'   ', features:[]}",
+      "etapes": [
+        "Appeler POST /api/admin/plans avec un nom vide apres trim"
+      ],
+      "attendu": "400 'Le nom du plan est requis' ; aucun plan cree.",
+      "technique": "valeurs limites (chaine vide apres trim)",
+      "tracabilite": "POST /admin/plans (validation nom)"
+    },
+    {
+      "id": "TC-UI-345",
+      "titre": "POST /admin/users role hors liste -> 400 'Donnees invalides'",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Cookie admin",
+      "donnees": "POST {email:'x@y.z', role:'superadmin'}",
+      "etapes": [
+        "Appeler POST /api/admin/users avec un role hors {admin,accompagnateur,accompagne}"
+      ],
+      "attendu": "400 'Donnees invalides' (ROLES.includes false) ; aucun compte cree.",
+      "technique": "partition d equivalence (role hors domaine)",
+      "tracabilite": "POST /admin/users (validation role)"
+    },
+    {
+      "id": "TC-UI-346",
+      "titre": "Unitaire repli deterministe : sanitizeKeys filtre les cles inconnues et deduplique",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Module features.ts importable en test",
+      "donnees": "sanitizeKeys(['audio','audio','inconnue','dark_mode', 42]) ; sanitizeKeys('nope') ; sanitizeKeys(null)",
+      "etapes": [
+        "Appeler sanitizeKeys avec un tableau melange valides/invalides/doublons",
+        "Appeler avec une non-liste"
+      ],
+      "attendu": "Resultat = ['audio','dark_mode'] (cles invalides 'inconnue' et 42 retirees, doublon supprime, ordre preserve) ; pour une non-liste -> [] ; pour null -> [].",
+      "technique": "partition d equivalence + valeurs limites (entree non-tableau)",
+      "tracabilite": "features.sanitizeKeys"
+    },
+    {
+      "id": "TC-UI-347",
+      "titre": "Unitaire repli deterministe : userFeatures renvoie ALL si pas de plan, le sous-ensemble sinon",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "DB de test ; un user sans plan, un user avec plan {features:['audio']}",
+      "donnees": "userFeatures(idSansPlan) ; userFeatures(idAvecPlan)",
+      "etapes": [
+        "Appeler userFeatures pour un compte sans plan_id",
+        "Appeler userFeatures pour un compte rattache a un plan limite",
+        "Appeler avec un plan dont features est un JSON corrompu"
+      ],
+      "attendu": "Sans plan -> Set(ALL_FEATURE_KEYS) ; avec plan -> Set(['audio']) ; JSON corrompu -> Set(ALL_FEATURE_KEYS) (catch -> niveau max).",
+      "technique": "table de decision (presence plan / parsing)",
+      "tracabilite": "features.userFeatures"
+    },
+    {
+      "id": "TC-UI-348",
+      "titre": "Unitaire repli deterministe : anonymizeUser efface l identite et les contenus libres",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "DB de test avec un user, des journal_entrees, meteo_humeur, emotions_roue, tokens, push_subscriptions",
+      "donnees": "anonymizeUser(userId)",
+      "etapes": [
+        "Appeler anonymizeUser(userId)",
+        "Relire les tables impactees"
+      ],
+      "attendu": "users : email='anonyme-<id>@boussole.local', nom/prenom/password_hash NULL, actif=0, anonymise=1 ; push_subscriptions et tokens du user supprimes ; journal_entrees supprimees ; meteo_humeur.mot et emotions_roue.note mis a NULL ; transaction atomique.",
+      "technique": "test du contrat (effets de l anonymisation)",
+      "tracabilite": "ethique.anonymizeUser"
+    },
+    {
+      "id": "TC-UI-349",
+      "titre": "Unitaire repli deterministe : retentionEligibles ne retient que les accompagnes clotures et inactifs",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "DB de test : accompagne A (tous dossiers clotures, activite > seuil), B (un dossier non cloture), C (sans dossier), D (deja anonymise)",
+      "donnees": "retentionEligibles(36)",
+      "etapes": [
+        "Preparer les 4 comptes de profils differents",
+        "Appeler retentionEligibles(36)"
+      ],
+      "attendu": "Seul A est retourne (role=accompagne, anonymise=0, EXISTS dossiers, AUCUN dossier non 'cloture', derniere_activite < now-36 mois) ; B, C, D exclus ; chaque element porte id, email, derniere_activite.",
+      "technique": "table de decision (criteres de retention) + valeurs limites (seuil)",
+      "tracabilite": "ethique.retentionEligibles"
+    },
+    {
+      "id": "TC-UI-350",
+      "titre": "Unitaire repli deterministe : processEffacement marque 'traitee' (anonymiser) ou cascade (supprimer)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "DB de test avec une demande_effacement liee a un accompagne",
+      "donnees": "processEffacement(idDem,'anonymiser') ; processEffacement(idDem2,'supprimer') ; processEffacement(999,'anonymiser')",
+      "etapes": [
+        "Appeler avec action anonymiser sur une demande valide",
+        "Appeler avec action supprimer sur une autre demande valide",
+        "Appeler avec un id de demande inexistant"
+      ],
+      "attendu": "anonymiser -> true, compte anonymise, demande statut='traitee' avec action et traite_le ; supprimer -> true, compte supprime (la demande part en cascade) ; id inexistant -> false.",
+      "technique": "table de decision (action x existence)",
+      "tracabilite": "ethique.processEffacement"
+    },
+    {
+      "id": "TC-UI-351",
+      "titre": "Non-regression : retirer un plan du tableau des comptes ne casse pas les autres lignes",
+      "niveau": "ui",
+      "type": "non-regression",
+      "priorite": "basse",
+      "preconditions": "Admin connecte, plusieurs comptes dont certains avec plan",
+      "donnees": "Suppression d un plan utilise (via PlansManager)",
+      "etapes": [
+        "Supprimer un plan rattache a un compte (TC-UI-323)",
+        "Verifier le tableau des comptes apres le double reload (load + loadPlans via onChange)"
+      ],
+      "attendu": "Le tableau se recharge sans erreur ; seuls les comptes du plan supprime passent a 'Niveau max' ; les autres conservent leur plan et leur role.",
+      "technique": "test base sur les roles + non-regression",
+      "tracabilite": "Admin.tsx onChange (load + loadPlans) + DELETE /admin/plans/:id"
+    },
+    {
+      "id": "TC-UI-352",
+      "titre": "Non-regression : message d erreur surface dans l UI quand un appel admin echoue",
+      "niveau": "ui",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecte",
+      "donnees": "Provoquer un 409 (creation email existant) ou un 400 (lien incomplet)",
+      "etapes": [
+        "Declencher une erreur cote backend depuis un formulaire admin",
+        "Observer le bloc msg"
+      ],
+      "attendu": "Le helper api() leve une Error portant le champ 'error' du backend ; le composant l affiche (form-success/msg) sans crash de page.",
+      "technique": "test du contrat (propagation d erreur api.ts)",
+      "tracabilite": "lib/api.ts (throw new Error(msg)) + Admin.tsx/PlansManager/RgpdConsole catch"
+    }
+  ]
+}

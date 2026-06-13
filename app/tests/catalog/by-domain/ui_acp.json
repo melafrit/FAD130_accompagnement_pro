@@ -1,0 +1,1460 @@
+{
+  "domaine": "ui_acp",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "summary": "Connexion (page Login) ; redirige vers /espace",
+      "role": "anonyme",
+      "feature": "-"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me/features",
+      "summary": "Liste des fonctionnalités actives (gating UI)",
+      "role": "authentifié",
+      "feature": "-"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dossiers/mine",
+      "summary": "Liste des parcours de l'accompagné (MesParcours / Espace)",
+      "role": "accompagne",
+      "feature": "multi_parcours"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dossiers/accompagnateurs",
+      "summary": "Accompagnateurs disponibles (NouveauParcours)",
+      "role": "accompagne",
+      "feature": "multi_parcours"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dossiers/start",
+      "summary": "Démarrer un nouveau parcours",
+      "role": "accompagne",
+      "feature": "multi_parcours"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dossiers/mine/:id",
+      "summary": "Détail d'un parcours (ParcoursDetail)",
+      "role": "accompagne",
+      "feature": "multi_parcours"
+    },
+    {
+      "method": "POST",
+      "path": "/api/questionnaire/next",
+      "summary": "Question suivante du questionnaire (IA)",
+      "role": "accompagne",
+      "feature": "questionnaire"
+    },
+    {
+      "method": "POST",
+      "path": "/api/questionnaire/save",
+      "summary": "Enregistrer le questionnaire",
+      "role": "accompagne",
+      "feature": "questionnaire"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rdv/disponibles?dossierId=:id",
+      "summary": "Créneaux réservables (ParcoursDetail)",
+      "role": "accompagne",
+      "feature": "rdv"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rdv/reserver",
+      "summary": "Réserver un créneau",
+      "role": "accompagne",
+      "feature": "rdv"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rdv/demander",
+      "summary": "Demander un rendez-vous (aucun créneau)",
+      "role": "accompagne",
+      "feature": "rdv"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rdv/:id/ics",
+      "summary": "Export ICS d'un RDV",
+      "role": "accompagne",
+      "feature": "rdv"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/mine",
+      "summary": "Comptes rendus de l'accompagné (ComptesRendus)",
+      "role": "accompagne",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/session/:id",
+      "summary": "CR d'une session (CompteRenduModal)",
+      "role": "accompagne",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/session/:id/messages",
+      "summary": "Discussion du CR",
+      "role": "accompagne",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cr/session/:id/messages",
+      "summary": "Envoyer un message sur le CR",
+      "role": "accompagne",
+      "feature": "comptes_rendus"
+    },
+    {
+      "method": "GET",
+      "path": "/api/synthese/dossier/:id",
+      "summary": "Synthèse du parcours (SyntheseModal)",
+      "role": "accompagne",
+      "feature": "synthese"
+    },
+    {
+      "method": "GET",
+      "path": "/api/synthese/dossier/:id/messages",
+      "summary": "Discussion de la synthèse",
+      "role": "accompagne",
+      "feature": "synthese"
+    },
+    {
+      "method": "POST",
+      "path": "/api/synthese/dossier/:id/messages",
+      "summary": "Envoyer un message sur la synthèse",
+      "role": "accompagne",
+      "feature": "synthese"
+    },
+    {
+      "method": "POST",
+      "path": "/api/adoption/falc",
+      "summary": "Reformulation FALC (bouton Facile à lire) + repli déterministe",
+      "role": "accompagne",
+      "feature": "falc"
+    },
+    {
+      "method": "GET",
+      "path": "/api/collab/resume/dossier/:id",
+      "summary": "Résumé 'où j'en suis' existant",
+      "role": "accompagne",
+      "feature": "resume_parcours"
+    },
+    {
+      "method": "POST",
+      "path": "/api/collab/resume/dossier/:id",
+      "summary": "Générer/MAJ le résumé (IA)",
+      "role": "accompagne",
+      "feature": "resume_parcours"
+    },
+    {
+      "method": "GET",
+      "path": "/api/collab/problematisation/dossier/:id",
+      "summary": "Questions + données de problématisation",
+      "role": "accompagne",
+      "feature": "problematisation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/collab/problematisation/dossier/:id/suggerer",
+      "summary": "Suggérer une problématique (IA)",
+      "role": "accompagne",
+      "feature": "problematisation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/collab/problematisation/dossier/:id",
+      "summary": "Enregistrer réponses + problématique",
+      "role": "accompagne",
+      "feature": "problematisation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/relationnel/meteo/dossier/:id",
+      "summary": "Météo (mine/autre)",
+      "role": "accompagne",
+      "feature": "meteo"
+    },
+    {
+      "method": "POST",
+      "path": "/api/relationnel/meteo",
+      "summary": "Enregistrer un relevé de météo",
+      "role": "accompagne",
+      "feature": "meteo"
+    },
+    {
+      "method": "GET",
+      "path": "/api/viz/emotions/dossier/:id",
+      "summary": "Roue des émotions (entries + agrégat)",
+      "role": "accompagne",
+      "feature": "roue_emotions"
+    },
+    {
+      "method": "POST",
+      "path": "/api/viz/emotions/dossier/:id",
+      "summary": "Enregistrer des émotions",
+      "role": "accompagne",
+      "feature": "roue_emotions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/viz/nuage/dossier/:id",
+      "summary": "Nuage de thèmes existant",
+      "role": "accompagne",
+      "feature": "nuage_themes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/viz/nuage/dossier/:id",
+      "summary": "Générer le nuage de thèmes (IA)",
+      "role": "accompagne",
+      "feature": "nuage_themes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/relationnel/journal/dossier/:id",
+      "summary": "Micro-journal (entrées)",
+      "role": "accompagne",
+      "feature": "journal"
+    },
+    {
+      "method": "POST",
+      "path": "/api/relationnel/journal",
+      "summary": "Ajouter une note de journal",
+      "role": "accompagne",
+      "feature": "journal"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/relationnel/journal/:id",
+      "summary": "Basculer privé/partagé une note",
+      "role": "accompagne",
+      "feature": "journal"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/relationnel/journal/:id",
+      "summary": "Supprimer une note de journal",
+      "role": "accompagne",
+      "feature": "journal"
+    },
+    {
+      "method": "GET",
+      "path": "/api/emergence/mine/dossier/:id",
+      "summary": "Fil rouge + moments-clés partagés (EmergencePartage / Carte)",
+      "role": "accompagne",
+      "feature": "fil_rouge"
+    },
+    {
+      "method": "GET",
+      "path": "/api/transparence/dossier/:id",
+      "summary": "Tableau de transparence RGPD",
+      "role": "accompagne",
+      "feature": "transparence"
+    },
+    {
+      "method": "POST",
+      "path": "/api/transparence/effacement",
+      "summary": "Demande d'effacement RGPD",
+      "role": "accompagne",
+      "feature": "transparence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ethique/attestation/dossier/:id",
+      "summary": "Attestation de fin (parcours clôturé)",
+      "role": "accompagne",
+      "feature": "attestation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/confort/visio/rdv/:id",
+      "summary": "URL de la salle de visio (Jitsi)",
+      "role": "accompagne",
+      "feature": "visio"
+    },
+    {
+      "method": "GET",
+      "path": "/api/actions/mine",
+      "summary": "Plan d'action de l'accompagné (MonPlanAction)",
+      "role": "accompagne",
+      "feature": "plan_action"
+    },
+    {
+      "method": "POST",
+      "path": "/api/actions",
+      "summary": "Ajouter une action",
+      "role": "accompagne",
+      "feature": "plan_action"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/actions/:id",
+      "summary": "Changer le statut d'une action",
+      "role": "accompagne",
+      "feature": "plan_action"
+    },
+    {
+      "method": "POST",
+      "path": "/api/actions/reorder",
+      "summary": "Réordonner les actions",
+      "role": "accompagne",
+      "feature": "plan_action"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-UI-201",
+      "titre": "Connexion accompagné réussie et redirection vers Mon espace",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "App ouverte sur /connexion ; compte accompagné Amine (afrit_mohamed@yahoo.fr / BoussoleDemo2026) actif.",
+      "donnees": "email=afrit_mohamed@yahoo.fr ; password=BoussoleDemo2026",
+      "etapes": [
+        "Ouvrir http://localhost:8080/connexion",
+        "Saisir l'email et le mot de passe",
+        "Cliquer « Se connecter »"
+      ],
+      "attendu": "POST /auth/login en succès, refresh du contexte auth, navigation vers /espace ; le titre « Bonjour Amine » et la section « Mes parcours » s'affichent.",
+      "technique": "partition d'équivalence (identifiants valides), test du contrat (flux login→/espace)",
+      "tracabilite": "Login.tsx + POST /auth/login ; Espace.tsx"
+    },
+    {
+      "id": "TC-UI-202",
+      "titre": "Connexion avec mauvais mot de passe : message d'erreur, pas de redirection",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Page /connexion.",
+      "donnees": "email=afrit_mohamed@yahoo.fr ; password=MAUVAIS",
+      "etapes": [
+        "Saisir un email valide et un mot de passe incorrect",
+        "Cliquer « Se connecter »"
+      ],
+      "attendu": "Le composant reste sur /connexion ; un bloc .form-error affiche le message d'erreur renvoyé par l'API ; le bouton repasse de « … » à « Se connecter ».",
+      "technique": "partition d'équivalence (classe invalide), test du contrat (gestion d'erreur api())",
+      "tracabilite": "Login.tsx + POST /auth/login"
+    },
+    {
+      "id": "TC-UI-203",
+      "titre": "Accès direct à /espace sans session : redirection vers /connexion",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session (cookie supprimé / navigation privée).",
+      "donnees": "URL=/espace",
+      "etapes": [
+        "Ouvrir directement http://localhost:8080/espace"
+      ],
+      "attendu": "Protected détecte user=null et redirige (Navigate replace) vers /connexion.",
+      "technique": "test basé sur les rôles (anonyme)",
+      "tracabilite": "Protected.tsx (espace)"
+    },
+    {
+      "id": "TC-UI-204",
+      "titre": "Accompagnateur tente d'ouvrir une route réservée à l'accompagné : redirection /espace",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur (camille.laurent@boussole.demo).",
+      "donnees": "URL=/parcours/1 ; URL=/questionnaire ; URL=/mon-plan-action",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Ouvrir directement /parcours/1 (role accompagne requis)"
+      ],
+      "attendu": "Protected role='accompagne' avec user.role='accompagnateur' → Navigate replace vers /espace ; le parcours n'est pas affiché.",
+      "technique": "test basé sur les rôles (mauvais rôle)",
+      "tracabilite": "Protected.tsx (parcours/questionnaire/mon-plan-action)"
+    },
+    {
+      "id": "TC-UI-205",
+      "titre": "Mon espace accompagné : liste des parcours avec badges d'avancement",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Amine ayant au moins 1 parcours seedé.",
+      "donnees": "-",
+      "etapes": [
+        "Aller sur /espace",
+        "Observer la section « Mes parcours »"
+      ],
+      "attendu": "GET /dossiers/mine peuple les cartes ; chaque carte affiche titre, accompagnateur, statut (En cours/Clôturé) et badges (Questionnaire ✓/à faire, N comptes rendus, Synthèse ✓) ; bouton « Ouvrir le parcours ».",
+      "technique": "test du contrat (forme de réponse → rendu)",
+      "tracabilite": "MesParcours.tsx + GET /dossiers/mine"
+    },
+    {
+      "id": "TC-UI-206",
+      "titre": "Espace sans parcours : message d'invitation à démarrer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Compte accompagné neuf, 0 parcours.",
+      "donnees": "GET /dossiers/mine → { dossiers: [] }",
+      "etapes": [
+        "Se connecter avec un accompagné sans parcours",
+        "Aller sur /espace"
+      ],
+      "attendu": "Après chargement (loaded=true) et dossiers vide, le texte « Tu n'as pas encore de parcours… » s'affiche ; le bouton « + Démarrer un nouveau parcours » reste présent.",
+      "technique": "valeurs limites (liste vide)",
+      "tracabilite": "MesParcours.tsx (état vide)"
+    },
+    {
+      "id": "TC-UI-207",
+      "titre": "Démarrer un nouveau parcours et enchaîner sur le questionnaire",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné ; au moins un accompagnateur disponible.",
+      "donnees": "titre='Mémoire — test E2E' ; accompagnateur=premier de la liste",
+      "etapes": [
+        "/espace → « + Démarrer un nouveau parcours »",
+        "Saisir un titre",
+        "Vérifier qu'un accompagnateur est présélectionné",
+        "Cliquer « Démarrer et remplir le questionnaire »"
+      ],
+      "attendu": "GET /dossiers/accompagnateurs préremplit le select ; POST /dossiers/start renvoie dossierId ; navigation vers /questionnaire?dossier=<id>.",
+      "technique": "test du contrat (start→navigation), partition d'équivalence (saisie valide)",
+      "tracabilite": "NouveauParcours.tsx + GET /dossiers/accompagnateurs + POST /dossiers/start"
+    },
+    {
+      "id": "TC-UI-208",
+      "titre": "Nouveau parcours : titre manquant bloque la soumission",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Page /nouveau-parcours, accompagnateur sélectionné.",
+      "donnees": "titre='   ' (vide après trim)",
+      "etapes": [
+        "Laisser le titre vide",
+        "Cliquer « Démarrer et remplir le questionnaire »"
+      ],
+      "attendu": "Aucun appel POST /dossiers/start ; message .form-error « Renseigne un titre et choisis un accompagnateur. ».",
+      "technique": "valeurs limites (chaîne vide/espaces)",
+      "tracabilite": "NouveauParcours.tsx (garde titre.trim())"
+    },
+    {
+      "id": "TC-UI-209",
+      "titre": "Nouveau parcours : aucun accompagnateur disponible désactive le bouton",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "GET /dossiers/accompagnateurs renvoie liste vide.",
+      "donnees": "accompagnateurs=[]",
+      "etapes": [
+        "Ouvrir /nouveau-parcours dans un contexte sans accompagnateur"
+      ],
+      "attendu": "Le select affiche « Aucun accompagnateur disponible » ; le bouton « Démarrer… » est désactivé (disabled).",
+      "technique": "valeurs limites (collection vide), table de décision",
+      "tracabilite": "NouveauParcours.tsx (accs.length===0)"
+    },
+    {
+      "id": "TC-UI-210",
+      "titre": "Questionnaire adaptatif : enchaîner questions et propositions jusqu'au récapitulatif",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné ; /questionnaire?dossier=<id>.",
+      "donnees": "Réponses libres + clic sur propositions",
+      "etapes": [
+        "Ouvrir /questionnaire?dossier=<id>",
+        "Observer l'indicateur IA pendant le chargement",
+        "Répondre via une proposition puis via le champ libre + « Envoyer »",
+        "Répéter jusqu'à step.termine"
+      ],
+      "attendu": "POST /questionnaire/next renvoie {question, propositions[], termine, recapitulatif} ; l'historique Q/R s'empile ; AiProgress visible pendant busy ; à termine=true, le bloc Récapitulatif s'affiche.",
+      "technique": "test du contrat (forme de Step), partition d'équivalence (proposition vs saisie)",
+      "tracabilite": "Questionnaire.tsx + POST /questionnaire/next"
+    },
+    {
+      "id": "TC-UI-211",
+      "titre": "Questionnaire : réponse vide n'envoie rien",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Une question active affichée (step non terminé).",
+      "donnees": "answer='   '",
+      "etapes": [
+        "Laisser le champ réponse vide",
+        "Cliquer « Envoyer » (submit)"
+      ],
+      "attendu": "submit() retourne immédiatement (garde !ans.trim()) ; pas d'appel /questionnaire/next supplémentaire ; l'historique n'évolue pas.",
+      "technique": "valeurs limites (entrée vide)",
+      "tracabilite": "Questionnaire.tsx (submit garde)"
+    },
+    {
+      "id": "TC-UI-212",
+      "titre": "Questionnaire : enregistrement et redirection vers le parcours",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "step.termine=true avec récapitulatif ; dossierId présent en query.",
+      "donnees": "dossier=<id>",
+      "etapes": [
+        "Atteindre le récapitulatif",
+        "Cliquer « Valider et enregistrer »",
+        "Cliquer « Voir mon parcours »"
+      ],
+      "attendu": "POST /questionnaire/save avec {history, recapitulatif, dossierId} ; message succès affiché ; le bouton mène vers /parcours/<id> (ou /espace si pas de dossier).",
+      "technique": "test du contrat (save→navigation), table de décision (avec/sans dossierId)",
+      "tracabilite": "Questionnaire.tsx + POST /questionnaire/save"
+    },
+    {
+      "id": "TC-UI-213",
+      "titre": "Détail parcours : chargement complet de toutes les sections",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Amine, parcours pré-rempli (questionnaire, CR, synthèse publiée seedés).",
+      "donnees": "/parcours/<id d'Amine>",
+      "etapes": [
+        "Ouvrir /parcours/<id>",
+        "Faire défiler toute la page"
+      ],
+      "attendu": "GET /dossiers/mine/:id alimente l'en-tête (titre, accompagnateur, statut) et la Boussole ; les sections Résumé, Problématique, Émergence, Nuage, Météo, Roue, Questionnaire, RDV, Comptes rendus, Synthèse, Micro-journal, Plan d'action sont rendues sans erreur.",
+      "technique": "test du contrat (Detail→rendu)",
+      "tracabilite": "ParcoursDetail.tsx + GET /dossiers/mine/:id"
+    },
+    {
+      "id": "TC-UI-214",
+      "titre": "Détail parcours d'un autre accompagné : non trouvé / chargement impossible",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Léa ; <id> appartient à Amine.",
+      "donnees": "/parcours/<id d'Amine>",
+      "etapes": [
+        "Forcer l'URL /parcours/<id d'un autre accompagné>"
+      ],
+      "attendu": "GET /dossiers/mine/:id renvoie 404 (non-propriétaire) ; le catch affiche « Chargement impossible. » ; aucune donnée du parcours d'autrui n'est exposée.",
+      "technique": "test basé sur les rôles (non-propriétaire / 404), test du contrat (gestion erreur)",
+      "tracabilite": "ParcoursDetail.tsx load() + GET /dossiers/mine/:id"
+    },
+    {
+      "id": "TC-UI-215",
+      "titre": "Réserver un créneau de rendez-vous",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "L'accompagnateur du parcours a publié au moins un créneau libre.",
+      "donnees": "creneauId du premier slot",
+      "etapes": [
+        "Ouvrir /parcours/<id>",
+        "Section Rendez-vous → « Réserver » sur un créneau"
+      ],
+      "attendu": "POST /rdv/reserver {creneauId, dossierId} en succès ; message « Rendez-vous réservé ✅ » ; rechargement : le RDV apparaît dans la liste, le créneau disparaît des disponibles.",
+      "technique": "test du contrat (réservation), table de décision (créneaux>0)",
+      "tracabilite": "ParcoursDetail.tsx reserver() + POST /rdv/reserver + GET /rdv/disponibles"
+    },
+    {
+      "id": "TC-UI-216",
+      "titre": "Réservation en conflit (créneau déjà pris) : message d'erreur",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Un créneau réservé entre l'affichage et le clic (course / 409).",
+      "donnees": "creneauId obsolète",
+      "etapes": [
+        "Cliquer « Réserver » sur un créneau devenu indisponible"
+      ],
+      "attendu": "POST /rdv/reserver renvoie une erreur (4xx) ; le message d'erreur de l'API s'affiche en .form-error ; pas de RDV ajouté.",
+      "technique": "test du contrat (gestion 4xx/409)",
+      "tracabilite": "ParcoursDetail.tsx reserver() catch + POST /rdv/reserver"
+    },
+    {
+      "id": "TC-UI-217",
+      "titre": "Aucun créneau disponible : demander un rendez-vous",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "L'accompagnateur n'a aucun créneau libre (creneaux=[]).",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir /parcours/<id> sans créneaux",
+        "Cliquer « 📨 Demander un rendez-vous »"
+      ],
+      "attendu": "Le bloc « Aucun créneau disponible… » s'affiche ; POST /rdv/demander {dossierId} en succès ; message « Demande envoyée à ton accompagnateur… ».",
+      "technique": "table de décision (créneaux=0)",
+      "tracabilite": "ParcoursDetail.tsx demander() + POST /rdv/demander"
+    },
+    {
+      "id": "TC-UI-218",
+      "titre": "Ajout d'un RDV à l'agenda (lien ICS)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Au moins un RDV existe dans la section Rendez-vous.",
+      "donnees": "rdvId",
+      "etapes": [
+        "Sur une ligne RDV, cliquer l'icône 📅 (lien /api/rdv/:id/ics)"
+      ],
+      "attendu": "Le navigateur télécharge/ouvre un fichier .ics valide pour ce RDV.",
+      "technique": "test du contrat (téléchargement ICS)",
+      "tracabilite": "ParcoursDetail.tsx (a.rdv-ics) + GET /rdv/:id/ics"
+    },
+    {
+      "id": "TC-UI-219",
+      "titre": "Consulter un compte rendu publié depuis le parcours",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Le parcours d'Amine a au moins un CR publié.",
+      "donnees": "-",
+      "etapes": [
+        "Section Comptes rendus → « Consulter »"
+      ],
+      "attendu": "CompteRenduModal (role=accompagne) s'ouvre ; GET /cr/session/:id renvoie le CR ; le contenu HTML est rendu en lecture seule (pas de barre d'édition accompagnateur) ; verrou de défilement actif.",
+      "technique": "test du contrat, test basé sur les rôles (vue accompagné)",
+      "tracabilite": "CompteRenduModal.tsx + GET /cr/session/:id"
+    },
+    {
+      "id": "TC-UI-220",
+      "titre": "CR non publié côté accompagné : message indisponible, pas d'actions",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Session sans CR publié pour l'accompagné.",
+      "donnees": "cr=null",
+      "etapes": [
+        "Ouvrir le modal d'un CR non encore publié"
+      ],
+      "attendu": "Quand cr=null et role=accompagne : « Le compte rendu n'est pas encore disponible. » ; aucun bouton Générer/Éditer/Publier n'est visible (réservés à l'accompagnateur).",
+      "technique": "test basé sur les rôles, table de décision (cr=null × rôle)",
+      "tracabilite": "CompteRenduModal.tsx (branche !cr accompagne)"
+    },
+    {
+      "id": "TC-UI-221",
+      "titre": "Écouter le compte rendu (synthèse vocale navigateur)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "CR publié ouvert ; feature 'audio' active ; navigateur avec speechSynthesis.",
+      "donnees": "-",
+      "etapes": [
+        "Dans le modal CR, cliquer « 🔊 Écouter le compte rendu »",
+        "Cliquer à nouveau pour arrêter"
+      ],
+      "attendu": "La lecture démarre (texte extrait du HTML, lang fr-FR) ; le bouton bascule en « ⏹ Arrêter » ; un second clic appelle speechSynthesis.cancel() ; la fermeture du modal coupe la lecture.",
+      "technique": "test du contrat (toggle TTS), test basé sur les rôles (feature audio)",
+      "tracabilite": "EcouterButton.tsx (feature audio) ; CompteRenduModal.tsx"
+    },
+    {
+      "id": "TC-UI-222",
+      "titre": "Bouton « Écouter » masqué si feature audio absente du plan",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné rattaché à un plan SANS 'audio' (ex. Découverte).",
+      "donnees": "GET /auth/me/features ne contient pas 'audio'",
+      "etapes": [
+        "Ouvrir un CR publié"
+      ],
+      "attendu": "EcouterButton retourne null : aucun bouton « Écouter » n'est rendu.",
+      "technique": "test basé sur les rôles (gating requireFeature côté UI), table de décision",
+      "tracabilite": "EcouterButton.tsx (useFeature('audio'))"
+    },
+    {
+      "id": "TC-UI-223",
+      "titre": "Mode « Facile à lire » (FALC) sur un compte rendu",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "CR publié ouvert ; feature 'falc' active.",
+      "donnees": "html du CR",
+      "etapes": [
+        "Cliquer « 📖 Facile à lire »",
+        "Attendre la reformulation",
+        "Recliquer pour replier"
+      ],
+      "attendu": "POST /adoption/falc {html} renvoie {texte} non vide ; un encart « Version facile à lire et à comprendre » affiche le texte ligne par ligne ; aria-expanded bascule true/false.",
+      "technique": "test du contrat (champ texte présent/non vide, pas de figeage de contenu)",
+      "tracabilite": "FalcButton.tsx + POST /adoption/falc"
+    },
+    {
+      "id": "TC-UI-224",
+      "titre": "Bouton FALC masqué si feature falc absente",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Plan sans 'falc'.",
+      "donnees": "features sans 'falc'",
+      "etapes": [
+        "Ouvrir un CR publié"
+      ],
+      "attendu": "FalcButton retourne null ; aucun bouton « Facile à lire » ; le FalcToggle d'en-tête est également absent.",
+      "technique": "test basé sur les rôles (gating UI)",
+      "tracabilite": "FalcButton.tsx + FalcToggle.tsx (useFeature('falc'))"
+    },
+    {
+      "id": "TC-UI-225",
+      "titre": "Discussion sur un CR publié (accompagné envoie un message)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "CR publié ouvert côté accompagné.",
+      "donnees": "texte='Merci, c'est clair.'",
+      "etapes": [
+        "Dans la section « 💬 Échanges », saisir un message",
+        "Cliquer « Envoyer »"
+      ],
+      "attendu": "POST /cr/session/:id/messages en succès ; le message apparaît marqué is_me ; le champ se vide ; la liste défile vers le bas.",
+      "technique": "test du contrat (POST→relecture)",
+      "tracabilite": "CompteRenduModal.tsx envoyer() + POST /cr/session/:id/messages"
+    },
+    {
+      "id": "TC-UI-226",
+      "titre": "Discussion : message vide non envoyé",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Section Échanges visible.",
+      "donnees": "newMsg='   '",
+      "etapes": [
+        "Laisser le champ vide",
+        "Cliquer « Envoyer »"
+      ],
+      "attendu": "envoyer() retourne (garde !t) ; aucun appel réseau ; aucun message ajouté.",
+      "technique": "valeurs limites (entrée vide)",
+      "tracabilite": "CompteRenduModal.tsx envoyer() garde"
+    },
+    {
+      "id": "TC-UI-227",
+      "titre": "Page « Mes comptes rendus » : liste globale et consultation",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné avec ≥1 CR.",
+      "donnees": "/mes-comptes-rendus",
+      "etapes": [
+        "Aller sur /mes-comptes-rendus",
+        "Cliquer « Consulter » sur un CR"
+      ],
+      "attendu": "GET /cr/mine peuple la liste (date d'entretien + date de publication) ; le modal CR s'ouvre ; à la fermeture, load() rafraîchit la liste.",
+      "technique": "test du contrat (liste→modal)",
+      "tracabilite": "ComptesRendus.tsx + GET /cr/mine"
+    },
+    {
+      "id": "TC-UI-228",
+      "titre": "Mes comptes rendus vide : message neutre",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Accompagné sans aucun CR.",
+      "donnees": "comptesRendus=[]",
+      "etapes": [
+        "Aller sur /mes-comptes-rendus"
+      ],
+      "attendu": "Affiche « Aucun compte rendu pour l'instant. ».",
+      "technique": "valeurs limites (liste vide)",
+      "tracabilite": "ComptesRendus.tsx (état vide)"
+    },
+    {
+      "id": "TC-UI-229",
+      "titre": "Consulter la synthèse du parcours publiée",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Parcours d'Amine avec synthèse publiée (synthese_publiee=true).",
+      "donnees": "-",
+      "etapes": [
+        "Section « Synthèse du parcours » → « Consulter ma synthèse »"
+      ],
+      "attendu": "SyntheseModal (role=accompagne) ouvre ; GET /synthese/dossier/:id renvoie le doc publié ; contenu HTML en lecture seule + bouton « Écouter la synthèse » ; discussion disponible.",
+      "technique": "test du contrat, test basé sur les rôles",
+      "tracabilite": "SyntheseModal.tsx + GET /synthese/dossier/:id"
+    },
+    {
+      "id": "TC-UI-230",
+      "titre": "Synthèse non publiée : message d'attente, pas de bouton",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Parcours sans synthèse publiée.",
+      "donnees": "synthese_publiee=false",
+      "etapes": [
+        "Ouvrir /parcours/<id> ; section Synthèse"
+      ],
+      "attendu": "Affiche « Pas encore disponible (publiée par ton accompagnateur). » ; le bouton « Consulter ma synthèse » est absent.",
+      "technique": "table de décision (synthese_publiee)",
+      "tracabilite": "ParcoursDetail.tsx (section synthèse)"
+    },
+    {
+      "id": "TC-UI-231",
+      "titre": "Résumé « Où j'en suis » : générer puis relire",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Parcours ouvert ; feature 'resume_parcours' active.",
+      "donnees": "-",
+      "etapes": [
+        "Section « 🧭 Où j'en suis » → « ✨ Faire le point »",
+        "Attendre l'analyse",
+        "Cliquer « ↻ Mettre à jour »"
+      ],
+      "attendu": "POST /collab/resume/dossier/:id renvoie {etat, faits[], prochaines_etapes[]} ; etat affiché en paragraphe, faits et étapes en listes ; au rechargement de page, GET /collab/resume/dossier/:id relit le résumé persistant.",
+      "technique": "test du contrat (champs présents/typés + persistance/relecture)",
+      "tracabilite": "ResumeParcoursCard.tsx + POST/GET /collab/resume/dossier/:id"
+    },
+    {
+      "id": "TC-UI-232",
+      "titre": "Carte Résumé absente si feature resume_parcours non incluse",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Plan sans 'resume_parcours'.",
+      "donnees": "features sans 'resume_parcours'",
+      "etapes": [
+        "Ouvrir /parcours/<id>"
+      ],
+      "attendu": "ResumeParcoursCard retourne null ; aucune section « Où j'en suis » ; aucun appel /collab/resume.",
+      "technique": "test basé sur les rôles (gating UI), table de décision",
+      "tracabilite": "ResumeParcoursCard.tsx (useFeature('resume_parcours'))"
+    },
+    {
+      "id": "TC-UI-233",
+      "titre": "Problématisation : répondre aux questions, proposer puis enregistrer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Parcours ouvert ; feature 'problematisation' active.",
+      "donnees": "réponses guidées + édition libre de la problématique",
+      "etapes": [
+        "Section « 🎯 Ma problématique » → « Construire ma problématique »",
+        "Renseigner les réponses aux questions",
+        "« ✨ Proposer une problématique (IA) »",
+        "Ajuster le texte",
+        "« Enregistrer »"
+      ],
+      "attendu": "GET …/problematisation préremplit questions/réponses ; POST …/suggerer renvoie {problematique, sous_questions[]} et remplit la zone ; POST …/problematisation enregistre ; message « Enregistré ✓ » ; après rechargement, la problématique est relue (mode replié « Revoir »).",
+      "technique": "test du contrat (champs + persistance/relecture)",
+      "tracabilite": "ProblematisationCard.tsx + GET/POST /collab/problematisation/dossier/:id(+/suggerer)"
+    },
+    {
+      "id": "TC-UI-234",
+      "titre": "Météo intérieure : enregistrer un check-in d'humeur + mot",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Parcours ouvert ; feature 'meteo' active.",
+      "donnees": "niveau=4 (🙂) ; mot='motivé'",
+      "etapes": [
+        "Section « 🌤️ Comment te sens-tu ? » → choisir un emoji",
+        "Saisir un mot facultatif",
+        "Cliquer « Enregistrer »"
+      ],
+      "attendu": "POST /relationnel/meteo {dossierId, niveau, mot} ; message « C'est noté ✓ » ; le relevé apparaît en tête de l'historique ; le formulaire se réinitialise (niveau null).",
+      "technique": "partition d'équivalence (niveau 1-5), test du contrat",
+      "tracabilite": "MeteoWidget.tsx + POST /relationnel/meteo"
+    },
+    {
+      "id": "TC-UI-235",
+      "titre": "Météo : bouton Enregistrer désactivé sans niveau sélectionné",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Section météo affichée, aucun emoji sélectionné.",
+      "donnees": "niveau=null",
+      "etapes": [
+        "Ne sélectionner aucun emoji",
+        "Observer le bouton « Enregistrer »"
+      ],
+      "attendu": "Le bouton est disabled (!niveau) ; aucun POST possible tant qu'un niveau n'est pas choisi.",
+      "technique": "valeurs limites (sélection obligatoire)",
+      "tracabilite": "MeteoWidget.tsx (disabled !niveau)"
+    },
+    {
+      "id": "TC-UI-236",
+      "titre": "Roue des émotions : sélectionner plusieurs émotions et enregistrer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Parcours ouvert ; feature 'roue_emotions' active.",
+      "donnees": "émotions=['confiant','curieux'] ; note='ça avance'",
+      "etapes": [
+        "Section « 🎡 Roue des émotions »",
+        "Cliquer plusieurs pastilles d'émotions (multi-sélection)",
+        "Saisir une note facultative",
+        "« Enregistrer »"
+      ],
+      "attendu": "toggle bascule aria-pressed ; POST /viz/emotions/dossier/:id {emotions[], note} ; « C'est noté ✓ » ; l'agrégat « Mon climat émotionnel » se met à jour et trie par fréquence.",
+      "technique": "test du contrat, partition d'équivalence (multi-sélection)",
+      "tracabilite": "RoueEmotions.tsx + POST /viz/emotions/dossier/:id"
+    },
+    {
+      "id": "TC-UI-237",
+      "titre": "Roue des émotions : Enregistrer désactivé sans sélection",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Aucune émotion cochée.",
+      "donnees": "sel=[]",
+      "etapes": [
+        "Ne cocher aucune émotion",
+        "Observer le bouton « Enregistrer »"
+      ],
+      "attendu": "Bouton disabled (!sel.length) ; envoyer() retourne même si appelé.",
+      "technique": "valeurs limites (collection vide)",
+      "tracabilite": "RoueEmotions.tsx (disabled !sel.length)"
+    },
+    {
+      "id": "TC-UI-238",
+      "titre": "Micro-journal : ajouter une note privée puis la partager",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Parcours ouvert ; feature 'journal' active.",
+      "donnees": "texte='Blocage sur le plan' ; partage=false puis bascule",
+      "etapes": [
+        "Section « 📓 Micro-journal » → saisir une note",
+        "Laisser « Partager » décoché → « Ajouter »",
+        "Sur la note créée, cliquer « 🔒 privée » pour la passer en partagée"
+      ],
+      "attendu": "POST /relationnel/journal {dossierId, texte, partage:false} crée la note (tag 🔒 privée) ; PATCH /relationnel/journal/:id bascule partage→1 (tag 🔓 partagée) ; la liste se recharge.",
+      "technique": "table de décision (privé/partagé), test du contrat",
+      "tracabilite": "MicroJournal.tsx + POST + PATCH /relationnel/journal"
+    },
+    {
+      "id": "TC-UI-239",
+      "titre": "Micro-journal : supprimer une note avec confirmation",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Au moins une note de journal existe.",
+      "donnees": "id de la note",
+      "etapes": [
+        "Cliquer le « × » de suppression d'une note",
+        "Confirmer la boîte window.confirm"
+      ],
+      "attendu": "Après confirmation, DELETE /relationnel/journal/:id ; la note disparaît après rechargement. (Annuler la confirmation n'appelle pas l'API.)",
+      "technique": "table de décision (confirm oui/non)",
+      "tracabilite": "MicroJournal.tsx supprimer() + DELETE /relationnel/journal/:id"
+    },
+    {
+      "id": "TC-UI-240",
+      "titre": "Micro-journal : note vide non ajoutée",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Champ texte vide.",
+      "donnees": "texte='   '",
+      "etapes": [
+        "Laisser la zone vide",
+        "Observer « ＋ Ajouter »"
+      ],
+      "attendu": "Bouton disabled (!texte.trim()) ; ajouter() retourne sans appel réseau.",
+      "technique": "valeurs limites (chaîne vide)",
+      "tracabilite": "MicroJournal.tsx (garde texte.trim())"
+    },
+    {
+      "id": "TC-UI-241",
+      "titre": "Boussole du parcours : aiguille, pourcentage et jalons cohérents",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Parcours d'Amine avec entretiens (phase_max≥0), CR et synthèse.",
+      "donnees": "phaseMax, questionnaire, entretiens, crPublies, synthesePubliee, cloture issus de /dossiers/mine/:id",
+      "etapes": [
+        "Ouvrir /parcours/<id>",
+        "Observer la boussole en haut"
+      ],
+      "attendu": "feature 'boussole' active : SVG rendu avec aria-label décrivant la phase courante et le % vers l'autonomie ; aiguille pointe la phase ; jalons (Questionnaire/Entretiens/CR/Synthèse/Clôture) cochés selon les données.",
+      "technique": "valeurs limites (phaseMax -1..5, pct), test du contrat",
+      "tracabilite": "BoussoleParcours.tsx (useFeature('boussole'))"
+    },
+    {
+      "id": "TC-UI-242",
+      "titre": "Boussole : parcours sans entretien (phaseMax=-1) affiche 0% et état d'attente",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Parcours neuf, aucun entretien.",
+      "donnees": "phaseMax=-1",
+      "etapes": [
+        "Ouvrir un parcours sans entretien"
+      ],
+      "attendu": "pct=0% ; texte « Parcours ouvert — en attente du premier entretien » ; pas d'aiguille (cur<0).",
+      "technique": "valeurs limites (borne basse -1)",
+      "tracabilite": "BoussoleParcours.tsx (cur<0)"
+    },
+    {
+      "id": "TC-UI-243",
+      "titre": "Émergence : fil rouge et moments-clés partagés s'affichent",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Parcours d'Amine : l'accompagnateur a partagé un fil rouge + moments-clés.",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir /parcours/<id>",
+        "Observer la section « 🧵 Le fil rouge… »"
+      ],
+      "attendu": "GET /emergence/mine/dossier/:id renvoie filRouge + moments ; le fil, ses axes, l'explication et les moments (verbatim + pourquoi) sont affichés. Si rien n'est partagé, la section entière est masquée.",
+      "technique": "test du contrat, table de décision (fil/moments présents ou non)",
+      "tracabilite": "EmergencePartage.tsx + GET /emergence/mine/dossier/:id"
+    },
+    {
+      "id": "TC-UI-244",
+      "titre": "Nuage de thèmes : générer puis relire",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Parcours ouvert ; feature 'nuage_themes' active.",
+      "donnees": "-",
+      "etapes": [
+        "Section « 🗂️ Nuage de thèmes » → « ✨ Générer le nuage »",
+        "Recharger la page"
+      ],
+      "attendu": "POST /viz/nuage/dossier/:id renvoie {themes:[{mot,poids}]} ; les mots sont dimensionnés par poids ; GET /viz/nuage relit le nuage persistant au rechargement.",
+      "technique": "test du contrat (champs themes + persistance)",
+      "tracabilite": "NuageThemes.tsx + GET/POST /viz/nuage/dossier/:id"
+    },
+    {
+      "id": "TC-UI-245",
+      "titre": "Carte du parcours : ouverture, fil rouge et impression",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Parcours ouvert ; feature 'carte_parcours' active.",
+      "donnees": "-",
+      "etapes": [
+        "Pied de page parcours → « 🖨️ Carte du parcours »",
+        "Observer la carte",
+        "Cliquer « Imprimer / enregistrer en PDF »"
+      ],
+      "attendu": "Bouton visible car carteActive ; modal carte affiche titre, accompagnateur, nb entretiens, 6 phases (cochées ≤ phaseMax) ; GET /emergence/mine/dossier/:id alimente le fil rouge ; window.print() déclenché ; Échap ferme.",
+      "technique": "test basé sur les rôles (gating), test du contrat",
+      "tracabilite": "CarteParcours.tsx + ParcoursDetail.tsx (carteActive)"
+    },
+    {
+      "id": "TC-UI-246",
+      "titre": "Carte du parcours masquée si feature carte_parcours absente",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Plan sans 'carte_parcours'.",
+      "donnees": "features sans 'carte_parcours'",
+      "etapes": [
+        "Ouvrir /parcours/<id> ; observer le pied de page"
+      ],
+      "attendu": "Le bouton « 🖨️ Carte du parcours » n'est pas rendu (carteActive=false).",
+      "technique": "test basé sur les rôles (gating UI), table de décision",
+      "tracabilite": "ParcoursDetail.tsx (carteActive && …)"
+    },
+    {
+      "id": "TC-UI-247",
+      "titre": "Transparence RGPD : consulter le tableau des données et sous-traitants",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Parcours ouvert ; feature 'transparence' active.",
+      "donnees": "-",
+      "etapes": [
+        "Pied de page → « 🔒 Mes données & transparence »"
+      ],
+      "attendu": "GET /transparence/dossier/:id renvoie {donnees, ia, ce_que_voit_lia, soustraitants, demande_effacement_en_cours} ; le modal liste les compteurs de données, ce que l'IA a vu/produit, les sous-traitants et les droits.",
+      "technique": "test du contrat (forme de réponse → rendu)",
+      "tracabilite": "TransparenceModal.tsx + GET /transparence/dossier/:id"
+    },
+    {
+      "id": "TC-UI-248",
+      "titre": "Transparence : demander l'effacement de ses données",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Modal transparence ouvert ; aucune demande en cours.",
+      "donnees": "motif='Fin de mission'",
+      "etapes": [
+        "Cliquer « 🗑 Demander l'effacement de mes données »",
+        "Saisir un motif (facultatif)",
+        "« Envoyer la demande »"
+      ],
+      "attendu": "POST /transparence/effacement {dossierId, motif} ; message « Ta demande a été envoyée… rien n'est supprimé sans validation. » ; l'état passe à demande_effacement_en_cours et le formulaire disparaît.",
+      "technique": "test du contrat, table de décision (demande en cours/non)",
+      "tracabilite": "TransparenceModal.tsx demander() + POST /transparence/effacement"
+    },
+    {
+      "id": "TC-UI-249",
+      "titre": "Transparence : demande d'effacement déjà en cours masque le formulaire",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "demande_effacement_en_cours=true.",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir le modal transparence avec une demande déjà en cours"
+      ],
+      "attendu": "Affiche « Une demande d'effacement est déjà en cours pour ce parcours. » ; pas de bouton/formulaire de nouvelle demande.",
+      "technique": "table de décision",
+      "tracabilite": "TransparenceModal.tsx (branche demande_effacement_en_cours)"
+    },
+    {
+      "id": "TC-UI-250",
+      "titre": "Bouton Transparence masqué si feature transparence absente",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Plan sans 'transparence'.",
+      "donnees": "features sans 'transparence'",
+      "etapes": [
+        "Ouvrir /parcours/<id> ; pied de page"
+      ],
+      "attendu": "Le bouton « 🔒 Mes données & transparence » n'est pas rendu (transparenceActive=false).",
+      "technique": "test basé sur les rôles (gating UI)",
+      "tracabilite": "ParcoursDetail.tsx (transparenceActive && …)"
+    },
+    {
+      "id": "TC-UI-251",
+      "titre": "Attestation de fin : disponible et imprimable sur parcours clôturé",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Parcours clôturé (statut='cloture') ; feature 'attestation' active.",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir un parcours clôturé",
+        "Pied de page → « 📜 Mon attestation »",
+        "« Imprimer / enregistrer en PDF »"
+      ],
+      "attendu": "Bouton visible (attestationActive && statut==='cloture') ; GET /ethique/attestation/dossier/:id renvoie accompagné, accompagnateur, période, nb entretiens, nb CR ; l'attestation est rendue ; window.print() disponible.",
+      "technique": "table de décision (clôturé × feature), test du contrat",
+      "tracabilite": "AttestationModal.tsx + ParcoursDetail.tsx + GET /ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-UI-252",
+      "titre": "Attestation masquée si parcours non clôturé",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Parcours en cours (statut≠'cloture'), feature attestation active.",
+      "donnees": "statut='en_cours'",
+      "etapes": [
+        "Ouvrir un parcours en cours ; observer le pied de page"
+      ],
+      "attendu": "Le bouton « 📜 Mon attestation » n'apparaît pas (condition statut==='cloture' non remplie).",
+      "technique": "table de décision (statut)",
+      "tracabilite": "ParcoursDetail.tsx (d.statut==='cloture')"
+    },
+    {
+      "id": "TC-UI-253",
+      "titre": "Attestation : erreur si le parcours n'est pas éligible (403/404)",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Forçage d'ouverture du modal sur un dossier non éligible.",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir AttestationModal pour un dossier sans attestation valide"
+      ],
+      "attendu": "GET /ethique/attestation/dossier/:id rejette ; le message d'erreur (e.message ou « Indisponible. ») s'affiche en .form-error ; aucune attestation rendue.",
+      "technique": "test du contrat (gestion d'erreur)",
+      "tracabilite": "AttestationModal.tsx (catch err) + GET /ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-UI-254",
+      "titre": "Visio : rejoindre la salle d'un rendez-vous",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Un RDV existe ; feature 'visio' active.",
+      "donnees": "rdvId",
+      "etapes": [
+        "Section Rendez-vous → bouton « 🎥 Visio » d'une ligne RDV"
+      ],
+      "attendu": "GET /confort/visio/rdv/:id renvoie {url} ; window.open ouvre l'URL Jitsi dans un nouvel onglet (noopener,noreferrer).",
+      "technique": "test du contrat (champ url → ouverture)",
+      "tracabilite": "VisioButton.tsx + GET /confort/visio/rdv/:id"
+    },
+    {
+      "id": "TC-UI-255",
+      "titre": "Bouton Visio masqué si feature visio absente",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Plan sans 'visio'.",
+      "donnees": "features sans 'visio'",
+      "etapes": [
+        "Ouvrir un parcours avec un RDV ; observer la ligne RDV"
+      ],
+      "attendu": "VisioButton retourne null ; aucun bouton « 🎥 Visio » sur les lignes RDV.",
+      "technique": "test basé sur les rôles (gating UI)",
+      "tracabilite": "VisioButton.tsx (useFeature('visio'))"
+    },
+    {
+      "id": "TC-UI-256",
+      "titre": "Mode FALC global : activer/désactiver l'affichage facile à lire",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté ; feature 'falc' active.",
+      "donnees": "-",
+      "etapes": [
+        "Dans l'en-tête, cliquer la bascule FALC (📘/📖)",
+        "Recharger la page"
+      ],
+      "attendu": "document.documentElement reçoit data-falc='on' (texte plus grand/aéré) ; aria-pressed=true ; la préférence est persistée en localStorage('falc') ; un nouveau clic repasse en 'off'.",
+      "technique": "test du contrat (toggle + persistance), test basé sur les rôles (feature falc)",
+      "tracabilite": "FalcToggle.tsx (data-falc, localStorage)"
+    },
+    {
+      "id": "TC-UI-257",
+      "titre": "Visite guidée : lancement auto à la première connexion accompagné",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "feature 'onboarding' active ; clé localStorage 'boussole_onboarding_accompagne' absente.",
+      "donnees": "-",
+      "etapes": [
+        "Vider localStorage",
+        "Se connecter en accompagné",
+        "Observer l'ouverture automatique du tour"
+      ],
+      "attendu": "OnboardingTour s'affiche avec les étapes du rôle accompagne (Bienvenue, Mon espace surligné via [data-tour=espace], Parcours guidé, Tes outils) ; la clé localStorage est posée pour ne pas réafficher au prochain login.",
+      "technique": "test basé sur les rôles (steps par rôle), test du contrat (premier lancement)",
+      "tracabilite": "OnboardingManager.tsx + OnboardingTour.tsx (role accompagne)"
+    },
+    {
+      "id": "TC-UI-258",
+      "titre": "Visite guidée : relance via le bouton flottant et navigation des étapes",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Connecté en accompagné ; feature onboarding active ; tour déjà vu (clé posée).",
+      "donnees": "-",
+      "etapes": [
+        "Cliquer le FAB « ? » (Lancer la visite guidée)",
+        "Naviguer avec « Suivant → » / « ← Précédent »",
+        "Cliquer « Terminer » à la dernière étape"
+      ],
+      "attendu": "Le tour se rouvre ; Précédent/Suivant changent d'étape (compteur « Étape i / N ») ; « Passer » ou « Terminer » ferme le tour ; Échap ferme aussi.",
+      "technique": "partition d'équivalence (navigation étapes), valeurs limites (première/dernière étape)",
+      "tracabilite": "OnboardingManager.tsx (FAB) + OnboardingTour.tsx (navigation)"
+    },
+    {
+      "id": "TC-UI-259",
+      "titre": "Visite guidée et bascule FALC absentes sans les features correspondantes",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Plan sans 'onboarding' ni 'falc'.",
+      "donnees": "features sans 'onboarding' et sans 'falc'",
+      "etapes": [
+        "Se connecter ; observer l'en-tête et le FAB"
+      ],
+      "attendu": "OnboardingManager retourne null (pas de FAB ni de tour auto) ; FalcToggle retourne null (pas de bascule dans l'en-tête).",
+      "technique": "test basé sur les rôles (gating UI), table de décision",
+      "tracabilite": "OnboardingManager.tsx + FalcToggle.tsx (useFeature)"
+    },
+    {
+      "id": "TC-UI-260",
+      "titre": "Plan d'action (accompagné) : ajouter, cocher, réordonner ses étapes",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné ; /mon-plan-action ; dossierId non null.",
+      "donnees": "libelle='Relire le chapitre 2'",
+      "etapes": [
+        "Aller sur /mon-plan-action",
+        "Saisir une action → « Ajouter »",
+        "Cocher/changer le statut d'une action",
+        "Glisser la poignée ⠿ pour réordonner"
+      ],
+      "attendu": "GET /actions/mine charge {actions, dossierId} ; POST /actions ajoute (champ vidé, liste rechargée) ; PATCH /actions/:id change le statut ; POST /actions/reorder persiste l'ordre.",
+      "technique": "test du contrat (CRUD plan d'action)",
+      "tracabilite": "MonPlanAction.tsx + GET /actions/mine + POST /actions + PATCH /actions/:id + POST /actions/reorder"
+    },
+    {
+      "id": "TC-UI-261",
+      "titre": "Plan d'action : formulaire d'ajout masqué sans dossier rattaché",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagné sans dossier (dossierId null).",
+      "donnees": "dossierId=null",
+      "etapes": [
+        "Aller sur /mon-plan-action sans parcours"
+      ],
+      "attendu": "Le formulaire d'ajout n'est pas rendu (dossierId!=null faux) ; addAction() retourne sans appel si déclenché.",
+      "technique": "table de décision (dossierId null/non null)",
+      "tracabilite": "MonPlanAction.tsx (dossierId!=null)"
+    },
+    {
+      "id": "TC-UI-262",
+      "titre": "Plan d'action : ouvrir le détail d'une action (échéance/priorité/rappel/notes)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Au moins une action existe.",
+      "donnees": "-",
+      "etapes": [
+        "Cliquer sur une action pour ouvrir son détail",
+        "Modifier des champs et enregistrer"
+      ],
+      "attendu": "ActionDetailModal s'ouvre (key=action.id) ; après enregistrement, onSaved=load() rafraîchit la liste ; la fermeture remet selected à null.",
+      "technique": "test du contrat (ouverture/persistance détail)",
+      "tracabilite": "MonPlanAction.tsx (ActionDetailModal)"
+    },
+    {
+      "id": "TC-UI-263",
+      "titre": "Voir mes réponses au questionnaire depuis le parcours",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Questionnaire déjà complété pour le parcours.",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir /parcours/<id>",
+        "Section Questionnaire initial → « 🔎 Voir mes réponses »"
+      ],
+      "attendu": "QuestionnaireDetailModal affiche le récapitulatif et le contenu enregistré (cr_recap/contenu) + date de complétion ; fermeture sans erreur.",
+      "technique": "test du contrat (relecture persistée)",
+      "tracabilite": "ParcoursDetail.tsx + QuestionnaireDetailModal (data.questionnaire)"
+    },
+    {
+      "id": "TC-UI-264",
+      "titre": "Questionnaire non rempli : invitation à le remplir",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Parcours sans questionnaire (data.questionnaire=null).",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir un parcours sans questionnaire ; section Questionnaire"
+      ],
+      "attendu": "Affiche « Pas encore rempli. » + lien « Remplir le questionnaire » vers /questionnaire?dossier=<id>.",
+      "technique": "table de décision (questionnaire null/présent)",
+      "tracabilite": "ParcoursDetail.tsx (section questionnaire)"
+    },
+    {
+      "id": "TC-UI-265",
+      "titre": "Robustesse modale : ErrorBoundary récupère un échec d'ouverture de CR/synthèse",
+      "niveau": "ui",
+      "type": "non-regression",
+      "priorite": "basse",
+      "preconditions": "Modal CR ou synthèse en lazy load ; provoquer une erreur de rendu.",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir un CR/synthèse dans des conditions provoquant une erreur du composant lazy"
+      ],
+      "attendu": "L'ErrorBoundary capte l'erreur ; onReset remet crSession/showSyn à null ; la page parcours reste utilisable (pas d'écran blanc).",
+      "technique": "test du contrat (résilience), test négatif",
+      "tracabilite": "ParcoursDetail.tsx (ErrorBoundary onReset) ; ComptesRendus.tsx"
+    },
+    {
+      "id": "TC-UI-266",
+      "titre": "Repli FALC déterministe (unitaire) : découpe en puces de phrases courtes",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Tester la fonction falcFallback de adoption.ts (chemin sans IA).",
+      "donnees": "texte='Bonjour. Voici un point important ! Et une question ? ok',",
+      "etapes": [
+        "Appeler falcFallback(texte)",
+        "Vérifier le découpage par ponctuation finale (. ! ?)",
+        "Vérifier le filtre des fragments ≤3 caractères et la limite à 12 puces"
+      ],
+      "attendu": "Retourne une liste de lignes préfixées « • », une phrase par puce ; les fragments de longueur ≤3 (ex. 'ok') sont écartés ; au plus 12 puces.",
+      "technique": "partition d'équivalence (séparateurs . ! ?), valeurs limites (longueur >3, max 12)",
+      "tracabilite": "adoption.ts falcFallback() (repli déterministe de POST /adoption/falc)"
+    },
+    {
+      "id": "TC-UI-267",
+      "titre": "Contrat FALC : champ source 'ia' ou 'heuristique' selon disponibilité de Claude",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné authentifié ; feature 'falc' ; html non vide.",
+      "donnees": "{ html:'<p>Un texte à simplifier. Une autre phrase.</p>' }",
+      "etapes": [
+        "POST /adoption/falc avec un html valide",
+        "Inspecter la réponse"
+      ],
+      "attendu": "200 avec {texte:string non vide, source:'ia'|'heuristique'} ; si Claude indisponible, texte provient du repli (source='heuristique') et reste non vide.",
+      "technique": "test du contrat (champs présents/typés, gating, repli)",
+      "tracabilite": "falc + POST /adoption/falc"
+    },
+    {
+      "id": "TC-UI-268",
+      "titre": "FALC : texte vide rejeté (400)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné authentifié ; feature 'falc'.",
+      "donnees": "{ html:'' } ou {} ",
+      "etapes": [
+        "POST /adoption/falc avec un contenu vide"
+      ],
+      "attendu": "400 avec {error:'Texte vide'} ; aucune reformulation.",
+      "technique": "valeurs limites (entrée vide)",
+      "tracabilite": "POST /adoption/falc (garde !texte)"
+    },
+    {
+      "id": "TC-UI-269",
+      "titre": "Gating serveur FALC : 403 si la fonctionnalité n'est pas dans l'offre",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné rattaché à un plan SANS 'falc'.",
+      "donnees": "{ html:'<p>texte</p>' }",
+      "etapes": [
+        "POST /adoption/falc en étant authentifié mais sans la feature"
+      ],
+      "attendu": "403 {error:'Fonctionnalité non disponible dans votre offre'} (requireFeature('falc')).",
+      "technique": "test basé sur les rôles (requireFeature)",
+      "tracabilite": "features.ts requireFeature + POST /adoption/falc"
+    },
+    {
+      "id": "TC-UI-270",
+      "titre": "Gating serveur FALC : 401 si non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session.",
+      "donnees": "{ html:'<p>texte</p>' }",
+      "etapes": [
+        "POST /adoption/falc sans cookie de session"
+      ],
+      "attendu": "401 {error:'Non authentifié'} (requireAuth/requireFeature).",
+      "technique": "test basé sur les rôles (anonyme)",
+      "tracabilite": "requireAuth + POST /adoption/falc"
+    },
+    {
+      "id": "TC-UI-271",
+      "titre": "Météo : niveau hors bornes rejeté (validation serveur)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné authentifié ; feature 'meteo'.",
+      "donnees": "{ dossierId:<id>, niveau:0 } puis { niveau:6 }",
+      "etapes": [
+        "POST /relationnel/meteo avec niveau=0 puis niveau=6"
+      ],
+      "attendu": "Réponse 400 (niveau hors 1..5) ; aucun relevé créé ; l'historique météo inchangé.",
+      "technique": "valeurs limites (bornes 1 et 5)",
+      "tracabilite": "POST /relationnel/meteo (validation niveau)"
+    },
+    {
+      "id": "TC-UI-272",
+      "titre": "Accès aux données d'un parcours d'autrui : 404 (cloisonnement)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Léa ; <id> appartient à Amine.",
+      "donnees": "dossierId d'Amine",
+      "etapes": [
+        "GET /dossiers/mine/:id avec un id non possédé",
+        "Idem pour /collab/resume, /relationnel/meteo, /viz/emotions sur ce dossier"
+      ],
+      "attendu": "404 (ou 403) systématique : aucun contenu d'un parcours d'un autre accompagné n'est servi ; côté UI le catch affiche « Chargement impossible ».",
+      "technique": "test basé sur les rôles (non-propriétaire / 404)",
+      "tracabilite": "GET /dossiers/mine/:id et endpoints dossier-scopés (cloisonnement accompagné)"
+    }
+  ]
+}

@@ -9,7 +9,7 @@ const router = Router()
 const KEY = process.env.ANTHROPIC_API_KEY
 const MODEL = process.env.ANTHROPIC_MODEL_REPORT || 'claude-opus-4-8'
 
-const strip = (html: string) => (html || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim()
+export const strip = (html: string) => (html || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim()
 
 async function callClaude(system: string, user: string, maxTokens = 1200): Promise<string | null> {
   if (!KEY) return null
@@ -28,7 +28,7 @@ async function callClaude(system: string, user: string, maxTokens = 1200): Promi
 }
 
 // Repli déterministe : découpe en phrases courtes, présentées en puces.
-function falcFallback(texte: string): string {
+export function falcFallback(texte: string): string {
   const phrases = texte.split(/(?<=[.!?])\s+/).map((p) => p.trim()).filter((p) => p.length > 3)
   return phrases.slice(0, 12).map((p) => `• ${p}`).join('\n')
 }

@@ -1,0 +1,1716 @@
+{
+  "domaine": "relemerg",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/relationnel/meteo",
+      "summary": "Enregistre un relevé de météo intérieure (niveau 1-5 + mot facultatif) sur un dossier dont on est accompagné ou accompagnateur",
+      "role": "accompagne|accompagnateur",
+      "feature": "meteo (gating client uniquement, pas requireFeature serveur)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/relationnel/meteo/dossier/:id",
+      "summary": "Liste la météo : accompagné voit la sienne ; accompagnateur voit ses propres relevés privés + ceux de l'accompagné",
+      "role": "accompagne|accompagnateur",
+      "feature": "meteo (gating client)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/relationnel/journal",
+      "summary": "Crée une note de micro-journal (privée ou partagée) — réservé à l'accompagné propriétaire du dossier",
+      "role": "accompagne",
+      "feature": "journal (gating client)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/relationnel/journal/dossier/:id",
+      "summary": "Liste les notes : accompagné voit toutes les siennes ; accompagnateur voit uniquement les notes partagées",
+      "role": "accompagne|accompagnateur",
+      "feature": "journal (gating client)"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/relationnel/journal/:id",
+      "summary": "Modifie le texte et/ou le partage d'une note dont on est l'auteur accompagné",
+      "role": "accompagne",
+      "feature": "journal (gating client)"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/relationnel/journal/:id",
+      "summary": "Supprime une note dont on est l'auteur accompagné",
+      "role": "accompagne",
+      "feature": "journal (gating client)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/emergence/dossier/:did/banque",
+      "summary": "Génère (IA ou repli) la banque de questions par phase pour un dossier possédé, persistée en upsert",
+      "role": "accompagnateur",
+      "feature": "banque_questions (IA contrat — pas de requireFeature serveur)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/emergence/dossier/:did/banque",
+      "summary": "Relit la banque de questions persistée d'un dossier possédé (null si absente)",
+      "role": "accompagnateur",
+      "feature": "banque_questions"
+    },
+    {
+      "method": "POST",
+      "path": "/api/emergence/dossier/:did/fil-rouge",
+      "summary": "Fait émerger (IA ou repli) le fil rouge du mémoire, persisté en upsert ; renvoie fil/axes/explication + partage + source",
+      "role": "accompagnateur",
+      "feature": "fil_rouge (IA contrat)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/emergence/dossier/:did/fil-rouge",
+      "summary": "Relit le fil rouge persisté d'un dossier possédé (null si absent)",
+      "role": "accompagnateur",
+      "feature": "fil_rouge"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/emergence/dossier/:did/fil-rouge/partage",
+      "summary": "Active/désactive le partage du fil rouge avec l'accompagné",
+      "role": "accompagnateur",
+      "feature": "fil_rouge"
+    },
+    {
+      "method": "POST",
+      "path": "/api/emergence/session/:sid/moments",
+      "summary": "Génère (IA ou repli) les moments-clés d'un entretien possédé, persistés en upsert (1 par session)",
+      "role": "accompagnateur",
+      "feature": "moments_cles (IA contrat)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/emergence/session/:sid/moments",
+      "summary": "Relit les moments-clés persistés d'un entretien possédé (null si absent)",
+      "role": "accompagnateur",
+      "feature": "moments_cles"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/emergence/session/:sid/moments/partage",
+      "summary": "Active/désactive le partage des moments-clés d'un entretien avec l'accompagné",
+      "role": "accompagnateur",
+      "feature": "moments_cles"
+    },
+    {
+      "method": "GET",
+      "path": "/api/emergence/mine/dossier/:did",
+      "summary": "Côté accompagné : lit fil rouge et moments-clés UNIQUEMENT s'ils sont partagés (partage=1)",
+      "role": "accompagne",
+      "feature": "fil_rouge/moments_cles (lecture, pas de requireFeature)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/transparence/dossier/:id",
+      "summary": "Tableau RGPD : décompte des données du dossier, ce que l'IA a vu/produit, sous-traitants, demande d'effacement en cours",
+      "role": "accompagne",
+      "feature": "transparence (requireFeature serveur)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/transparence/effacement",
+      "summary": "Crée une demande d'effacement (motif facultatif) et notifie l'accompagnateur + les admins (transaction)",
+      "role": "accompagne",
+      "feature": "transparence (requireFeature serveur)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/miroir/session/:sid",
+      "summary": "Génère (IA ou repli heuristique) l'analyse réflexive de la posture de l'accompagnateur sur un entretien possédé, persistée (upsert)",
+      "role": "accompagnateur",
+      "feature": "miroir (requireFeature serveur, IA contrat)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/miroir/session/:sid",
+      "summary": "Relit l'analyse de posture persistée d'un entretien possédé (null si absente)",
+      "role": "accompagnateur",
+      "feature": "miroir (requireFeature serveur)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/miroir/session/:sid/appliquer",
+      "summary": "Applique les scores proposés (filtrés sur INDICATEUR_IDS, clampés 0-100) au brouillon d'auto-évaluation du dossier et recalcule la note globale",
+      "role": "accompagnateur",
+      "feature": "miroir (requireFeature serveur)"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-REL-001",
+      "titre": "Enregistrer un relevé de météo valide (accompagné)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné (afrit_mohamed@yahoo.fr), propriétaire du dossierId",
+      "donnees": "{dossierId: <dossier d'Amine>, niveau: 4, mot: 'serein'}",
+      "etapes": [
+        "POST /api/relationnel/meteo avec le corps",
+        "Vérifier le statut et le corps"
+      ],
+      "attendu": "201 ; corps {id:number, niveau:4, mot:'serein'} ; le relevé est inséré avec role='accompagne'",
+      "technique": "Partition d'équivalence (niveau valide)",
+      "tracabilite": "meteo | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-002",
+      "titre": "Météo sans le mot facultatif",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné propriétaire",
+      "donnees": "{dossierId, niveau: 3}",
+      "etapes": [
+        "POST /api/relationnel/meteo",
+        "Vérifier"
+      ],
+      "attendu": "201 ; mot=null dans la réponse et en base",
+      "technique": "Partition d'équivalence (champ optionnel absent)",
+      "tracabilite": "meteo | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-003",
+      "titre": "Météo : bornes du niveau (1 et 5 acceptés)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné propriétaire",
+      "donnees": "niveau=1 ; puis niveau=5",
+      "etapes": [
+        "POST avec niveau=1",
+        "POST avec niveau=5"
+      ],
+      "attendu": "201 dans les deux cas ; niveau renvoyé 1 puis 5",
+      "technique": "Valeurs limites (bornes basse/haute incluses)",
+      "tracabilite": "meteo | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-004",
+      "titre": "Météo : niveau hors plage écrêté (clamp 1-5)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné propriétaire",
+      "donnees": "niveau=9 ; puis niveau=-2",
+      "etapes": [
+        "POST niveau=9 → attendu niveau=5",
+        "POST niveau=-2 → écrêté à 1 (Math.max(1,...)) donc 400? vérifier"
+      ],
+      "attendu": "niveau=9 → 201 avec niveau=5 (Math.min(5,...)); niveau=-2 → écrêté à 1 par Math.max donc 201 niveau=1",
+      "technique": "Valeurs limites (au-delà des bornes, écrêtage)",
+      "tracabilite": "meteo | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-005",
+      "titre": "Météo : niveau manquant/non numérique → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné propriétaire",
+      "donnees": "{dossierId} sans niveau ; puis niveau:'abc' ; puis niveau:0",
+      "etapes": [
+        "POST sans niveau",
+        "POST niveau='abc'",
+        "POST niveau=0"
+      ],
+      "attendu": "400 {error:'Niveau requis (1-5)'} (Number(...)||0 → 0 → falsy)",
+      "technique": "Partition d'équivalence (invalide) + valeur limite 0",
+      "tracabilite": "meteo | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-006",
+      "titre": "Météo : mot tronqué à 120 caractères",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Connecté en accompagné propriétaire",
+      "donnees": "mot de 200 caractères",
+      "etapes": [
+        "POST avec mot long",
+        "Relire via GET"
+      ],
+      "attendu": "201 ; mot stocké tronqué à 120 caractères (slice(0,120).trim())",
+      "technique": "Valeurs limites (longueur max)",
+      "tracabilite": "meteo | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-007",
+      "titre": "Météo : accès non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie d'auth",
+      "donnees": "{dossierId, niveau:3}",
+      "etapes": [
+        "POST /api/relationnel/meteo sans cookie"
+      ],
+      "attendu": "401 {error:'Non authentifié'}",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "requireAuth | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-008",
+      "titre": "Météo : dossier d'autrui → 404 (access null)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné (Amine) ; dossierId appartenant à Léa/Karim",
+      "donnees": "{dossierId: <dossier de Léa>, niveau:3}",
+      "etapes": [
+        "POST /api/relationnel/meteo"
+      ],
+      "attendu": "404 {error:'Dossier introuvable'} (access() renvoie null pour un non-propriétaire)",
+      "technique": "Test du contrôle d'accès (404 non-propriétaire)",
+      "tracabilite": "access() | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-009",
+      "titre": "Météo : accompagnateur enregistre son propre check privé",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur (Mohamed) sur un dossier qu'il accompagne",
+      "donnees": "{dossierId: D1, niveau:2, mot:'fatigué'}",
+      "etapes": [
+        "POST /api/relationnel/meteo",
+        "GET /api/relationnel/meteo/dossier/D1"
+      ],
+      "attendu": "201 ; relevé inséré avec role='accompagnateur' ; visible dans 'mine' filtré par auteur_id",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "meteo | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-010",
+      "titre": "Météo : dossierId non numérique/absent → 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné",
+      "donnees": "{niveau:3} sans dossierId ; puis dossierId:'x'",
+      "etapes": [
+        "POST sans dossierId",
+        "POST dossierId='x'"
+      ],
+      "attendu": "404 'Dossier introuvable' (Number(undefined)=NaN → access null)",
+      "technique": "Partition d'équivalence (entrée invalide)",
+      "tracabilite": "access() | POST /api/relationnel/meteo"
+    },
+    {
+      "id": "TC-REL-011",
+      "titre": "Lire la météo côté accompagné (mine peuplé, autre vide)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné propriétaire avec ≥1 relevé",
+      "donnees": "GET /api/relationnel/meteo/dossier/:id",
+      "etapes": [
+        "GET",
+        "Vérifier la forme"
+      ],
+      "attendu": "200 ; {mine:[{id,niveau,mot,cree_le},...], autre:[]} ; mine trié desc, ≤30",
+      "technique": "Test du contrat (forme de réponse + tri/limite)",
+      "tracabilite": "meteo | GET /api/relationnel/meteo/dossier/:id"
+    },
+    {
+      "id": "TC-REL-012",
+      "titre": "Lire la météo côté accompagnateur (mine privé + autre = météo accompagné)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur du dossier ; accompagné et accompagnateur ont chacun des relevés",
+      "donnees": "GET /api/relationnel/meteo/dossier/:id",
+      "etapes": [
+        "GET",
+        "Vérifier mine et autre"
+      ],
+      "attendu": "200 ; mine = uniquement relevés role='accompagnateur' ET auteur_id=moi ; autre = relevés role='accompagne'",
+      "technique": "Table de décision (rôle × visibilité)",
+      "tracabilite": "meteo | GET /api/relationnel/meteo/dossier/:id"
+    },
+    {
+      "id": "TC-REL-013",
+      "titre": "Lire la météo d'un dossier d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté ; dossier non lié à l'utilisateur",
+      "donnees": "GET /api/relationnel/meteo/dossier/<autre>",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "404 {error:'Dossier introuvable'}",
+      "technique": "Test du contrôle d'accès",
+      "tracabilite": "access() | GET /api/relationnel/meteo/dossier/:id"
+    },
+    {
+      "id": "TC-REL-014",
+      "titre": "Lire la météo non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie",
+      "donnees": "GET /api/relationnel/meteo/dossier/1",
+      "etapes": [
+        "GET sans cookie"
+      ],
+      "attendu": "401",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "requireAuth | GET /api/relationnel/meteo/dossier/:id"
+    },
+    {
+      "id": "TC-REL-015",
+      "titre": "Créer une note de micro-journal partagée",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné propriétaire du dossier",
+      "donnees": "{dossierId, texte:'Avancée sur le plan', partage:true}",
+      "etapes": [
+        "POST /api/relationnel/journal",
+        "Vérifier"
+      ],
+      "attendu": "201 ; {id, texte, partage:1, cree_le:ISO} ; note insérée",
+      "technique": "Partition d'équivalence (entrée valide)",
+      "tracabilite": "journal | POST /api/relationnel/journal"
+    },
+    {
+      "id": "TC-REL-016",
+      "titre": "Créer une note privée (partage absent → 0)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné propriétaire",
+      "donnees": "{dossierId, texte:'Note perso'}",
+      "etapes": [
+        "POST",
+        "Vérifier partage"
+      ],
+      "attendu": "201 ; partage:0 (req.body.partage falsy → 0)",
+      "technique": "Table de décision (partage truthy/falsy)",
+      "tracabilite": "journal | POST /api/relationnel/journal"
+    },
+    {
+      "id": "TC-REL-017",
+      "titre": "Note de journal vide → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Accompagné propriétaire",
+      "donnees": "{dossierId, texte:'   '} ; puis texte absent",
+      "etapes": [
+        "POST texte espaces",
+        "POST sans texte"
+      ],
+      "attendu": "400 {error:'Note vide'} (trim() vide)",
+      "technique": "Valeurs limites (chaîne vide après trim)",
+      "tracabilite": "journal | POST /api/relationnel/journal"
+    },
+    {
+      "id": "TC-REL-018",
+      "titre": "Journal : un accompagnateur ne peut pas créer de note → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur sur un dossier qu'il accompagne",
+      "donnees": "{dossierId: D1, texte:'test'}",
+      "etapes": [
+        "POST /api/relationnel/journal"
+      ],
+      "attendu": "404 {error:'Parcours introuvable'} (access !== 'accompagne')",
+      "technique": "Test basé sur les rôles (rôle interdit côté écriture)",
+      "tracabilite": "access() | POST /api/relationnel/journal"
+    },
+    {
+      "id": "TC-REL-019",
+      "titre": "Journal : créer sur dossier d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné connecté ; dossierId d'un autre accompagné",
+      "donnees": "{dossierId:<autre>, texte:'x'}",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "404 'Parcours introuvable'",
+      "technique": "Test du contrôle d'accès (non-propriétaire)",
+      "tracabilite": "access() | POST /api/relationnel/journal"
+    },
+    {
+      "id": "TC-REL-020",
+      "titre": "Journal : création non authentifiée → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucun cookie",
+      "donnees": "{dossierId,texte}",
+      "etapes": [
+        "POST sans cookie"
+      ],
+      "attendu": "401",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "requireAuth | POST /api/relationnel/journal"
+    },
+    {
+      "id": "TC-REL-021",
+      "titre": "Lister le journal côté accompagné (toutes ses notes)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné propriétaire avec notes privées + partagées",
+      "donnees": "GET /api/relationnel/journal/dossier/:id",
+      "etapes": [
+        "GET",
+        "Vérifier"
+      ],
+      "attendu": "200 ; {entrees:[...]} inclut notes privées ET partagées de l'auteur, tri desc",
+      "technique": "Test du contrat (forme + périmètre des données)",
+      "tracabilite": "journal | GET /api/relationnel/journal/dossier/:id"
+    },
+    {
+      "id": "TC-REL-022",
+      "titre": "Lister le journal côté accompagnateur (notes partagées uniquement)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur du dossier ; l'accompagné a 1 note privée + 1 partagée",
+      "donnees": "GET /api/relationnel/journal/dossier/:id",
+      "etapes": [
+        "GET en tant qu'accompagnateur"
+      ],
+      "attendu": "200 ; entrees ne contient QUE les notes partage=1 ; la note privée est absente",
+      "technique": "Table de décision (rôle × partage)",
+      "tracabilite": "journal | GET /api/relationnel/journal/dossier/:id"
+    },
+    {
+      "id": "TC-REL-023",
+      "titre": "Lister le journal d'un dossier d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté ; dossier non lié",
+      "donnees": "GET /api/relationnel/journal/dossier/<autre>",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "404 'Dossier introuvable'",
+      "technique": "Test du contrôle d'accès",
+      "tracabilite": "access() | GET /api/relationnel/journal/dossier/:id"
+    },
+    {
+      "id": "TC-REL-024",
+      "titre": "Modifier le texte d'une note dont je suis l'auteur",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné, note existante lui appartenant",
+      "donnees": "PATCH {texte:'Texte révisé'}",
+      "etapes": [
+        "PATCH /api/relationnel/journal/:id",
+        "Relire via GET"
+      ],
+      "attendu": "200 {ok:true} ; texte mis à jour ; maj_le renseigné",
+      "technique": "Partition d'équivalence (mise à jour valide)",
+      "tracabilite": "journal | PATCH /api/relationnel/journal/:id"
+    },
+    {
+      "id": "TC-REL-025",
+      "titre": "Basculer le partage d'une note via PATCH",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné, note privée existante",
+      "donnees": "PATCH {partage:1} puis {partage:0}",
+      "etapes": [
+        "PATCH partage:1",
+        "Vérifier visible côté accompagnateur",
+        "PATCH partage:0",
+        "Vérifier masquée"
+      ],
+      "attendu": "200 {ok:true} ; partage bascule 0/1 ; la note (dé)apparaît côté accompagnateur",
+      "technique": "Table de décision (transition d'état partagé/privé)",
+      "tracabilite": "journal | PATCH /api/relationnel/journal/:id"
+    },
+    {
+      "id": "TC-REL-026",
+      "titre": "PATCH note avec texte vide → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné, note existante",
+      "donnees": "PATCH {texte:'   '}",
+      "etapes": [
+        "PATCH"
+      ],
+      "attendu": "400 {error:'Note vide'}",
+      "technique": "Valeurs limites (chaîne vide après trim)",
+      "tracabilite": "journal | PATCH /api/relationnel/journal/:id"
+    },
+    {
+      "id": "TC-REL-027",
+      "titre": "PATCH note sans aucun champ → no-op 200",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagné, note existante",
+      "donnees": "PATCH {} (ni texte ni partage)",
+      "etapes": [
+        "PATCH"
+      ],
+      "attendu": "200 {ok:true} sans modification (sets vide → retour anticipé)",
+      "technique": "Partition d'équivalence (cas dégénéré sans changement)",
+      "tracabilite": "journal | PATCH /api/relationnel/journal/:id"
+    },
+    {
+      "id": "TC-REL-028",
+      "titre": "PATCH note d'un autre utilisateur → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné A ; note appartenant à l'accompagné B",
+      "donnees": "PATCH /api/relationnel/journal/<id de B> {texte:'hack'}",
+      "etapes": [
+        "PATCH"
+      ],
+      "attendu": "404 {error:'Note introuvable'} (WHERE accompagne_id=me.id)",
+      "technique": "Test du contrôle d'accès (non-propriétaire)",
+      "tracabilite": "journal | PATCH /api/relationnel/journal/:id"
+    },
+    {
+      "id": "TC-REL-029",
+      "titre": "Supprimer une note dont je suis l'auteur",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné, note existante lui appartenant",
+      "donnees": "DELETE /api/relationnel/journal/:id",
+      "etapes": [
+        "DELETE",
+        "Relire la liste"
+      ],
+      "attendu": "200 {ok:true} ; note supprimée (info.changes>0)",
+      "technique": "Partition d'équivalence (suppression valide)",
+      "tracabilite": "journal | DELETE /api/relationnel/journal/:id"
+    },
+    {
+      "id": "TC-REL-030",
+      "titre": "Supprimer une note inexistante/d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné ; id inexistant ou appartenant à un autre",
+      "donnees": "DELETE /api/relationnel/journal/999999",
+      "etapes": [
+        "DELETE"
+      ],
+      "attendu": "404 {error:'Note introuvable'} (changes=0)",
+      "technique": "Test du contrôle d'accès + partition (id inexistant)",
+      "tracabilite": "journal | DELETE /api/relationnel/journal/:id"
+    },
+    {
+      "id": "TC-REL-031",
+      "titre": "DELETE note non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucun cookie",
+      "donnees": "DELETE /api/relationnel/journal/1",
+      "etapes": [
+        "DELETE sans cookie"
+      ],
+      "attendu": "401",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "requireAuth | DELETE /api/relationnel/journal/:id"
+    },
+    {
+      "id": "TC-REL-032",
+      "titre": "Météo (UI) : check-in d'humeur côté accompagné",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné, feature 'meteo' active, page ParcoursDetail ouverte",
+      "donnees": "Émoji niveau 4 + mot 'serein'",
+      "etapes": [
+        "Ouvrir le parcours",
+        "Cliquer l'émoji 🙂 (niveau 4)",
+        "Saisir 'serein'",
+        "Cliquer Enregistrer"
+      ],
+      "attendu": "Message « C'est noté ✓ » ; le relevé apparaît dans 'Mon historique'",
+      "technique": "Test bout-en-bout (parcours nominal UI)",
+      "tracabilite": "meteo | MeteoWidget (ParcoursDetail)"
+    },
+    {
+      "id": "TC-REL-033",
+      "titre": "Météo (UI) : feature désactivée masque le widget",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "-",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir ParcoursDetail"
+      ],
+      "attendu": "Le widget Météo n'est pas rendu (useFeature('meteo') false → return null)",
+      "technique": "Test basé sur l'offre (requireFeature côté client)",
+      "tracabilite": "meteo | MeteoWidget useFeature"
+    },
+    {
+      "id": "TC-REL-034",
+      "titre": "Micro-journal (UI) : ajouter, partager, supprimer une note",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné, feature 'journal' active",
+      "donnees": "texte 'Idée de plan', case Partager cochée",
+      "etapes": [
+        "Saisir le texte",
+        "Cocher 'Partager avec mon accompagnateur'",
+        "Cliquer ＋ Ajouter",
+        "Cliquer le tag pour basculer privé/partagé",
+        "Cliquer × et confirmer la suppression"
+      ],
+      "attendu": "La note s'ajoute (tag 🔓 partagée), bascule en 🔒 privée, puis disparaît après confirmation",
+      "technique": "Test bout-en-bout (cycle de vie d'une note)",
+      "tracabilite": "journal | MicroJournal (ParcoursDetail)"
+    },
+    {
+      "id": "TC-REL-035",
+      "titre": "Micro-journal (UI) : accompagnateur en lecture seule des notes partagées",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur, l'accompagné a 1 note partagée",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir Dossier",
+        "Repérer le bloc Micro-journal"
+      ],
+      "attendu": "Notes partagées affichées avec tag 'partagée' ; aucun champ d'ajout ni bouton supprimer (readOnly)",
+      "technique": "Test basé sur les rôles (UI lecture seule)",
+      "tracabilite": "journal | MicroJournal role=accompagnateur (Dossier)"
+    },
+    {
+      "id": "TC-REL-036",
+      "titre": "Générer la banque de questions (contrat IA + persistance)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire du dossier",
+      "donnees": "POST /api/emergence/dossier/:did/banque",
+      "etapes": [
+        "POST",
+        "Vérifier la forme",
+        "GET pour relecture"
+      ],
+      "attendu": "200 ; {banque: objet avec clés '0'..'5' → tableaux de chaînes non vides, source:'ia'|'heuristique'} ; relecture GET renvoie la même banque (upsert)",
+      "technique": "Test du contrat (champs présents/typés, persistance/relecture)",
+      "tracabilite": "banque_questions | POST /api/emergence/dossier/:did/banque"
+    },
+    {
+      "id": "TC-REL-037",
+      "titre": "Banque : repli déterministe fallbackBanque (sans clé API)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "ANTHROPIC_API_KEY absente (callClaude→null) OU test direct de fallbackBanque(dossierId)",
+      "donnees": "dossierId d'Amine (prenom='Amine')",
+      "etapes": [
+        "Appeler fallbackBanque(did)"
+      ],
+      "attendu": "Objet {'0':[...],...,'5':[...]} ; chaque clé a ≥1 question ; la clé '0' contient le prénom de l'accompagné ('Amine, qu'est-ce qui...') ; source persistée='heuristique'",
+      "technique": "Test unitaire de la fonction de repli (sortie déterministe)",
+      "tracabilite": "banque_questions | fallbackBanque()"
+    },
+    {
+      "id": "TC-REL-038",
+      "titre": "Banque : régénération écrase la précédente (ON CONFLICT)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur, banque déjà générée",
+      "donnees": "2x POST /api/emergence/dossier/:did/banque",
+      "etapes": [
+        "POST",
+        "POST à nouveau",
+        "GET"
+      ],
+      "attendu": "Une seule ligne emergence type='banque' ; genere_le mis à jour ; contenu = dernière génération",
+      "technique": "Test du contrat (idempotence d'upsert)",
+      "tracabilite": "banque_questions | POST /api/emergence/dossier/:did/banque"
+    },
+    {
+      "id": "TC-REL-039",
+      "titre": "Banque : non-propriétaire du dossier → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur Camille ; dossier accompagné uniquement par Mohamed",
+      "donnees": "POST /api/emergence/dossier/<dossier de Mohamed>/banque",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "404 {error:'Dossier introuvable'} (ownsDossier false)",
+      "technique": "Test du contrôle d'accès (non-propriétaire)",
+      "tracabilite": "ownsDossier | POST /api/emergence/dossier/:did/banque"
+    },
+    {
+      "id": "TC-REL-040",
+      "titre": "Banque : rôle accompagné interdit → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné",
+      "donnees": "POST /api/emergence/dossier/:did/banque",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "403 {error:'Accès refusé'} (requireRole('accompagnateur'))",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole | POST /api/emergence/dossier/:did/banque"
+    },
+    {
+      "id": "TC-REL-041",
+      "titre": "Banque : non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucun cookie",
+      "donnees": "POST /api/emergence/dossier/1/banque",
+      "etapes": [
+        "POST sans cookie"
+      ],
+      "attendu": "401",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "requireAuth | POST /api/emergence/dossier/:did/banque"
+    },
+    {
+      "id": "TC-REL-042",
+      "titre": "Lire la banque avant génération → null",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire, aucune banque générée",
+      "donnees": "GET /api/emergence/dossier/:did/banque",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "200 {banque:null}",
+      "technique": "Test du contrat (état initial vide)",
+      "tracabilite": "banque_questions | GET /api/emergence/dossier/:did/banque"
+    },
+    {
+      "id": "TC-REL-043",
+      "titre": "Banque (UI) : adapter les questions à l'étudiant pendant l'entretien",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur, page Entretien ouverte sur une phase",
+      "donnees": "-",
+      "etapes": [
+        "Aller sur une phase",
+        "Cliquer « ✨ Adapter les questions à cet étudiant »"
+      ],
+      "attendu": "Des questions personnalisées s'affichent sous la phase (liste phase-q-perso non vide)",
+      "technique": "Test bout-en-bout (génération IA via UI)",
+      "tracabilite": "banque_questions | Entretien genBanque()"
+    },
+    {
+      "id": "TC-REL-044",
+      "titre": "Générer le fil rouge (contrat IA + champs)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire du dossier",
+      "donnees": "POST /api/emergence/dossier/:did/fil-rouge",
+      "etapes": [
+        "POST",
+        "Vérifier la forme"
+      ],
+      "attendu": "200 ; {fil:string non vide, axes:tableau, explication:string, partage:0|1, source:'ia'|'heuristique'}",
+      "technique": "Test du contrat (champs présents/typés)",
+      "tracabilite": "fil_rouge | POST /api/emergence/dossier/:did/fil-rouge"
+    },
+    {
+      "id": "TC-REL-045",
+      "titre": "Fil rouge : repli déterministe (sans IA / j.fil absent)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "callClaude renvoie null ou un objet sans 'fil'",
+      "donnees": "-",
+      "etapes": [
+        "POST avec IA indisponible"
+      ],
+      "attendu": "contenu = {fil:'Relier l'expérience vécue...', axes:['Diagnostic','Démarche','Résultats & recul'], explication:...} ; source='heuristique'",
+      "technique": "Test unitaire de la branche de repli (valeur par défaut)",
+      "tracabilite": "fil_rouge | repli inline POST /fil-rouge"
+    },
+    {
+      "id": "TC-REL-046",
+      "titre": "Fil rouge : relecture après génération",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur, fil rouge généré",
+      "donnees": "GET /api/emergence/dossier/:did/fil-rouge",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "200 ; {filRouge:{fil,axes,explication,partage}}",
+      "technique": "Test du contrat (persistance/relecture)",
+      "tracabilite": "fil_rouge | GET /api/emergence/dossier/:did/fil-rouge"
+    },
+    {
+      "id": "TC-REL-047",
+      "titre": "Fil rouge : relecture avant génération → null",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur propriétaire, aucun fil rouge",
+      "donnees": "GET /api/emergence/dossier/:did/fil-rouge",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "200 {filRouge:null}",
+      "technique": "Test du contrat (état initial)",
+      "tracabilite": "fil_rouge | GET /api/emergence/dossier/:did/fil-rouge"
+    },
+    {
+      "id": "TC-REL-048",
+      "titre": "Fil rouge : basculer le partage (PATCH)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur, fil rouge généré",
+      "donnees": "PATCH {partage:1} puis {partage:0}",
+      "etapes": [
+        "PATCH partage:1",
+        "GET côté accompagné /mine",
+        "PATCH partage:0",
+        "GET côté accompagné"
+      ],
+      "attendu": "200 {ok:true} ; le fil devient (in)visible côté accompagné",
+      "technique": "Table de décision (transition d'état de partage)",
+      "tracabilite": "fil_rouge | PATCH /api/emergence/dossier/:did/fil-rouge/partage"
+    },
+    {
+      "id": "TC-REL-049",
+      "titre": "Fil rouge : non-propriétaire → 404 (POST/GET/PATCH)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur non propriétaire du dossier",
+      "donnees": "POST/GET/PATCH /api/emergence/dossier/<autre>/fil-rouge",
+      "etapes": [
+        "POST",
+        "GET",
+        "PATCH partage"
+      ],
+      "attendu": "404 'Dossier introuvable' pour les trois",
+      "technique": "Test du contrôle d'accès (non-propriétaire)",
+      "tracabilite": "ownsDossier | /api/emergence/dossier/:did/fil-rouge*"
+    },
+    {
+      "id": "TC-REL-050",
+      "titre": "Fil rouge : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné",
+      "donnees": "POST /api/emergence/dossier/:did/fil-rouge",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "403 'Accès refusé'",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole | POST /api/emergence/dossier/:did/fil-rouge"
+    },
+    {
+      "id": "TC-REL-051",
+      "titre": "Fil rouge (UI) : faire émerger puis partager",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur, feature 'fil_rouge' active, page Dossier",
+      "donnees": "-",
+      "etapes": [
+        "Cliquer « ✨ Faire émerger le fil rouge »",
+        "Cliquer « 📣 Partager avec l'accompagné »"
+      ],
+      "attendu": "Le fil/axes/explication s'affichent ; le bouton bascule en « 🔓 Partagé — retirer le partage »",
+      "technique": "Test bout-en-bout (génération + partage)",
+      "tracabilite": "fil_rouge | FilRougeCard (Dossier)"
+    },
+    {
+      "id": "TC-REL-052",
+      "titre": "Générer les moments-clés d'un entretien (contrat IA)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire de la session (entretien avec réponses)",
+      "donnees": "POST /api/emergence/session/:sid/moments",
+      "etapes": [
+        "POST",
+        "Vérifier la forme"
+      ],
+      "attendu": "200 ; {moments:[{verbatim:string, pourquoi:string},...], partage:0|1, source}",
+      "technique": "Test du contrat (structure moments, typage)",
+      "tracabilite": "moments_cles | POST /api/emergence/session/:sid/moments"
+    },
+    {
+      "id": "TC-REL-053",
+      "titre": "Moments-clés : repli déterministe fallbackMoments",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "callClaude renvoie null ; session avec ≥1 réponse non vide",
+      "donnees": "sid d'un entretien rempli",
+      "etapes": [
+        "Appeler fallbackMoments(sid) / POST sans IA"
+      ],
+      "attendu": "{moments:[...]} avec ≤2 entrées issues des réponses (verbatim tronqué à 160), pourquoi='Passage potentiellement pivot de l'entretien.' ; source='heuristique'",
+      "technique": "Test unitaire de la fonction de repli (extraction déterministe)",
+      "tracabilite": "moments_cles | fallbackMoments()"
+    },
+    {
+      "id": "TC-REL-054",
+      "titre": "Moments-clés : session sans réponse → fallback moments vide",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Session sans réponse non vide, sans IA",
+      "donnees": "sid d'un entretien vide",
+      "etapes": [
+        "POST /api/emergence/session/:sid/moments"
+      ],
+      "attendu": "200 ; {moments:[]} (fallbackMoments retourne tableau vide)",
+      "technique": "Valeurs limites (jeu de données vide)",
+      "tracabilite": "moments_cles | fallbackMoments()"
+    },
+    {
+      "id": "TC-REL-055",
+      "titre": "Moments-clés : régénération (ON CONFLICT session_id)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur, moments déjà générés sur la session",
+      "donnees": "2x POST /api/emergence/session/:sid/moments",
+      "etapes": [
+        "POST",
+        "POST"
+      ],
+      "attendu": "Une seule ligne moments_cles par session ; genere_le mis à jour",
+      "technique": "Test du contrat (idempotence upsert par session)",
+      "tracabilite": "moments_cles | POST /api/emergence/session/:sid/moments"
+    },
+    {
+      "id": "TC-REL-056",
+      "titre": "Moments-clés : session d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur ; session appartenant au dossier d'un autre accompagnateur",
+      "donnees": "POST/GET/PATCH /api/emergence/session/<autre>/moments",
+      "etapes": [
+        "POST",
+        "GET",
+        "PATCH partage"
+      ],
+      "attendu": "404 {error:'Entretien introuvable'} (ownsSession undefined)",
+      "technique": "Test du contrôle d'accès (non-propriétaire de session)",
+      "tracabilite": "ownsSession | /api/emergence/session/:sid/moments*"
+    },
+    {
+      "id": "TC-REL-057",
+      "titre": "Moments-clés : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné",
+      "donnees": "POST /api/emergence/session/:sid/moments",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "403 'Accès refusé'",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole | POST /api/emergence/session/:sid/moments"
+    },
+    {
+      "id": "TC-REL-058",
+      "titre": "Lire les moments-clés avant génération → null",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur propriétaire, aucun moment généré",
+      "donnees": "GET /api/emergence/session/:sid/moments",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "200 {moments:null, partage:0}",
+      "technique": "Test du contrat (état initial)",
+      "tracabilite": "moments_cles | GET /api/emergence/session/:sid/moments"
+    },
+    {
+      "id": "TC-REL-059",
+      "titre": "Moments-clés : basculer le partage",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur, moments générés",
+      "donnees": "PATCH {partage:1} puis {partage:0}",
+      "etapes": [
+        "PATCH 1",
+        "GET /mine côté accompagné",
+        "PATCH 0"
+      ],
+      "attendu": "200 {ok:true} ; moments (in)visibles côté accompagné",
+      "technique": "Table de décision (transition de partage)",
+      "tracabilite": "moments_cles | PATCH /api/emergence/session/:sid/moments/partage"
+    },
+    {
+      "id": "TC-REL-060",
+      "titre": "Lecture accompagné /mine : seul le partagé est visible",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné propriétaire ; fil rouge partage=1, 1 session moments partage=1, 1 session moments partage=0",
+      "donnees": "GET /api/emergence/mine/dossier/:did",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "200 ; {filRouge: objet (car partagé), moments: [...] uniquement issus des sessions partagées} ; les moments non partagés sont absents",
+      "technique": "Table de décision (partage × visibilité accompagné)",
+      "tracabilite": "fil_rouge/moments_cles | GET /api/emergence/mine/dossier/:did"
+    },
+    {
+      "id": "TC-REL-061",
+      "titre": "Lecture accompagné /mine : rien de partagé → champs nuls/vides",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné propriétaire ; aucun partage actif",
+      "donnees": "GET /api/emergence/mine/dossier/:did",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "200 {filRouge:null, moments:[]}",
+      "technique": "Test du contrat (état vide après filtrage partage=1)",
+      "tracabilite": "fil_rouge/moments_cles | GET /api/emergence/mine/dossier/:did"
+    },
+    {
+      "id": "TC-REL-062",
+      "titre": "Lecture accompagné /mine : dossier d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné ; dossierId d'un autre accompagné",
+      "donnees": "GET /api/emergence/mine/dossier/<autre>",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "404 {error:'Parcours introuvable'}",
+      "technique": "Test du contrôle d'accès (non-propriétaire)",
+      "tracabilite": "GET /api/emergence/mine/dossier/:did"
+    },
+    {
+      "id": "TC-REL-063",
+      "titre": "Lecture accompagné /mine : rôle accompagnateur → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur",
+      "donnees": "GET /api/emergence/mine/dossier/:did",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "403 'Accès refusé' (requireRole('accompagne'))",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole | GET /api/emergence/mine/dossier/:did"
+    },
+    {
+      "id": "TC-REL-064",
+      "titre": "Émergence partagée (UI) : l'accompagné voit fil rouge + moments",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné (Amine) ; fil rouge déjà partagé côté démo",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir ParcoursDetail du parcours vitrine"
+      ],
+      "attendu": "Section « 🧵 Le fil rouge de ton mémoire » avec axes ; moments-clés affichés si partagés ; section masquée si rien n'est partagé",
+      "technique": "Test bout-en-bout (lecture conditionnelle)",
+      "tracabilite": "fil_rouge/moments_cles | EmergencePartage (ParcoursDetail)"
+    },
+    {
+      "id": "TC-REL-065",
+      "titre": "Transparence : tableau RGPD nominal",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné propriétaire ; feature 'transparence' active (plan absent ou Essentiel/Pro)",
+      "donnees": "GET /api/transparence/dossier/:id",
+      "etapes": [
+        "GET",
+        "Vérifier la forme"
+      ],
+      "attendu": "200 ; {donnees:{questionnaire,rdvs,comptes_rendus_publies,syntheses_publiees,actions,meteo,journal}(nombres), ia:{comptes_rendus_generes:number, synthese_generee:bool, fil_rouge_partage:bool, moments_partages:number}, ce_que_voit_lia:string, soustraitants:[{nom,role}x2], demande_effacement_en_cours:bool}",
+      "technique": "Test du contrat (forme exhaustive + typage des agrégats)",
+      "tracabilite": "transparence | GET /api/transparence/dossier/:id"
+    },
+    {
+      "id": "TC-REL-066",
+      "titre": "Transparence : feature absente → 403 (requireFeature)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné avec plan SANS 'transparence' (ex. plan Découverte)",
+      "donnees": "GET /api/transparence/dossier/:id",
+      "etapes": [
+        "Admin applique le plan Découverte au compte",
+        "GET"
+      ],
+      "attendu": "403 {error:'Fonctionnalité non disponible dans votre offre'}",
+      "technique": "Test basé sur l'offre (requireFeature serveur)",
+      "tracabilite": "requireFeature('transparence') | GET /api/transparence/dossier/:id"
+    },
+    {
+      "id": "TC-REL-067",
+      "titre": "Transparence : rôle accompagnateur → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur",
+      "donnees": "GET /api/transparence/dossier/:id",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "403 'Accès refusé' (requireRole('accompagne'))",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole | GET /api/transparence/dossier/:id"
+    },
+    {
+      "id": "TC-REL-068",
+      "titre": "Transparence : dossier d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné ; dossierId d'un autre accompagné ; feature active",
+      "donnees": "GET /api/transparence/dossier/<autre>",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "404 {error:'Parcours introuvable'} (ownDossier undefined)",
+      "technique": "Test du contrôle d'accès (non-propriétaire)",
+      "tracabilite": "ownDossier | GET /api/transparence/dossier/:id"
+    },
+    {
+      "id": "TC-REL-069",
+      "titre": "Transparence : non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucun cookie",
+      "donnees": "GET /api/transparence/dossier/1",
+      "etapes": [
+        "GET sans cookie"
+      ],
+      "attendu": "401",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "requireAuth | GET /api/transparence/dossier/:id"
+    },
+    {
+      "id": "TC-REL-070",
+      "titre": "Transparence : cohérence des compteurs avec les données réelles",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné avec N relevés météo et M notes journal connus",
+      "donnees": "GET /api/transparence/dossier/:id",
+      "etapes": [
+        "Compter les relevés/notes en base",
+        "GET",
+        "Comparer"
+      ],
+      "attendu": "donnees.meteo == N (role='accompagne'), donnees.journal == M (accompagne_id=moi)",
+      "technique": "Test du contrat (exactitude des agrégats)",
+      "tracabilite": "transparence | GET /api/transparence/dossier/:id"
+    },
+    {
+      "id": "TC-REL-071",
+      "titre": "Demande d'effacement : création + notifications",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné propriétaire ; feature 'transparence' active",
+      "donnees": "POST {dossierId, motif:'Je quitte le dispositif'}",
+      "etapes": [
+        "POST /api/transparence/effacement",
+        "Vérifier la demande et les notifications"
+      ],
+      "attendu": "201 {ok:true} ; ligne demandes_effacement (statut en_attente) ; notification créée pour l'accompagnateur ET pour chaque admin (transaction)",
+      "technique": "Test du contrat (effet de bord transactionnel)",
+      "tracabilite": "transparence | POST /api/transparence/effacement"
+    },
+    {
+      "id": "TC-REL-072",
+      "titre": "Demande d'effacement sans motif (facultatif)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné propriétaire ; feature active",
+      "donnees": "POST {dossierId}",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "201 {ok:true} ; motif=null ; texte de notification sans « Motif : »",
+      "technique": "Partition d'équivalence (champ optionnel absent)",
+      "tracabilite": "transparence | POST /api/transparence/effacement"
+    },
+    {
+      "id": "TC-REL-073",
+      "titre": "Demande d'effacement : motif tronqué à 500 caractères",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagné propriétaire ; feature active",
+      "donnees": "POST {dossierId, motif: chaîne de 700 caractères}",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "201 ; motif stocké tronqué à 500 (slice(0,500).trim())",
+      "technique": "Valeurs limites (longueur max du motif)",
+      "tracabilite": "transparence | POST /api/transparence/effacement"
+    },
+    {
+      "id": "TC-REL-074",
+      "titre": "Demande d'effacement : dossier d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné ; dossierId d'un autre accompagné ; feature active",
+      "donnees": "POST {dossierId:<autre>}",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "404 {error:'Parcours introuvable'}",
+      "technique": "Test du contrôle d'accès",
+      "tracabilite": "ownDossier | POST /api/transparence/effacement"
+    },
+    {
+      "id": "TC-REL-075",
+      "titre": "Demande d'effacement : feature absente → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné avec plan SANS 'transparence'",
+      "donnees": "POST {dossierId}",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "403 'Fonctionnalité non disponible dans votre offre'",
+      "technique": "Test basé sur l'offre",
+      "tracabilite": "requireFeature('transparence') | POST /api/transparence/effacement"
+    },
+    {
+      "id": "TC-REL-076",
+      "titre": "Demande d'effacement : rôle accompagnateur → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur",
+      "donnees": "POST {dossierId}",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "403 'Accès refusé'",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole | POST /api/transparence/effacement"
+    },
+    {
+      "id": "TC-REL-077",
+      "titre": "Effacement : 2e demande pendant qu'une est en_attente → drapeau déjà en cours",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné ayant déjà une demande en_attente",
+      "donnees": "POST {dossierId} puis GET /api/transparence/dossier/:id",
+      "etapes": [
+        "POST (1re demande)",
+        "GET le tableau"
+      ],
+      "attendu": "GET renvoie demande_effacement_en_cours:true (dejaDemande). Note : le POST n'empêche pas un doublon — comportement à vérifier vs spec",
+      "technique": "Table de décision (état de demande)",
+      "tracabilite": "transparence | POST + GET /api/transparence/dossier/:id"
+    },
+    {
+      "id": "TC-REL-078",
+      "titre": "Transparence (UI) : consulter ses données et demander l'effacement",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné (Amine), feature 'transparence' active, page ParcoursDetail",
+      "donnees": "motif 'Test'",
+      "etapes": [
+        "Ouvrir la modale « Mes données & transparence »",
+        "Vérifier les sections (données, IA, sous-traitants, droits)",
+        "Cliquer « Demander l'effacement »",
+        "Saisir un motif",
+        "Cliquer « Envoyer la demande »"
+      ],
+      "attendu": "Les 4 sections s'affichent ; message de confirmation « Ta demande a été envoyée... » ; l'option d'effacement bascule en « demande déjà en cours »",
+      "technique": "Test bout-en-bout (consultation + demande RGPD)",
+      "tracabilite": "transparence | TransparenceModal (ParcoursDetail)"
+    },
+    {
+      "id": "TC-REL-079",
+      "titre": "Miroir : générer l'analyse de posture (contrat IA + persistance)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire de la session ; feature 'miroir' active",
+      "donnees": "POST /api/miroir/session/:sid",
+      "etapes": [
+        "POST",
+        "Vérifier la forme",
+        "GET pour relecture"
+      ],
+      "attendu": "200 ; {forces:[{principe,observation,verbatim}](≤3), glissements:[{...,conseil}](≤3), synthese:string, scores:[{indicateur,score,commentaire}], note:number|null (0-100), source:'ia'|'heuristique'} ; GET relit l'analyse persistée",
+      "technique": "Test du contrat (structure, bornes de note, persistance/relecture)",
+      "tracabilite": "miroir | POST /api/miroir/session/:sid"
+    },
+    {
+      "id": "TC-REL-080",
+      "titre": "Miroir : repli heuristique fallbackMiroir (sans clé API)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "ANTHROPIC_API_KEY absente OU test direct ; session avec questions ouvertes et fermées",
+      "donnees": "sid d'un entretien rempli",
+      "etapes": [
+        "Appeler fallbackMiroir(sid) / POST sans IA"
+      ],
+      "attendu": "forces (1-3 selon questions/notes), glissements (≥1, ajout d'un défaut si aucune fermée), 6 scores aux indicateurs 1.1/1.4/2.1/2.4/2.5/2.6, note = moyenne arrondie des scores ; source='heuristique'",
+      "technique": "Test unitaire de la fonction de repli (calcul déterministe)",
+      "tracabilite": "miroir | fallbackMiroir()"
+    },
+    {
+      "id": "TC-REL-081",
+      "titre": "Miroir : OPEN_RE classe correctement ouvertes/fermées (score 2.5)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Test de fallbackMiroir avec un jeu connu de questions",
+      "donnees": "3 questions dont 2 commençant par 'Comment'/'Qu'' et 1 fermée ('As-tu...')",
+      "etapes": [
+        "Appeler fallbackMiroir(sid)"
+      ],
+      "attendu": "ratio=2/3 ; score indicateur 2.5 = round(45 + 0.666*35) ≈ 68 ; glissement 'Faire émerger' présent à cause de la fermée",
+      "technique": "Table de décision (regex ouverte/fermée → score calculé)",
+      "tracabilite": "miroir | OPEN_RE / fallbackMiroir scores"
+    },
+    {
+      "id": "TC-REL-082",
+      "titre": "Miroir : session sans aucune note ni question (repli dégradé)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Session vide, sans IA",
+      "donnees": "sid d'un entretien vide",
+      "etapes": [
+        "POST /api/miroir/session/:sid"
+      ],
+      "attendu": "200 ; forces=[] (aucune question), glissements contient le défaut 'Faire émerger' (verbatim vide), scores calculés avec ratio=0 → 2.5=round(45)=45",
+      "technique": "Valeurs limites (jeu de données vide)",
+      "tracabilite": "miroir | fallbackMiroir() cas vide"
+    },
+    {
+      "id": "TC-REL-083",
+      "titre": "Miroir : note IA écrêtée à [0,100]",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Réponse IA simulée avec note=150 puis note=-10",
+      "donnees": "-",
+      "etapes": [
+        "suggererMiroir avec note hors bornes"
+      ],
+      "attendu": "note = Math.max(0, Math.min(100, j.note)) → 100 puis 0",
+      "technique": "Valeurs limites (clamp de la note)",
+      "tracabilite": "miroir | suggererMiroir() clamp note"
+    },
+    {
+      "id": "TC-REL-084",
+      "titre": "Miroir : scores filtrés sur INDICATEUR_IDS valides",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Réponse IA simulée contenant un indicateur invalide (ex '9.9') + valides",
+      "donnees": "scores=[{indicateur:'2.5'...},{indicateur:'9.9'...}]",
+      "etapes": [
+        "POST /api/miroir/session/:sid"
+      ],
+      "attendu": "Le score '9.9' est éliminé (result.scores filtré par INDICATEUR_IDS.includes) ; seuls les indicateurs de la grille (21) subsistent",
+      "technique": "Partition d'équivalence (indicateur valide/invalide)",
+      "tracabilite": "miroir | INDICATEUR_IDS filter POST /session/:sid"
+    },
+    {
+      "id": "TC-REL-085",
+      "titre": "Miroir : régénération écrase l'analyse (ON CONFLICT session_id)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur, analyse déjà générée",
+      "donnees": "2x POST /api/miroir/session/:sid",
+      "etapes": [
+        "POST",
+        "POST"
+      ],
+      "attendu": "Une seule ligne analyses_posture par session ; contenu/source/genere_le mis à jour",
+      "technique": "Test du contrat (idempotence upsert)",
+      "tracabilite": "miroir | POST /api/miroir/session/:sid"
+    },
+    {
+      "id": "TC-REL-086",
+      "titre": "Miroir : feature absente → 403 (requireFeature)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur avec plan SANS 'miroir' (ex. Découverte/Essentiel)",
+      "donnees": "POST /api/miroir/session/:sid",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "403 {error:'Fonctionnalité non disponible dans votre offre'}",
+      "technique": "Test basé sur l'offre (requireFeature serveur)",
+      "tracabilite": "requireFeature('miroir') | POST /api/miroir/session/:sid"
+    },
+    {
+      "id": "TC-REL-087",
+      "titre": "Miroir : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné",
+      "donnees": "POST /api/miroir/session/:sid",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "403 'Accès refusé' (requireRole('accompagnateur'))",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole | POST /api/miroir/session/:sid"
+    },
+    {
+      "id": "TC-REL-088",
+      "titre": "Miroir : session d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur ; session d'un dossier non accompagné par lui ; feature active",
+      "donnees": "POST/GET /api/miroir/session/<autre>",
+      "etapes": [
+        "POST",
+        "GET"
+      ],
+      "attendu": "404 {error:'Entretien introuvable'} (ownsSession undefined)",
+      "technique": "Test du contrôle d'accès (non-propriétaire de session)",
+      "tracabilite": "ownsSession | /api/miroir/session/:sid"
+    },
+    {
+      "id": "TC-REL-089",
+      "titre": "Miroir : non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucun cookie",
+      "donnees": "POST /api/miroir/session/1",
+      "etapes": [
+        "POST sans cookie"
+      ],
+      "attendu": "401",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "requireAuth | POST /api/miroir/session/:sid"
+    },
+    {
+      "id": "TC-REL-090",
+      "titre": "Miroir : relire l'analyse avant génération → null",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur propriétaire, aucune analyse ; feature active",
+      "donnees": "GET /api/miroir/session/:sid",
+      "etapes": [
+        "GET"
+      ],
+      "attendu": "200 {analyse:null}",
+      "technique": "Test du contrat (état initial)",
+      "tracabilite": "miroir | GET /api/miroir/session/:sid"
+    },
+    {
+      "id": "TC-REL-091",
+      "titre": "Miroir : appliquer les scores au brouillon d'auto-évaluation",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur, analyse générée avec scores ; feature active",
+      "donnees": "POST /api/miroir/session/:sid/appliquer",
+      "etapes": [
+        "POST appliquer",
+        "Vérifier le brouillon auto_evaluations"
+      ],
+      "attendu": "200 {ok:true, appliques:n>0} ; un brouillon (statut='brouillon') est créé/réutilisé ; scores upsertés dans auto_evaluation_scores ; note_globale recalculée (moyenne/5 arrondie 1 décimale)",
+      "technique": "Test du contrat (effet sur la grille + recalcul)",
+      "tracabilite": "miroir | POST /api/miroir/session/:sid/appliquer"
+    },
+    {
+      "id": "TC-REL-092",
+      "titre": "Appliquer : scores clampés 0-100 et indicateurs invalides ignorés",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Analyse stockée avec un score=120 et un indicateur '9.9'",
+      "donnees": "contenu analyses_posture forgé",
+      "etapes": [
+        "POST /appliquer"
+      ],
+      "attendu": "Le score 120 est clampé à 100 ; l'indicateur '9.9' n'est pas appliqué (INDICATEUR_IDS.includes) ; appliques compte uniquement les indicateurs valides",
+      "technique": "Valeurs limites + partition (validité d'indicateur)",
+      "tracabilite": "miroir | clamp + INDICATEUR_IDS POST /appliquer"
+    },
+    {
+      "id": "TC-REL-093",
+      "titre": "Appliquer : réutilise le brouillon existant (pas de doublon)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur, un brouillon d'auto-évaluation existe déjà pour le dossier",
+      "donnees": "POST /appliquer 2 fois (depuis 2 sessions du même dossier)",
+      "etapes": [
+        "POST appliquer session A",
+        "POST appliquer session B"
+      ],
+      "attendu": "Le même brouillon est mis à jour (ORDER BY id DESC LIMIT 1) ; les scores fusionnent par ON CONFLICT(eval_id, indicateur)",
+      "technique": "Table de décision (brouillon existant vs création)",
+      "tracabilite": "miroir | POST /appliquer (auto_evaluations brouillon)"
+    },
+    {
+      "id": "TC-REL-094",
+      "titre": "Appliquer : sans analyse préalable → 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire ; aucune analyse stockée pour la session",
+      "donnees": "POST /api/miroir/session/:sid/appliquer",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "404 {error:'Aucune analyse à appliquer'}",
+      "technique": "Partition d'équivalence (précondition manquante)",
+      "tracabilite": "miroir | POST /api/miroir/session/:sid/appliquer"
+    },
+    {
+      "id": "TC-REL-095",
+      "titre": "Appliquer : session d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur ; session non possédée ; feature active",
+      "donnees": "POST /api/miroir/session/<autre>/appliquer",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "404 {error:'Entretien introuvable'} (ownsSession undefined avant lecture de l'analyse)",
+      "technique": "Test du contrôle d'accès",
+      "tracabilite": "ownsSession | POST /api/miroir/session/:sid/appliquer"
+    },
+    {
+      "id": "TC-REL-096",
+      "titre": "Appliquer : feature 'miroir' absente → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur avec plan SANS 'miroir'",
+      "donnees": "POST /api/miroir/session/:sid/appliquer",
+      "etapes": [
+        "POST"
+      ],
+      "attendu": "403 'Fonctionnalité non disponible dans votre offre'",
+      "technique": "Test basé sur l'offre",
+      "tracabilite": "requireFeature('miroir') | POST /api/miroir/session/:sid/appliquer"
+    },
+    {
+      "id": "TC-REL-097",
+      "titre": "Miroir (UI) : analyser sa posture puis appliquer les scores",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur, feature 'miroir' active, page Dossier, entretien existant",
+      "donnees": "-",
+      "etapes": [
+        "Ouvrir la modale Miroir réflexif d'un entretien",
+        "Cliquer « ✨ Analyser ma posture »",
+        "Vérifier badge source, note/100, forces, glissements, scores",
+        "Cliquer « ↳ Appliquer ces scores à ma grille »"
+      ],
+      "attendu": "L'analyse s'affiche (badge 'Analyse IA' ou 'Analyse (repli)') ; message « ✓ n indicateur(s) appliqué(s) au brouillon »",
+      "technique": "Test bout-en-bout (génération + application)",
+      "tracabilite": "miroir | MiroirReflexifModal (Dossier)"
+    },
+    {
+      "id": "TC-REL-098",
+      "titre": "Miroir (UI) : feature désactivée bloque l'accès",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur avec plan sans 'miroir' (ex. Découverte appliqué par admin)",
+      "donnees": "-",
+      "etapes": [
+        "Tenter d'ouvrir le miroir / observer l'appel API"
+      ],
+      "attendu": "L'appel POST/GET /api/miroir/... renvoie 403 ; la fonctionnalité n'est pas exploitable",
+      "technique": "Test basé sur l'offre (cohérence front/serveur)",
+      "tracabilite": "miroir | requireFeature côté serveur"
+    },
+    {
+      "id": "TC-REL-099",
+      "titre": "Persistance multi-parcours : les données d'un dossier ne fuient pas sur un autre",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "haute",
+      "preconditions": "Accompagné avec 2 parcours (D1 avec Mohamed, D2 avec Camille)",
+      "donnees": "Relevés météo/journal créés sur D1 uniquement",
+      "etapes": [
+        "GET /relationnel/meteo/dossier/D1",
+        "GET /relationnel/meteo/dossier/D2",
+        "GET /transparence/dossier/D1 et D2"
+      ],
+      "attendu": "Les relevés de D1 n'apparaissent pas dans D2 ; les compteurs de transparence sont distincts par dossier",
+      "technique": "Test de non-régression (isolation par dossier)",
+      "tracabilite": "meteo/journal/transparence | isolation par dossier_id"
+    },
+    {
+      "id": "TC-REL-100",
+      "titre": "Cohérence transparence ↔ partage émergence",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné ; fil rouge passé de non-partagé à partagé par l'accompagnateur",
+      "donnees": "-",
+      "etapes": [
+        "GET /transparence/dossier/:id (fil_rouge_partage=false)",
+        "Accompagnateur PATCH fil-rouge/partage=1",
+        "GET /transparence/dossier/:id à nouveau"
+      ],
+      "attendu": "ia.fil_rouge_partage bascule false→true ; cohérent avec /emergence/mine",
+      "technique": "Test de non-régression (cohérence inter-modules)",
+      "tracabilite": "transparence/fil_rouge | GET /transparence + PATCH partage"
+    }
+  ]
+}

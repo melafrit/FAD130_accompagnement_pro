@@ -1,0 +1,1113 @@
+{
+  "domaine": "rdv",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/rdv/creneaux",
+      "role": "accompagnateur",
+      "feature": "rdv",
+      "summary": "Créer un créneau de disponibilité (debut/fin) ; notifie et satisfait les demandes en attente de l'accompagnateur"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rdv/creneaux/mine",
+      "role": "accompagnateur",
+      "feature": "rdv",
+      "summary": "Lister ses créneaux avec l'état de réservation et l'accompagné réservataire"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/rdv/creneaux/:id",
+      "role": "accompagnateur",
+      "feature": "rdv",
+      "summary": "Supprimer un créneau non réservé dont on est propriétaire (404 sinon, 409 si réservé)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rdv/disponibles",
+      "role": "accompagne",
+      "feature": "rdv",
+      "summary": "Lister les créneaux libres et futurs de l'accompagnateur cible (du parcours via dossierId, sinon par défaut)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rdv/reserver",
+      "role": "accompagne",
+      "feature": "rdv",
+      "summary": "Réserver un créneau (transaction : marque réservé, crée le rdv, notifie, envoie emails, satisfait la demande)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rdv/demander",
+      "role": "accompagne",
+      "feature": "rdv",
+      "summary": "Demander un RDV sur un parcours quand aucun créneau n'est disponible (dédupliqué en_attente, email + notif accompagnateur)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rdv/mine",
+      "role": "accompagne",
+      "feature": "rdv",
+      "summary": "Lister ses propres rendez-vous (date début/fin + statut)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rdv/:id/ics",
+      "role": "accompagne|accompagnateur",
+      "feature": "rdv",
+      "summary": "Exporter le rendez-vous au format iCalendar (.ics) si on en est une des parties (403 sinon, 404 introuvable)"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-RDV-001",
+      "titre": "Créer un créneau valide (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Authentifié comme accompagnateur (camille.laurent@boussole.demo).",
+      "donnees": "POST /api/rdv/creneaux body {debut:'2026-07-01T10:00', fin:'2026-07-01T10:45'}",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "POST /api/rdv/creneaux avec debut<fin",
+        "Lire la réponse"
+      ],
+      "attendu": "201 ; corps JSON {id:number, debut, fin, reserve:0} ; le créneau apparaît ensuite dans GET /creneaux/mine.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/creneaux"
+    },
+    {
+      "id": "TC-RDV-002",
+      "titre": "Créer un créneau notifie et satisfait les demandes en attente",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Un accompagné a une demande_rdv 'en_attente' pour cet accompagnateur (POST /rdv/demander au préalable).",
+      "donnees": "POST /api/rdv/creneaux body {debut futur, fin>debut}",
+      "etapes": [
+        "Accompagné poste une demande de RDV (aucun créneau)",
+        "Accompagnateur crée un créneau",
+        "Vérifier les notifications de l'accompagné",
+        "Vérifier le statut des demandes_rdv"
+      ],
+      "attendu": "201 ; une notification 'De nouveaux créneaux... sont disponibles' est créée pour chaque demandeur distinct ; les demandes_rdv 'en_attente' de cet accompagnateur passent à 'satisfaite'.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/creneaux (rdv.ts:39-44)"
+    },
+    {
+      "id": "TC-RDV-003",
+      "titre": "Refus création créneau si fin <= début (valeur limite)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "valeurs limites",
+      "preconditions": "Authentifié accompagnateur.",
+      "donnees": "Cas A fin==debut ('2026-07-01T10:00','2026-07-01T10:00') ; Cas B fin<debut ('...T10:00','...T09:00')",
+      "etapes": [
+        "POST /api/rdv/creneaux avec fin==debut",
+        "POST /api/rdv/creneaux avec fin<debut"
+      ],
+      "attendu": "400 dans les deux cas ; message 'Créneau invalide (la fin doit suivre le début)' ; aucun INSERT.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/creneaux (rdv.ts:33-36)"
+    },
+    {
+      "id": "TC-RDV-004",
+      "titre": "Refus création créneau si debut ou fin manquant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "partition d'équivalence",
+      "preconditions": "Authentifié accompagnateur.",
+      "donnees": "Cas A body {} ; Cas B {debut:'2026-07-01T10:00'} (fin manquant) ; Cas C {fin:'2026-07-01T10:45'} (debut manquant)",
+      "etapes": [
+        "POST /api/rdv/creneaux sans debut et/ou sans fin"
+      ],
+      "attendu": "400 ; message 'Créneau invalide (la fin doit suivre le début)' ; aucun créneau créé.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/creneaux (rdv.ts:32-36)"
+    },
+    {
+      "id": "TC-RDV-005",
+      "titre": "Création créneau — body absent / non-JSON",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "partition d'équivalence",
+      "preconditions": "Authentifié accompagnateur.",
+      "donnees": "POST /api/rdv/creneaux sans corps (req.body undefined → req.body||{} = {})",
+      "etapes": [
+        "POST /api/rdv/creneaux sans corps"
+      ],
+      "attendu": "400 'Créneau invalide' (le garde `req.body || {}` évite tout crash 500).",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/creneaux (rdv.ts:32-36)"
+    },
+    {
+      "id": "TC-RDV-006",
+      "titre": "Création créneau refusée si non authentifié (401)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie boussole_token.",
+      "donnees": "POST /api/rdv/creneaux body valide, sans cookie",
+      "etapes": [
+        "Appeler POST /api/rdv/creneaux sans cookie d'auth"
+      ],
+      "attendu": "401 ; message 'Non authentifié'.",
+      "tracabilite": "auth.ts:requireAuth ; POST /api/rdv/creneaux"
+    },
+    {
+      "id": "TC-RDV-007",
+      "titre": "Création créneau refusée pour un accompagné (403 mauvais rôle)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié comme accompagné (afrit_mohamed@yahoo.fr).",
+      "donnees": "POST /api/rdv/creneaux body valide",
+      "etapes": [
+        "Se connecter en accompagné",
+        "POST /api/rdv/creneaux"
+      ],
+      "attendu": "403 ; message 'Accès refusé' ; aucun créneau créé.",
+      "tracabilite": "auth.ts:requireRole('accompagnateur') ; POST /api/rdv/creneaux"
+    },
+    {
+      "id": "TC-RDV-008",
+      "titre": "Création créneau refusée pour un admin (403 mauvais rôle)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié comme admin (mohamed@elafrit.com).",
+      "donnees": "POST /api/rdv/creneaux body valide",
+      "etapes": [
+        "Se connecter en admin",
+        "POST /api/rdv/creneaux"
+      ],
+      "attendu": "403 'Accès refusé' (requireRole n'autorise que 'accompagnateur').",
+      "tracabilite": "auth.ts:requireRole('accompagnateur') ; POST /api/rdv/creneaux"
+    },
+    {
+      "id": "TC-RDV-009",
+      "titre": "Lister ses créneaux (nominal, forme de réponse)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Authentifié accompagnateur avec au moins un créneau libre et un réservé.",
+      "donnees": "GET /api/rdv/creneaux/mine",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "GET /api/rdv/creneaux/mine"
+      ],
+      "attendu": "200 ; {creneaux:[...]} trié par debut ; chaque item porte id, debut, fin, reserve, et pour un créneau réservé accompagne_email/accompagne_prenom renseignés (NULL si libre).",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/creneaux/mine (rdv.ts:48-62)"
+    },
+    {
+      "id": "TC-RDV-010",
+      "titre": "Lister ses créneaux — isolation par propriétaire",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Deux accompagnateurs (Mohamage/Camille) ont chacun des créneaux.",
+      "donnees": "GET /api/rdv/creneaux/mine connecté en tant que Camille",
+      "etapes": [
+        "Se connecter en Camille",
+        "GET /api/rdv/creneaux/mine"
+      ],
+      "attendu": "200 ; ne contient QUE les créneaux où accompagnateur_id = Camille (filtre WHERE c.accompagnateur_id=?) ; aucun créneau d'un autre accompagnateur.",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/creneaux/mine (rdv.ts:57)"
+    },
+    {
+      "id": "TC-RDV-011",
+      "titre": "Lister ses créneaux refusé si non authentifié (401)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Sans cookie.",
+      "donnees": "GET /api/rdv/creneaux/mine sans cookie",
+      "etapes": [
+        "GET /api/rdv/creneaux/mine sans auth"
+      ],
+      "attendu": "401 'Non authentifié'.",
+      "tracabilite": "auth.ts:requireAuth ; GET /api/rdv/creneaux/mine"
+    },
+    {
+      "id": "TC-RDV-012",
+      "titre": "Lister ses créneaux refusé pour accompagné (403)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié accompagné.",
+      "donnees": "GET /api/rdv/creneaux/mine",
+      "etapes": [
+        "Se connecter en accompagné",
+        "GET /api/rdv/creneaux/mine"
+      ],
+      "attendu": "403 'Accès refusé'.",
+      "tracabilite": "auth.ts:requireRole('accompagnateur') ; GET /api/rdv/creneaux/mine"
+    },
+    {
+      "id": "TC-RDV-013",
+      "titre": "Supprimer un créneau libre dont on est propriétaire (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Authentifié accompagnateur, créneau libre (reserve=0) lui appartenant.",
+      "donnees": "DELETE /api/rdv/creneaux/{idLibre}",
+      "etapes": [
+        "Créer un créneau libre",
+        "DELETE /api/rdv/creneaux/:id",
+        "GET /creneaux/mine pour vérifier"
+      ],
+      "attendu": "200 ; {ok:true} ; le créneau n'apparaît plus dans GET /creneaux/mine.",
+      "tracabilite": "features.ts:rdv ; DELETE /api/rdv/creneaux/:id (rdv.ts:64-78)"
+    },
+    {
+      "id": "TC-RDV-014",
+      "titre": "Supprimer un créneau réservé refusé (409)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Authentifié accompagnateur ; créneau lui appartenant et déjà réservé (reserve=1).",
+      "donnees": "DELETE /api/rdv/creneaux/{idReserve}",
+      "etapes": [
+        "Faire réserver un créneau par un accompagné",
+        "Accompagnateur DELETE ce créneau"
+      ],
+      "attendu": "409 ; message 'Créneau déjà réservé' ; le créneau et son rdv restent intacts.",
+      "tracabilite": "features.ts:rdv ; DELETE /api/rdv/creneaux/:id (rdv.ts:72-75)"
+    },
+    {
+      "id": "TC-RDV-015",
+      "titre": "Supprimer un créneau inexistant (404)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites",
+      "preconditions": "Authentifié accompagnateur.",
+      "donnees": "DELETE /api/rdv/creneaux/999999 (id inexistant)",
+      "etapes": [
+        "DELETE /api/rdv/creneaux/999999"
+      ],
+      "attendu": "404 ; message 'Créneau introuvable'.",
+      "tracabilite": "features.ts:rdv ; DELETE /api/rdv/creneaux/:id (rdv.ts:67-71)"
+    },
+    {
+      "id": "TC-RDV-016",
+      "titre": "Supprimer le créneau d'un autre accompagnateur refusé (404 non-propriétaire)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Créneau appartenant à l'accompagnateur Mohamed ; on est connecté en Camille.",
+      "donnees": "DELETE /api/rdv/creneaux/{idDeMohamed}",
+      "etapes": [
+        "Identifier un créneau de Mohamed",
+        "Se connecter en Camille",
+        "DELETE ce créneau"
+      ],
+      "attendu": "404 'Créneau introuvable' (la requête filtre accompagnateur_id=me.id ; un non-propriétaire reçoit 404, pas 403).",
+      "tracabilite": "features.ts:rdv ; DELETE /api/rdv/creneaux/:id (rdv.ts:67)"
+    },
+    {
+      "id": "TC-RDV-017",
+      "titre": "Supprimer un créneau avec id non numérique",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "partition d'équivalence",
+      "preconditions": "Authentifié accompagnateur.",
+      "donnees": "DELETE /api/rdv/creneaux/abc (Number('abc')=NaN)",
+      "etapes": [
+        "DELETE /api/rdv/creneaux/abc"
+      ],
+      "attendu": "404 'Créneau introuvable' (Number(NaN) ne matche aucune ligne) ; pas de 500.",
+      "tracabilite": "features.ts:rdv ; DELETE /api/rdv/creneaux/:id (rdv.ts:66-67)"
+    },
+    {
+      "id": "TC-RDV-018",
+      "titre": "Supprimer un créneau refusé si non authentifié (401)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Sans cookie.",
+      "donnees": "DELETE /api/rdv/creneaux/1 sans cookie",
+      "etapes": [
+        "DELETE /api/rdv/creneaux/1 sans auth"
+      ],
+      "attendu": "401 'Non authentifié'.",
+      "tracabilite": "auth.ts:requireAuth ; DELETE /api/rdv/creneaux/:id"
+    },
+    {
+      "id": "TC-RDV-019",
+      "titre": "Supprimer un créneau refusé pour accompagné (403)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié accompagné.",
+      "donnees": "DELETE /api/rdv/creneaux/1",
+      "etapes": [
+        "Se connecter en accompagné",
+        "DELETE /api/rdv/creneaux/1"
+      ],
+      "attendu": "403 'Accès refusé'.",
+      "tracabilite": "auth.ts:requireRole('accompagnateur') ; DELETE /api/rdv/creneaux/:id"
+    },
+    {
+      "id": "TC-RDV-020",
+      "titre": "Lister les créneaux disponibles d'un parcours (nominal avec dossierId)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagné (Amine) propriétaire d'un dossier dont l'accompagnateur a des créneaux libres futurs.",
+      "donnees": "GET /api/rdv/disponibles?dossierId={idDossierAmine}",
+      "etapes": [
+        "Se connecter en accompagné",
+        "GET /api/rdv/disponibles?dossierId=..."
+      ],
+      "attendu": "200 ; {creneaux:[{id,debut,fin}]} ; uniquement les créneaux de l'accompagnateur du dossier, reserve=0 et debut>maintenant, triés par debut.",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/disponibles (rdv.ts:90-99)"
+    },
+    {
+      "id": "TC-RDV-021",
+      "titre": "Lister les créneaux disponibles sans dossierId (accompagnateur par défaut)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence",
+      "preconditions": "Accompagné lié à un accompagnateur (lien actif) qui a des créneaux libres.",
+      "donnees": "GET /api/rdv/disponibles (sans query)",
+      "etapes": [
+        "Se connecter en accompagné",
+        "GET /api/rdv/disponibles"
+      ],
+      "attendu": "200 ; créneaux de l'accompagnateur déterminé par findAccompagnateurFor (lien actif sinon 1er accompagnateur actif).",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/disponibles (rdv.ts:92-93, targetAccompagnateur/findAccompagnateurFor)"
+    },
+    {
+      "id": "TC-RDV-022",
+      "titre": "Disponibles exclut créneaux passés et réservés (valeurs limites temporelles)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "valeurs limites",
+      "preconditions": "L'accompagnateur cible a : un créneau passé (debut<now), un réservé (reserve=1), un libre futur.",
+      "donnees": "GET /api/rdv/disponibles?dossierId=...",
+      "etapes": [
+        "Préparer les 3 types de créneaux",
+        "GET /api/rdv/disponibles"
+      ],
+      "attendu": "200 ; seul le créneau libre ET futur (debut > now ISO) est listé ; le passé et le réservé sont exclus (filtre reserve=0 AND debut > now).",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/disponibles (rdv.ts:96-97)"
+    },
+    {
+      "id": "TC-RDV-023",
+      "titre": "Disponibles renvoie liste vide si dossier non possédé ou inexistant",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Authentifié accompagné Amine ; dossierId appartenant à un AUTRE accompagné (Léa).",
+      "donnees": "GET /api/rdv/disponibles?dossierId={idDossierLea}",
+      "etapes": [
+        "Se connecter en Amine",
+        "GET /api/rdv/disponibles?dossierId=idDeLea"
+      ],
+      "attendu": "200 ; {creneaux:[]} (targetAccompagnateur filtre accompagne_id=meId → null → liste vide). Aucune fuite des créneaux d'autrui.",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/disponibles (rdv.ts:82-87, 94)"
+    },
+    {
+      "id": "TC-RDV-024",
+      "titre": "Disponibles refusé pour accompagnateur (403 mauvais rôle)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié accompagnateur.",
+      "donnees": "GET /api/rdv/disponibles",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "GET /api/rdv/disponibles"
+      ],
+      "attendu": "403 'Accès refusé' (réservé au rôle 'accompagne').",
+      "tracabilite": "auth.ts:requireRole('accompagne') ; GET /api/rdv/disponibles"
+    },
+    {
+      "id": "TC-RDV-025",
+      "titre": "Disponibles refusé si non authentifié (401)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Sans cookie.",
+      "donnees": "GET /api/rdv/disponibles sans cookie",
+      "etapes": [
+        "GET /api/rdv/disponibles sans auth"
+      ],
+      "attendu": "401 'Non authentifié'.",
+      "tracabilite": "auth.ts:requireAuth ; GET /api/rdv/disponibles"
+    },
+    {
+      "id": "TC-RDV-026",
+      "titre": "Réserver un créneau libre par parcours (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagné Amine, dossier dont l'accompagnateur a un créneau libre futur (idCreneau).",
+      "donnees": "POST /api/rdv/reserver {creneauId:idCreneau, dossierId:idDossierAmine}",
+      "etapes": [
+        "GET /disponibles?dossierId pour repérer un créneau",
+        "POST /api/rdv/reserver",
+        "Vérifier GET /rdv/mine et /creneaux/mine côté accompagnateur"
+      ],
+      "attendu": "200 ; {ok:true} ; le créneau passe reserve=1 ; une ligne rdv (statut 'confirme', dossier_id renseigné) ; 2 notifications (accompagnateur + accompagné) ; 2 emails envoyés ; la demande_rdv du dossier passe 'satisfaite'.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/reserver (rdv.ts:101-134)"
+    },
+    {
+      "id": "TC-RDV-027",
+      "titre": "Réserver sans dossierId en mode hérité (accompagnateur lié)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence",
+      "preconditions": "Accompagné lié à l'accompagnateur propriétaire du créneau libre ; appel via /rendez-vous (sans dossierId).",
+      "donnees": "POST /api/rdv/reserver {creneauId:idCreneauLibre}",
+      "etapes": [
+        "GET /disponibles (sans dossierId)",
+        "POST /api/rdv/reserver {creneauId}"
+      ],
+      "attendu": "200 ; {ok:true} ; rdv créé avec dossier_id = 1er dossier liant accompagné+accompagnateur (ou NULL si aucun) ; créneau réservé.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/reserver (rdv.ts:116-120)"
+    },
+    {
+      "id": "TC-RDV-028",
+      "titre": "Double réservation refusée — créneau déjà réservé (409)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Un créneau déjà réservé (reserve=1).",
+      "donnees": "POST /api/rdv/reserver {creneauId:idDejaReserve, dossierId}",
+      "etapes": [
+        "Réserver un créneau (TC-RDV-026)",
+        "Tenter une 2e réservation du même créneau"
+      ],
+      "attendu": "409 ; message 'Créneau indisponible' ; aucun nouveau rdv ; aucune nouvelle notification/email.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/reserver (rdv.ts:105-107)"
+    },
+    {
+      "id": "TC-RDV-029",
+      "titre": "Réserver un créneau inexistant (409)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites",
+      "preconditions": "Authentifié accompagné.",
+      "donnees": "POST /api/rdv/reserver {creneauId:999999}",
+      "etapes": [
+        "POST /api/rdv/reserver avec creneauId inexistant"
+      ],
+      "attendu": "409 'Créneau indisponible' (c undefined → branche !c).",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/reserver (rdv.ts:105-107)"
+    },
+    {
+      "id": "TC-RDV-030",
+      "titre": "Réserver avec creneauId manquant/non numérique (409)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence",
+      "preconditions": "Authentifié accompagné.",
+      "donnees": "Cas A body {} (creneauId undefined → NaN) ; Cas B {creneauId:'x'}",
+      "etapes": [
+        "POST /api/rdv/reserver sans creneauId valide"
+      ],
+      "attendu": "409 'Créneau indisponible' (Number(undefined/'x')=NaN ne matche aucun créneau) ; pas de 500.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/reserver (rdv.ts:103-107)"
+    },
+    {
+      "id": "TC-RDV-031",
+      "titre": "Réserver avec dossierId non possédé par l'accompagné (409)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Créneau libre de l'accompagnateur X ; dossierId appartenant à un AUTRE accompagné.",
+      "donnees": "POST /api/rdv/reserver {creneauId:idLibre, dossierId:idDossierAutrui}",
+      "etapes": [
+        "Se connecter en Amine",
+        "POST /api/rdv/reserver avec dossierId de Léa"
+      ],
+      "attendu": "409 ; message 'Créneau indisponible pour ce parcours' (le dossier doit satisfaire accompagne_id=me.id). Aucun rdv créé.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/reserver (rdv.ts:112-115)"
+    },
+    {
+      "id": "TC-RDV-032",
+      "titre": "Réserver avec dossierId d'un parcours dont l'accompagnateur ne correspond pas au créneau (409)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Amine possède un dossier avec accompagnateur A ; le créneau visé appartient à l'accompagnateur B.",
+      "donnees": "POST /api/rdv/reserver {creneauId:idCreneauDeB, dossierId:idDossierAvecA}",
+      "etapes": [
+        "Repérer un créneau de B et un dossier d'Amine rattaché à A",
+        "POST /api/rdv/reserver croisé"
+      ],
+      "attendu": "409 'Créneau indisponible pour ce parcours' (le SELECT exige accompagnateur_id=c.accompagnateur_id). Aucun rdv créé.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/reserver (rdv.ts:113-114)"
+    },
+    {
+      "id": "TC-RDV-033",
+      "titre": "Réserver sans dossierId un créneau d'un accompagnateur non lié (409)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Accompagné dont l'accompagnateur par défaut (findAccompagnateurFor) != propriétaire du créneau visé.",
+      "donnees": "POST /api/rdv/reserver {creneauId:idCreneauAutreAccompagnateur} (sans dossierId)",
+      "etapes": [
+        "Repérer un créneau d'un accompagnateur non lié",
+        "POST /api/rdv/reserver sans dossierId"
+      ],
+      "attendu": "409 'Créneau indisponible' (c.accompagnateur_id !== findAccompagnateurFor(me.id)).",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/reserver (rdv.ts:116-117)"
+    },
+    {
+      "id": "TC-RDV-034",
+      "titre": "Réserver refusé pour accompagnateur (403 mauvais rôle)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié accompagnateur.",
+      "donnees": "POST /api/rdv/reserver {creneauId:1}",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "POST /api/rdv/reserver"
+      ],
+      "attendu": "403 'Accès refusé' (réservé à 'accompagne').",
+      "tracabilite": "auth.ts:requireRole('accompagne') ; POST /api/rdv/reserver"
+    },
+    {
+      "id": "TC-RDV-035",
+      "titre": "Réserver refusé si non authentifié (401)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Sans cookie.",
+      "donnees": "POST /api/rdv/reserver {creneauId:1} sans cookie",
+      "etapes": [
+        "POST /api/rdv/reserver sans auth"
+      ],
+      "attendu": "401 'Non authentifié'.",
+      "tracabilite": "auth.ts:requireAuth ; POST /api/rdv/reserver"
+    },
+    {
+      "id": "TC-RDV-036",
+      "titre": "Atomicité de la réservation (transaction)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "technique": "test du contrat",
+      "preconditions": "Réservation nominale réussie (TC-RDV-026).",
+      "donnees": "Inspection post-réservation : creneaux.reserve, rdv, notifications",
+      "etapes": [
+        "Réserver un créneau",
+        "Vérifier la cohérence : reserve=1 ET rdv inséré ET 2 notifications, tous ensemble"
+      ],
+      "attendu": "Les effets (UPDATE reserve, INSERT rdv, INSERT notifications, UPDATE demandes_rdv) sont appliqués atomiquement (db.transaction) : pas d'état partiel observable.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/reserver (rdv.ts:122-128)"
+    },
+    {
+      "id": "TC-RDV-037",
+      "titre": "Demander un RDV sur un parcours (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagné Amine, dossier lui appartenant, sans demande en_attente existante.",
+      "donnees": "POST /api/rdv/demander {dossierId:idDossierAmine}",
+      "etapes": [
+        "Se connecter en accompagné",
+        "POST /api/rdv/demander",
+        "Vérifier demandes_rdv et notifications côté accompagnateur"
+      ],
+      "attendu": "200 ; {ok:true} ; une demande_rdv 'en_attente' (dossier_id, accompagne_id, accompagnateur_id) ; une notification '<prénom/email> demande un rendez-vous' pour l'accompagnateur ; un email envoyé à l'accompagnateur.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/demander (rdv.ts:137-150)"
+    },
+    {
+      "id": "TC-RDV-038",
+      "titre": "Demander un RDV deux fois — pas de doublon (idempotence)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision",
+      "preconditions": "Une demande 'en_attente' existe déjà pour ce dossier.",
+      "donnees": "POST /api/rdv/demander {dossierId} (2e appel)",
+      "etapes": [
+        "POST /api/rdv/demander une 1re fois",
+        "POST /api/rdv/demander une 2e fois"
+      ],
+      "attendu": "200 'ok' ; AUCUNE 2e ligne demandes_rdv 'en_attente' insérée (garde `if (!exists)`) ; mais une notification et un email sont quand même envoyés à chaque appel.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/demander (rdv.ts:142-148)"
+    },
+    {
+      "id": "TC-RDV-039",
+      "titre": "Demander un RDV sur un parcours non possédé / inexistant (404)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié Amine ; dossierId appartenant à Léa, ou dossierId inexistant.",
+      "donnees": "Cas A dossierId de Léa ; Cas B dossierId 999999",
+      "etapes": [
+        "Se connecter en Amine",
+        "POST /api/rdv/demander avec dossierId d'autrui/inexistant"
+      ],
+      "attendu": "404 ; message 'Parcours introuvable' (SELECT exige accompagne_id=me.id). Aucune demande créée.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/demander (rdv.ts:140-141)"
+    },
+    {
+      "id": "TC-RDV-040",
+      "titre": "Demander un RDV avec dossierId manquant/non numérique (404)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence",
+      "preconditions": "Authentifié accompagné.",
+      "donnees": "Cas A body {} (dossierId NaN) ; Cas B {dossierId:'x'}",
+      "etapes": [
+        "POST /api/rdv/demander sans dossierId valide"
+      ],
+      "attendu": "404 'Parcours introuvable' (Number(undefined/'x')=NaN ne matche aucun dossier) ; pas de 500.",
+      "tracabilite": "features.ts:rdv ; POST /api/rdv/demander (rdv.ts:139-141)"
+    },
+    {
+      "id": "TC-RDV-041",
+      "titre": "Demander un RDV refusé pour accompagnateur (403)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié accompagnateur.",
+      "donnees": "POST /api/rdv/demander {dossierId:1}",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "POST /api/rdv/demander"
+      ],
+      "attendu": "403 'Accès refusé' (réservé à 'accompagne').",
+      "tracabilite": "auth.ts:requireRole('accompagne') ; POST /api/rdv/demander"
+    },
+    {
+      "id": "TC-RDV-042",
+      "titre": "Demander un RDV refusé si non authentifié (401)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Sans cookie.",
+      "donnees": "POST /api/rdv/demander {dossierId:1} sans cookie",
+      "etapes": [
+        "POST /api/rdv/demander sans auth"
+      ],
+      "attendu": "401 'Non authentifié'.",
+      "tracabilite": "auth.ts:requireAuth ; POST /api/rdv/demander"
+    },
+    {
+      "id": "TC-RDV-043",
+      "titre": "Lister mes rendez-vous (nominal, forme et tri)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagné avec au moins un rdv confirmé (Amine en a après seed/réservation).",
+      "donnees": "GET /api/rdv/mine",
+      "etapes": [
+        "Se connecter en accompagné",
+        "GET /api/rdv/mine"
+      ],
+      "attendu": "200 ; {rdv:[{id, debut, fin, statut}]} trié par debut ; ne contient que les rdv où accompagne_id=me.id.",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/mine (rdv.ts:152-163)"
+    },
+    {
+      "id": "TC-RDV-044",
+      "titre": "Lister mes rendez-vous — isolation entre accompagnés",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Amine et Léa ont chacun des rdv.",
+      "donnees": "GET /api/rdv/mine connecté en Léa",
+      "etapes": [
+        "Se connecter en Léa",
+        "GET /api/rdv/mine"
+      ],
+      "attendu": "200 ; ne renvoie QUE les rdv de Léa (WHERE r.accompagne_id=me.id) ; aucun rdv d'Amine.",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/mine (rdv.ts:158)"
+    },
+    {
+      "id": "TC-RDV-045",
+      "titre": "Lister mes rendez-vous refusé pour accompagnateur (403)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié accompagnateur.",
+      "donnees": "GET /api/rdv/mine",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "GET /api/rdv/mine"
+      ],
+      "attendu": "403 'Accès refusé'.",
+      "tracabilite": "auth.ts:requireRole('accompagne') ; GET /api/rdv/mine"
+    },
+    {
+      "id": "TC-RDV-046",
+      "titre": "Lister mes rendez-vous refusé si non authentifié (401)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Sans cookie.",
+      "donnees": "GET /api/rdv/mine sans cookie",
+      "etapes": [
+        "GET /api/rdv/mine sans auth"
+      ],
+      "attendu": "401 'Non authentifié'.",
+      "tracabilite": "auth.ts:requireAuth ; GET /api/rdv/mine"
+    },
+    {
+      "id": "TC-RDV-047",
+      "titre": "Export ICS d'un rdv par l'accompagné propriétaire (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagné Amine propriétaire du rdv {id}.",
+      "donnees": "GET /api/rdv/{id}/ics",
+      "etapes": [
+        "Se connecter en Amine",
+        "GET /api/rdv/:id/ics",
+        "Inspecter en-têtes et corps"
+      ],
+      "attendu": "200 ; Content-Type text/calendar ; Content-Disposition attachment filename=\"rdv-boussole-<id>.ics\" ; corps contient BEGIN:VCALENDAR, VEVENT, UID boussole-rdv-<id>@boussole.elafrit.com, DTSTART/DTEND, SUMMARY, DESCRIPTION avec le statut ; lignes séparées par CRLF.",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/:id/ics (rdv.ts:177-215)"
+    },
+    {
+      "id": "TC-RDV-048",
+      "titre": "Export ICS par l'accompagnateur partie au rdv (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur propriétaire du créneau du rdv {id}.",
+      "donnees": "GET /api/rdv/{id}/ics",
+      "etapes": [
+        "Se connecter en accompagnateur du rdv",
+        "GET /api/rdv/:id/ics"
+      ],
+      "attendu": "200 ; fichier ICS valide (me.role='accompagnateur' ET accompagnateur_id=me.id autorisé).",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/:id/ics (rdv.ts:194-200)"
+    },
+    {
+      "id": "TC-RDV-049",
+      "titre": "Export ICS refusé pour un tiers non partie (403)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Rdv d'Amine avec accompagnateur A ; on est un autre accompagné (Léa) ou un autre accompagnateur (Camille).",
+      "donnees": "GET /api/rdv/{idRdvAmine}/ics",
+      "etapes": [
+        "Se connecter en Léa (ou Camille non partie)",
+        "GET /api/rdv/:id/ics"
+      ],
+      "attendu": "403 ; message 'Accès refusé' (ni accompagné propriétaire ni accompagnateur du créneau). Aucune fuite du contenu ICS.",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/:id/ics (rdv.ts:194-200)"
+    },
+    {
+      "id": "TC-RDV-050",
+      "titre": "Export ICS refusé pour un admin non partie (403)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Authentifié admin (mohamed@elafrit.com), non partie au rdv.",
+      "donnees": "GET /api/rdv/{id}/ics",
+      "etapes": [
+        "Se connecter en admin",
+        "GET /api/rdv/:id/ics"
+      ],
+      "attendu": "403 'Accès refusé' (la règle allowed ne couvre que accompagne/accompagnateur partie ; le rôle 'admin' n'est pas autorisé).",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/:id/ics (rdv.ts:194-200)"
+    },
+    {
+      "id": "TC-RDV-051",
+      "titre": "Export ICS d'un rdv inexistant (404)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites",
+      "preconditions": "Authentifié (rôle quelconque).",
+      "donnees": "GET /api/rdv/999999/ics",
+      "etapes": [
+        "GET /api/rdv/999999/ics"
+      ],
+      "attendu": "404 ; message 'Rendez-vous introuvable'.",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/:id/ics (rdv.ts:190-193)"
+    },
+    {
+      "id": "TC-RDV-052",
+      "titre": "Export ICS refusé si non authentifié (401)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Sans cookie.",
+      "donnees": "GET /api/rdv/1/ics sans cookie",
+      "etapes": [
+        "GET /api/rdv/1/ics sans auth"
+      ],
+      "attendu": "401 'Non authentifié' (requireAuth sans requireRole : ouvert à tout rôle authentifié).",
+      "tracabilite": "auth.ts:requireAuth ; GET /api/rdv/:id/ics"
+    },
+    {
+      "id": "TC-RDV-053",
+      "titre": "Export ICS avec id non numérique (404)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "partition d'équivalence",
+      "preconditions": "Authentifié.",
+      "donnees": "GET /api/rdv/abc/ics (Number('abc')=NaN)",
+      "etapes": [
+        "GET /api/rdv/abc/ics"
+      ],
+      "attendu": "404 'Rendez-vous introuvable' ; pas de 500.",
+      "tracabilite": "features.ts:rdv ; GET /api/rdv/:id/ics (rdv.ts:179-193)"
+    },
+    {
+      "id": "TC-RDV-054",
+      "titre": "Unitaire — icsStamp formate un ISO valide et renvoie '' sur entrée non conforme",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites",
+      "preconditions": "Fonction déterministe icsStamp(iso) (rdv.ts:166-169).",
+      "donnees": "Cas A '2026-07-01T10:00' → '20260701T100000' (secondes par défaut 00) ; Cas B '2026-07-01T10:00:30' → '20260701T100030' ; Cas C 'pas-une-date' → '' ; Cas D '' → ''",
+      "etapes": [
+        "Appeler icsStamp pour chaque entrée",
+        "Comparer la sortie"
+      ],
+      "attendu": "Sorties exactement '20260701T100000', '20260701T100030', '', '' ; secondes complétées par '00' quand absentes.",
+      "tracabilite": "features.ts:rdv ; fonction icsStamp (rdv.ts:166-169)"
+    },
+    {
+      "id": "TC-RDV-055",
+      "titre": "Unitaire — icsEscape échappe \\ , ; et les retours ligne",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence",
+      "preconditions": "Fonction déterministe icsEscape(s) (rdv.ts:170-172).",
+      "donnees": "Cas A 'a,b;c\\\\d' → 'a\\\\,b\\\\;c\\\\\\\\d' ; Cas B 'ligne1\\nligne2' → 'ligne1\\\\nligne2' ; Cas C null/'' → ''",
+      "etapes": [
+        "Appeler icsEscape pour chaque entrée"
+      ],
+      "attendu": "Virgule, point-virgule et backslash préfixés par un backslash ; CR/LF remplacés par littéral \\\\n ; entrée vide/null → ''.",
+      "tracabilite": "features.ts:rdv ; fonction icsEscape (rdv.ts:170-172)"
+    },
+    {
+      "id": "TC-RDV-056",
+      "titre": "Unitaire — icsNowUtc renvoie un horodatage UTC compact valide",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "test du contrat",
+      "preconditions": "Fonction déterministe icsNowUtc() (rdv.ts:173-175).",
+      "donnees": "Aucune (utilise new Date())",
+      "etapes": [
+        "Appeler icsNowUtc()",
+        "Vérifier le format par regex ^\\d{8}T\\d{6}Z$"
+      ],
+      "attendu": "Chaîne de la forme YYYYMMDDThhmmssZ (tirets, deux-points et millisecondes retirés), suffixe 'Z'.",
+      "tracabilite": "features.ts:rdv ; fonction icsNowUtc (rdv.ts:173-175)"
+    },
+    {
+      "id": "TC-RDV-057",
+      "titre": "Unitaire — formatFr met en forme l'ISO en JJ/MM/AAAA à HH:MM",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "partition d'équivalence",
+      "preconditions": "Fonction déterministe formatFr(iso) (rdv.ts:23-27).",
+      "donnees": "'2026-07-01T10:05' → '01/07/2026 à 10:05'",
+      "etapes": [
+        "Appeler formatFr('2026-07-01T10:05')"
+      ],
+      "attendu": "'01/07/2026 à 10:05' (jour/mois/année, heure tronquée à 5 caractères HH:MM).",
+      "tracabilite": "features.ts:rdv ; fonction formatFr (rdv.ts:23-27)"
+    },
+    {
+      "id": "TC-RDV-058",
+      "titre": "Unitaire — findAccompagnateurFor : lien actif prioritaire, sinon accompagnateur par défaut, sinon null",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "table de décision",
+      "preconditions": "Fonction déterministe findAccompagnateurFor(accompagneId) (rdv.ts:14-21).",
+      "donnees": "Cas A accompagné avec lien 'actif' → renvoie l'accompagnateur du lien ; Cas B sans lien mais avec >=1 accompagnateur actif → 1er accompagnateur actif (ORDER BY id) ; Cas C aucun accompagnateur actif → null",
+      "etapes": [
+        "Préparer chaque configuration en base",
+        "Appeler la fonction"
+      ],
+      "attendu": "Renvoie l'id du lien actif en priorité ; à défaut l'id du 1er accompagnateur actif ; null si aucun accompagnateur actif.",
+      "tracabilite": "features.ts:rdv ; fonction findAccompagnateurFor (rdv.ts:14-21)"
+    },
+    {
+      "id": "TC-RDV-059",
+      "titre": "UI accompagnateur — ajouter puis supprimer un créneau",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Connecté en accompagnateur (camille.laurent@boussole.demo, BoussoleDemo2026), page /mes-creneaux.",
+      "donnees": "Début = date/heure futures, Durée = 45 min",
+      "etapes": [
+        "Aller sur /mes-creneaux",
+        "Saisir une date de début et choisir 45 min",
+        "Cliquer 'Ajouter le créneau'",
+        "Vérifier l'apparition du créneau (debut → heure fin)",
+        "Cliquer 'Supprimer' sur ce créneau"
+      ],
+      "attendu": "Le créneau apparaît avec l'intervalle (fin = début + durée) puis disparaît après suppression ; aucun message d'erreur.",
+      "tracabilite": "RendezVous/Creneaux ; page Creneaux.tsx ; POST /api/rdv/creneaux + DELETE /api/rdv/creneaux/:id"
+    },
+    {
+      "id": "TC-RDV-060",
+      "titre": "UI accompagnateur — un créneau réservé affiche le réservataire et masque Supprimer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "table de décision",
+      "preconditions": "Un accompagné a réservé un créneau de cet accompagnateur.",
+      "donnees": "Page /mes-creneaux",
+      "etapes": [
+        "Aller sur /mes-creneaux",
+        "Repérer le créneau réservé"
+      ],
+      "attendu": "Le créneau porte le badge 'Réservé · <prénom ou email de l'accompagné>' ; le bouton 'Supprimer' n'est PAS affiché pour ce créneau.",
+      "tracabilite": "RendezVous/Creneaux ; page Creneaux.tsx (lignes 85-94) ; GET /api/rdv/creneaux/mine"
+    },
+    {
+      "id": "TC-RDV-061",
+      "titre": "UI accompagné — réserver un créneau depuis /rendez-vous",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Connecté en accompagné (afrit_mohamed@yahoo.fr) ; au moins un créneau disponible chez l'accompagnateur lié.",
+      "donnees": "Page /rendez-vous",
+      "etapes": [
+        "Aller sur /rendez-vous",
+        "Section 'Créneaux disponibles' : cliquer 'Réserver'",
+        "Observer le message"
+      ],
+      "attendu": "Message succès 'Rendez-vous confirmé ✅ ...' ; le créneau passe en section 'Mes rendez-vous' avec son statut ; il disparaît des disponibles.",
+      "tracabilite": "RendezVous/RendezVous ; page RendezVous.tsx ; POST /api/rdv/reserver + GET /rdv/mine + /rdv/disponibles"
+    },
+    {
+      "id": "TC-RDV-062",
+      "titre": "UI accompagné — état vide des créneaux disponibles",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "partition d'équivalence",
+      "preconditions": "Aucun créneau libre futur chez l'accompagnateur cible.",
+      "donnees": "Page /rendez-vous",
+      "etapes": [
+        "Aller sur /rendez-vous sans créneau disponible"
+      ],
+      "attendu": "Message 'Aucun créneau disponible pour l'instant — reviens un peu plus tard.' ; aucun bouton Réserver.",
+      "tracabilite": "RendezVous/RendezVous ; page RendezVous.tsx (ligne 69) ; GET /rdv/disponibles"
+    },
+    {
+      "id": "TC-RDV-063",
+      "titre": "UI accompagné (parcours) — demander un RDV quand aucun créneau, puis notification de retour",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "table de décision",
+      "preconditions": "Accompagné sur le détail d'un parcours dont l'accompagnateur n'a aucun créneau libre.",
+      "donnees": "Page /parcours/:id (ParcoursDetail)",
+      "etapes": [
+        "Ouvrir le détail d'un parcours sans créneau",
+        "Section Rendez-vous : cliquer '📨 Demander un rendez-vous'",
+        "Côté accompagnateur, ajouter un créneau",
+        "Revenir côté accompagné consulter les notifications"
+      ],
+      "attendu": "Message 'Demande envoyée à ton accompagnateur...' ; après ajout d'un créneau par l'accompagnateur, l'accompagné reçoit la notification 'De nouveaux créneaux... sont disponibles'.",
+      "tracabilite": "RendezVous ; ParcoursDetail.tsx (demander, lignes 61-64, 136) ; POST /api/rdv/demander puis POST /api/rdv/creneaux"
+    },
+    {
+      "id": "TC-RDV-064",
+      "titre": "UI — télécharger le .ics d'un rendez-vous (lien Agenda)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "test du contrat",
+      "preconditions": "Accompagné avec un rdv confirmé.",
+      "donnees": "Lien 📅 Agenda dans 'Mes rendez-vous' (/rendez-vous ou /parcours/:id)",
+      "etapes": [
+        "Aller sur /rendez-vous",
+        "Cliquer le lien '📅 Agenda' du rdv (href /api/rdv/:id/ics)"
+      ],
+      "attendu": "Téléchargement d'un fichier rdv-boussole-<id>.ics (Content-Disposition attachment) ; le fichier s'importe dans un agenda standard.",
+      "tracabilite": "RendezVous ; RendezVous.tsx ligne 59 / ParcoursDetail.tsx ligne 118 ; GET /api/rdv/:id/ics"
+    },
+    {
+      "id": "TC-RDV-065",
+      "titre": "UI — routes /mes-creneaux et /rendez-vous protégées par rôle",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Comptes des deux rôles disponibles.",
+      "donnees": "Navigation directe vers /mes-creneaux et /rendez-vous",
+      "etapes": [
+        "Connecté en accompagné, naviguer vers /mes-creneaux",
+        "Connecté en accompagnateur, naviguer vers /rendez-vous"
+      ],
+      "attendu": "Le composant Protected role=... empêche l'accès croisé (accompagné bloqué sur /mes-creneaux, accompagnateur bloqué sur /rendez-vous) : redirection/refus, pas d'affichage de la page interdite.",
+      "tracabilite": "RendezVous ; App.tsx Protected (lignes 113-114) ; pages Creneaux.tsx / RendezVous.tsx"
+    },
+    {
+      "id": "TC-RDV-066",
+      "titre": "Non-régression — endpoints rdv accessibles avec un plan limité (pas de requireFeature)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "basse",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Accompagnateur affecté à un plan 'Découverte' (socle) ; accompagné affecté à un plan qui n'inclut pas 'rdv' dans ses features.",
+      "donnees": "POST /api/rdv/creneaux (accompagnateur) et GET /api/rdv/disponibles (accompagné) avec plan restreint",
+      "etapes": [
+        "Affecter un plan restreint aux comptes",
+        "Appeler les endpoints rdv"
+      ],
+      "attendu": "Les endpoints répondent normalement (200/201) : le routeur /api/rdv n'applique AUCUN requireFeature('rdv') ; le gating par offre n'est donc pas effectif sur ce domaine (écart à documenter). Aucune réponse 403 'Fonctionnalité non disponible'.",
+      "tracabilite": "features.ts:rdv (clé définie mais non câblée) ; mount /api/rdv (index.ts:45) sans requireFeature"
+    }
+  ]
+}

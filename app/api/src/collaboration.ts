@@ -30,7 +30,7 @@ async function callClaude(system: string, user: string, maxTokens = 1200): Promi
     return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text || '').join('') || null
   } catch { return null }
 }
-function extractJson<T>(text: string | null): T | null {
+export function extractJson<T>(text: string | null): T | null {
   if (!text) return null
   const a = text.indexOf('{'), b = text.lastIndexOf('}')
   if (a < 0 || b < 0) return null
@@ -100,7 +100,7 @@ router.delete('/ressources/:id', requireAuth, requireRole('accompagnateur'), req
 // ====================================================================================
 //  2. Assistant de problématisation (accompagné) — guidé puis libre
 // ====================================================================================
-const PB_QUESTIONS = [
+export const PB_QUESTIONS = [
   'Quel est le terrain professionnel de ton mémoire (où, avec qui, quoi) ?',
   'Quelle tension, difficulté ou question revient le plus souvent dans cette expérience ?',
   'Entre quoi et quoi se joue cette tension (ex. métier ↔ technique, autonomie ↔ contrôle) ?',
@@ -166,7 +166,7 @@ router.post('/problematisation/dossier/:id/suggerer', requireAuth, requireRole('
 //  3. Résumé « où j'en suis » (accompagné)
 // ====================================================================================
 interface Resume { etat: string; faits: string[]; prochaines_etapes: string[] }
-function resumeContexte(did: number): { phaseMax: number; nbCr: number; recap: string | null; actions: { libelle: string; statut: string }[] } {
+export function resumeContexte(did: number): { phaseMax: number; nbCr: number; recap: string | null; actions: { libelle: string; statut: string }[] } {
   const phase = db.prepare('SELECT MAX(CAST(phase_atteinte AS INTEGER)) m FROM sessions WHERE dossier_id=?').get(did) as { m: number | null }
   const nbCr = (db.prepare("SELECT COUNT(*) n FROM comptes_rendus cr JOIN sessions s ON s.id=cr.session_id WHERE s.dossier_id=? AND cr.publie=1").get(did) as { n: number }).n
   const recap = (db.prepare('SELECT cr_recap FROM questionnaires_initiaux WHERE dossier_id=?').get(did) as { cr_recap: string | null } | undefined)?.cr_recap ?? null
@@ -174,7 +174,7 @@ function resumeContexte(did: number): { phaseMax: number; nbCr: number; recap: s
   return { phaseMax: phase.m ?? -1, nbCr, recap, actions }
 }
 const PHASES_FR = ['Accueil et mise en confiance', 'Clarifier le besoin', 'Explorer l’expérience', 'Relier et donner du sens', 'Plan d’action & engagement', 'Clôture et élan']
-function resumeFallback(did: number): Resume {
+export function resumeFallback(did: number): Resume {
   const c = resumeContexte(did)
   const enCours = c.actions.filter((a) => a.statut !== 'fait').map((a) => a.libelle)
   const faites = c.actions.filter((a) => a.statut === 'fait').length

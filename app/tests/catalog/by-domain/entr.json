@@ -1,0 +1,1408 @@
+{
+  "domaine": "entr",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/entretien/phases",
+      "summary": "Référentiel des 6 phases de l'entretien",
+      "role": "authentifié (tout rôle)",
+      "feature": "entretien (non gardé par requireFeature)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/entretien/dossiers",
+      "summary": "Liste des dossiers de l'accompagnateur (ses accompagnés) avec recap questionnaire",
+      "role": "accompagnateur",
+      "feature": "entretien (non gardé)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/entretien/dashboard",
+      "summary": "Tableau de bord : agrégats par accompagné (sessions, actions ouvertes, questionnaire, CR, tags)",
+      "role": "accompagnateur",
+      "feature": "entretien (non gardé)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/sessions",
+      "summary": "Démarrer ou reprendre une session en_cours pour un dossier possédé",
+      "role": "accompagnateur",
+      "feature": "entretien (non gardé)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/entretien/sessions/:id",
+      "summary": "Détail d'une session + réponses par phase + questions posées",
+      "role": "accompagnateur (propriétaire via ownsSession)",
+      "feature": "entretien (non gardé)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/sessions/:id/reponses",
+      "summary": "Enregistrer les notes d'une phase (delete+insert, source='saisie', maj phase_atteinte)",
+      "role": "accompagnateur (propriétaire)",
+      "feature": "entretien (non gardé)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/sessions/:id/questions",
+      "summary": "Ajouter une question posée pendant l'entretien (201)",
+      "role": "accompagnateur (propriétaire)",
+      "feature": "entretien (non gardé)"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/entretien/sessions/:id/questions/:qid",
+      "summary": "Mise à jour partielle d'une question (texte et/ou reponse)",
+      "role": "accompagnateur (propriétaire)",
+      "feature": "entretien (non gardé)"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/entretien/sessions/:id/questions/:qid",
+      "summary": "Supprimer une question posée",
+      "role": "accompagnateur (propriétaire)",
+      "feature": "entretien (non gardé)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/sessions/:id/cloturer",
+      "summary": "Clôturer la session (statut='terminee')",
+      "role": "accompagnateur (propriétaire)",
+      "feature": "entretien (non gardé)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/suggestions",
+      "summary": "Suggestions IA (reformulation + questions + a_surveiller) avec repli déterministe",
+      "role": "accompagnateur",
+      "feature": "entretien (non gardé) / copilote côté UI"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-ENTR-001",
+      "titre": "GET /phases — nominal : 6 phases avec structure complète",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Authentifié (rôle accompagnateur).",
+      "donnees": "GET /api/entretien/phases avec cookie valide.",
+      "etapes": [
+        "Se connecter (accompagnateur)",
+        "GET /api/entretien/phases"
+      ],
+      "attendu": "200 ; body { phases: [...] } de longueur 6 ; chaque phase a id (0..5), titre, soustitre, objectif, vigilance (array non vide), questions (array non vide).",
+      "tracabilite": "entretien | GET /api/entretien/phases"
+    },
+    {
+      "id": "TC-ENTR-002",
+      "titre": "GET /phases — accessible aussi à l'accompagné (requireAuth seul)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné (afrit_mohamed@yahoo.fr).",
+      "donnees": "GET /api/entretien/phases.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "GET /api/entretien/phases"
+      ],
+      "attendu": "200 (la route n'exige que requireAuth, aucun requireRole) ; 6 phases renvoyées.",
+      "tracabilite": "entretien | GET /api/entretien/phases"
+    },
+    {
+      "id": "TC-ENTR-003",
+      "titre": "GET /phases — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie d'auth.",
+      "donnees": "GET /api/entretien/phases sans cookie.",
+      "etapes": [
+        "GET /api/entretien/phases sans cookie boussole_token"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | GET /api/entretien/phases"
+    },
+    {
+      "id": "TC-ENTR-004",
+      "titre": "GET /phases — 401 jeton invalide/expiré",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence (jeton invalide)",
+      "preconditions": "Cookie boussole_token corrompu.",
+      "donnees": "Cookie = chaîne JWT falsifiée.",
+      "etapes": [
+        "GET /api/entretien/phases avec cookie boussole_token=abc.def.ghi"
+      ],
+      "attendu": "401 ; { error: 'Session invalide' }.",
+      "tracabilite": "entretien | GET /api/entretien/phases"
+    },
+    {
+      "id": "TC-ENTR-005",
+      "titre": "GET /dossiers — nominal : liste des dossiers de l'accompagnateur",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur Mohamed (elafrit.mohamed@gmail.com) ayant des dossiers seedés.",
+      "donnees": "GET /api/entretien/dossiers.",
+      "etapes": [
+        "Se connecter (accompagnateur)",
+        "GET /api/entretien/dossiers"
+      ],
+      "attendu": "200 ; { dossiers: [...] } ; chaque item a id, titre, accompagne_prenom, accompagne_email, recap (string|null) ; tri par cree_le DESC ; ne contient QUE les dossiers où accompagnateur_id = moi.",
+      "tracabilite": "entretien | GET /api/entretien/dossiers"
+    },
+    {
+      "id": "TC-ENTR-006",
+      "titre": "GET /dossiers — isolation : ne voit pas les dossiers d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles (isolation par propriétaire)",
+      "preconditions": "Deux accompagnateurs (Mohamed et Camille) avec dossiers distincts.",
+      "donnees": "GET /api/entretien/dossiers en tant que Camille.",
+      "etapes": [
+        "Se connecter (camille.laurent@boussole.demo)",
+        "GET /api/entretien/dossiers",
+        "Vérifier qu'aucun dossier de Mohamed n'apparaît"
+      ],
+      "attendu": "200 ; la liste ne contient que les dossiers de Camille (filtre WHERE accompagnateur_id = ?).",
+      "tracabilite": "entretien | GET /api/entretien/dossiers"
+    },
+    {
+      "id": "TC-ENTR-007",
+      "titre": "GET /dossiers — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "GET /api/entretien/dossiers.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "GET /api/entretien/dossiers"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' } (requireRole('accompagnateur')).",
+      "tracabilite": "entretien | GET /api/entretien/dossiers"
+    },
+    {
+      "id": "TC-ENTR-008",
+      "titre": "GET /dossiers — 403 rôle admin",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte admin (mohamed@elafrit.com).",
+      "donnees": "GET /api/entretien/dossiers.",
+      "etapes": [
+        "Se connecter (admin)",
+        "GET /api/entretien/dossiers"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' } (admin n'est pas dans la liste de rôles autorisés).",
+      "tracabilite": "entretien | GET /api/entretien/dossiers"
+    },
+    {
+      "id": "TC-ENTR-009",
+      "titre": "GET /dossiers — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/entretien/dossiers sans cookie.",
+      "etapes": [
+        "GET /api/entretien/dossiers sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | GET /api/entretien/dossiers"
+    },
+    {
+      "id": "TC-ENTR-010",
+      "titre": "GET /dashboard — nominal : agrégats par accompagné",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur avec dossiers, sessions, actions, CR, tags seedés.",
+      "donnees": "GET /api/entretien/dashboard.",
+      "etapes": [
+        "Se connecter (accompagnateur)",
+        "GET /api/entretien/dashboard"
+      ],
+      "attendu": "200 ; { dossiers: [...] } ; chaque item a id, accompagne_prenom, accompagne_email, nb_sessions (number), actions_ouvertes (compte statut!='fait'), questionnaire (0/1+), nb_cr (number), tags (string concaténée 'id|nom,...' ou null).",
+      "tracabilite": "entretien | GET /api/entretien/dashboard"
+    },
+    {
+      "id": "TC-ENTR-011",
+      "titre": "GET /dashboard — actions_ouvertes exclut les actions 'fait'",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence (statut action)",
+      "preconditions": "Un dossier avec actions de statuts mixtes (fait / non fait).",
+      "donnees": "GET /api/entretien/dashboard.",
+      "etapes": [
+        "Préparer un dossier avec ≥1 action 'fait' et ≥1 action non 'fait'",
+        "GET /api/entretien/dashboard",
+        "Comparer actions_ouvertes au nombre d'actions statut != 'fait'"
+      ],
+      "attendu": "actions_ouvertes = nombre d'actions du dossier dont statut != 'fait' ; les actions 'fait' sont exclues.",
+      "tracabilite": "entretien | GET /api/entretien/dashboard"
+    },
+    {
+      "id": "TC-ENTR-012",
+      "titre": "GET /dashboard — format du champ tags (GROUP_CONCAT id|nom)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "test du contrat",
+      "preconditions": "Un dossier avec ≥2 tags ; un dossier sans tag.",
+      "donnees": "GET /api/entretien/dashboard.",
+      "etapes": [
+        "GET /api/entretien/dashboard",
+        "Inspecter le champ tags des deux dossiers"
+      ],
+      "attendu": "Pour le dossier taggé : tags = 'id1|nom1,id2|nom2' (séparateur | entre id et nom, , entre tags) ; pour le dossier sans tag : tags = null.",
+      "tracabilite": "entretien | GET /api/entretien/dashboard"
+    },
+    {
+      "id": "TC-ENTR-013",
+      "titre": "GET /dashboard — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "GET /api/entretien/dashboard.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "GET /api/entretien/dashboard"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "tracabilite": "entretien | GET /api/entretien/dashboard"
+    },
+    {
+      "id": "TC-ENTR-014",
+      "titre": "GET /dashboard — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/entretien/dashboard sans cookie.",
+      "etapes": [
+        "GET /api/entretien/dashboard sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | GET /api/entretien/dashboard"
+    },
+    {
+      "id": "TC-ENTR-015",
+      "titre": "POST /sessions — nominal : création d'une session pour un dossier possédé",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire d'un dossier sans session en_cours.",
+      "donnees": "{ dossierId: <id dossier possédé> }.",
+      "etapes": [
+        "Se connecter (accompagnateur)",
+        "POST /api/entretien/sessions avec body { dossierId }"
+      ],
+      "attendu": "200 ; { sessionId: <number> } ; une nouvelle session est insérée avec phase_atteinte='0' et statut par défaut 'en_cours'.",
+      "tracabilite": "entretien | POST /api/entretien/sessions"
+    },
+    {
+      "id": "TC-ENTR-016",
+      "titre": "POST /sessions — reprise : renvoie la session 'en_cours' existante (pas de doublon)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision (session en_cours existe ? oui→reprendre, non→créer)",
+      "preconditions": "Un dossier possédé avec une session statut='en_cours'.",
+      "donnees": "{ dossierId } appelé deux fois.",
+      "etapes": [
+        "POST /api/entretien/sessions { dossierId } → noter sessionId1",
+        "POST /api/entretien/sessions { dossierId } à nouveau → noter sessionId2"
+      ],
+      "attendu": "sessionId2 == sessionId1 (reprise de la session en_cours la plus récente, aucune nouvelle session créée).",
+      "tracabilite": "entretien | POST /api/entretien/sessions"
+    },
+    {
+      "id": "TC-ENTR-017",
+      "titre": "POST /sessions — nouvelle session après clôture de la précédente",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "table de décision",
+      "preconditions": "Un dossier possédé dont la dernière session est 'terminee'.",
+      "donnees": "{ dossierId }.",
+      "etapes": [
+        "Clôturer une session du dossier",
+        "POST /api/entretien/sessions { dossierId }"
+      ],
+      "attendu": "200 ; sessionId différent de la session terminée (une nouvelle session en_cours est créée car aucune en_cours ne subsiste).",
+      "tracabilite": "entretien | POST /api/entretien/sessions"
+    },
+    {
+      "id": "TC-ENTR-018",
+      "titre": "POST /sessions — 404 dossier d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles (propriétaire de ressource)",
+      "preconditions": "Camille connectée ; dossierId appartient à Mohamed.",
+      "donnees": "{ dossierId: <dossier de Mohamed> }.",
+      "etapes": [
+        "Se connecter (Camille)",
+        "POST /api/entretien/sessions { dossierId d'un dossier de Mohamed }"
+      ],
+      "attendu": "404 ; { error: 'Dossier introuvable' } (filtre WHERE id=? AND accompagnateur_id=?).",
+      "tracabilite": "entretien | POST /api/entretien/sessions"
+    },
+    {
+      "id": "TC-ENTR-019",
+      "titre": "POST /sessions — 404 dossierId inexistant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites (id inexistant)",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "{ dossierId: 999999 }.",
+      "etapes": [
+        "POST /api/entretien/sessions { dossierId: 999999 }"
+      ],
+      "attendu": "404 ; { error: 'Dossier introuvable' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions"
+    },
+    {
+      "id": "TC-ENTR-020",
+      "titre": "POST /sessions — 404 dossierId manquant ou non numérique (NaN)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence (entrée invalide → Number(...)=NaN)",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "{} ou { dossierId: 'abc' }.",
+      "etapes": [
+        "POST /api/entretien/sessions avec body {} (ou dossierId='abc')"
+      ],
+      "attendu": "404 ; { error: 'Dossier introuvable' } (Number(undefined/'abc')=NaN ne correspond à aucun dossier).",
+      "tracabilite": "entretien | POST /api/entretien/sessions"
+    },
+    {
+      "id": "TC-ENTR-021",
+      "titre": "POST /sessions — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "{ dossierId: 1 }.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "POST /api/entretien/sessions { dossierId: 1 }"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions"
+    },
+    {
+      "id": "TC-ENTR-022",
+      "titre": "POST /sessions — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "{ dossierId: 1 } sans cookie.",
+      "etapes": [
+        "POST /api/entretien/sessions sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions"
+    },
+    {
+      "id": "TC-ENTR-023",
+      "titre": "GET /sessions/:id — nominal : détail + réponses + questions",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Accompagnateur propriétaire d'une session ayant des réponses et questions.",
+      "donnees": "GET /api/entretien/sessions/<id possédé>.",
+      "etapes": [
+        "Se connecter (accompagnateur)",
+        "GET /api/entretien/sessions/:id"
+      ],
+      "attendu": "200 ; { session: { id, dossier_id, phase_atteinte, statut }, reponses: [{ phase, texte_reponse }] (tri par phase), questions: [{ id, phase, texte, reponse }] (tri par id) }.",
+      "tracabilite": "entretien | GET /api/entretien/sessions/:id"
+    },
+    {
+      "id": "TC-ENTR-024",
+      "titre": "GET /sessions/:id — 404 session d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles (propriétaire via ownsSession)",
+      "preconditions": "Camille connectée ; sessionId appartient à un dossier de Mohamed.",
+      "donnees": "GET /api/entretien/sessions/<session de Mohamed>.",
+      "etapes": [
+        "Se connecter (Camille)",
+        "GET /api/entretien/sessions/:id (session de Mohamed)"
+      ],
+      "attendu": "404 ; { error: 'Session introuvable' } (ownsSession=false).",
+      "tracabilite": "entretien | GET /api/entretien/sessions/:id"
+    },
+    {
+      "id": "TC-ENTR-025",
+      "titre": "GET /sessions/:id — 404 session inexistante",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites (id inexistant)",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "GET /api/entretien/sessions/999999.",
+      "etapes": [
+        "GET /api/entretien/sessions/999999"
+      ],
+      "attendu": "404 ; { error: 'Session introuvable' }.",
+      "tracabilite": "entretien | GET /api/entretien/sessions/:id"
+    },
+    {
+      "id": "TC-ENTR-026",
+      "titre": "GET /sessions/:id — 404 id non numérique",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "partition d'équivalence (Number(:id)=NaN)",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "GET /api/entretien/sessions/abc.",
+      "etapes": [
+        "GET /api/entretien/sessions/abc"
+      ],
+      "attendu": "404 ; { error: 'Session introuvable' } (NaN ne possède aucune session).",
+      "tracabilite": "entretien | GET /api/entretien/sessions/:id"
+    },
+    {
+      "id": "TC-ENTR-027",
+      "titre": "GET /sessions/:id — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "GET /api/entretien/sessions/1.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "GET /api/entretien/sessions/1"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' } (requireRole bloque avant ownsSession).",
+      "tracabilite": "entretien | GET /api/entretien/sessions/:id"
+    },
+    {
+      "id": "TC-ENTR-028",
+      "titre": "GET /sessions/:id — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/entretien/sessions/1 sans cookie.",
+      "etapes": [
+        "GET /api/entretien/sessions/1 sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | GET /api/entretien/sessions/:id"
+    },
+    {
+      "id": "TC-ENTR-029",
+      "titre": "POST /sessions/:id/reponses — nominal : enregistre et met à jour phase_atteinte",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Session possédée.",
+      "donnees": "{ phase: '2', texte: 'Notes de la phase 2' }.",
+      "etapes": [
+        "POST /api/entretien/sessions/:id/reponses { phase:'2', texte:'...' }",
+        "GET /api/entretien/sessions/:id pour relire"
+      ],
+      "attendu": "200 ; { ok: true } ; à la relecture, reponses contient { phase:'2', texte_reponse:'Notes de la phase 2' } et session.phase_atteinte='2'.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/reponses"
+    },
+    {
+      "id": "TC-ENTR-030",
+      "titre": "POST /sessions/:id/reponses — idempotence : remplace (delete+insert) sans doublon",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat (remplacement par clé session_id+phase)",
+      "preconditions": "Session possédée avec déjà une réponse en phase 1.",
+      "donnees": "Deux POST successifs sur phase 1 avec textes différents.",
+      "etapes": [
+        "POST .../reponses { phase:'1', texte:'A' }",
+        "POST .../reponses { phase:'1', texte:'B' }",
+        "GET /api/entretien/sessions/:id"
+      ],
+      "attendu": "Une seule entrée pour la phase 1, texte_reponse='B' (l'ancienne est supprimée puis réinsérée).",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/reponses"
+    },
+    {
+      "id": "TC-ENTR-031",
+      "titre": "POST /sessions/:id/reponses — phase invalide : question stockée à null mais accepté",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence (phase hors 0..5)",
+      "preconditions": "Session possédée.",
+      "donnees": "{ phase: '99', texte: 'x' }.",
+      "etapes": [
+        "POST .../reponses { phase:'99', texte:'x' }",
+        "GET /api/entretien/sessions/:id"
+      ],
+      "attendu": "200 ; { ok: true } ; la réponse est enregistrée avec colonne question=null (PHASES.find échoue → phaseObj indéfini) ; phase_atteinte='99'. (Comportement permissif documenté.)",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/reponses"
+    },
+    {
+      "id": "TC-ENTR-032",
+      "titre": "POST /sessions/:id/reponses — texte manquant : coercition en chaîne vide (200)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites (texte absent → '')",
+      "preconditions": "Session possédée.",
+      "donnees": "{ phase: '0' } (sans texte).",
+      "etapes": [
+        "POST .../reponses { phase:'0' }"
+      ],
+      "attendu": "200 ; { ok: true } ; texte_reponse enregistré = '' (String(undefined ?? '')). Aucune erreur 400 (pas de validation de non-vacuité sur les notes).",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/reponses"
+    },
+    {
+      "id": "TC-ENTR-033",
+      "titre": "POST /sessions/:id/reponses — 404 session d'autrui",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles (ownsSession)",
+      "preconditions": "Camille connectée ; session de Mohamed.",
+      "donnees": "{ phase:'0', texte:'x' }.",
+      "etapes": [
+        "Se connecter (Camille)",
+        "POST /api/entretien/sessions/<session Mohamed>/reponses"
+      ],
+      "attendu": "404 ; { error: 'Session introuvable' } ; aucune écriture en base.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/reponses"
+    },
+    {
+      "id": "TC-ENTR-034",
+      "titre": "POST /sessions/:id/reponses — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "{ phase:'0', texte:'x' }.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "POST /api/entretien/sessions/1/reponses"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/reponses"
+    },
+    {
+      "id": "TC-ENTR-035",
+      "titre": "POST /sessions/:id/reponses — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "{ phase:'0', texte:'x' } sans cookie.",
+      "etapes": [
+        "POST /api/entretien/sessions/1/reponses sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/reponses"
+    },
+    {
+      "id": "TC-ENTR-036",
+      "titre": "POST /sessions/:id/questions — nominal : 201 + écho id/phase/texte",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Session possédée.",
+      "donnees": "{ phase: '1', texte: 'Quelle situation t'a marqué ?' }.",
+      "etapes": [
+        "POST /api/entretien/sessions/:id/questions { phase:'1', texte:'...' }"
+      ],
+      "attendu": "201 ; { id: <number>, phase: '1', texte: 'Quelle situation t'a marqué ?' } ; la question est persistée (relecture via GET sessions/:id).",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/questions"
+    },
+    {
+      "id": "TC-ENTR-037",
+      "titre": "POST /sessions/:id/questions — texte trimé (espaces de bord supprimés)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "valeurs limites (espaces de bord)",
+      "preconditions": "Session possédée.",
+      "donnees": "{ phase:'0', texte: '   Bonjour   ' }.",
+      "etapes": [
+        "POST .../questions { phase:'0', texte:'   Bonjour   ' }"
+      ],
+      "attendu": "201 ; texte renvoyé = 'Bonjour' (trim appliqué avant insertion).",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/questions"
+    },
+    {
+      "id": "TC-ENTR-038",
+      "titre": "POST /sessions/:id/questions — 400 texte vide",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "valeurs limites / partition d'équivalence (texte vide ou espaces seuls)",
+      "preconditions": "Session possédée.",
+      "donnees": "{ phase:'0', texte:'   ' } ou texte absent.",
+      "etapes": [
+        "POST .../questions { phase:'0', texte:'   ' }"
+      ],
+      "attendu": "400 ; { error: 'Question vide' } (texte.trim() falsy) ; aucune insertion.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/questions"
+    },
+    {
+      "id": "TC-ENTR-039",
+      "titre": "POST /sessions/:id/questions — 404 session d'autrui",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles (ownsSession)",
+      "preconditions": "Camille connectée ; session de Mohamed.",
+      "donnees": "{ phase:'0', texte:'x' }.",
+      "etapes": [
+        "Se connecter (Camille)",
+        "POST /api/entretien/sessions/<session Mohamed>/questions"
+      ],
+      "attendu": "404 ; { error: 'Session introuvable' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/questions"
+    },
+    {
+      "id": "TC-ENTR-040",
+      "titre": "POST /sessions/:id/questions — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "{ phase:'0', texte:'x' }.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "POST /api/entretien/sessions/1/questions"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/questions"
+    },
+    {
+      "id": "TC-ENTR-041",
+      "titre": "POST /sessions/:id/questions — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "{ phase:'0', texte:'x' } sans cookie.",
+      "etapes": [
+        "POST /api/entretien/sessions/1/questions sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/questions"
+    },
+    {
+      "id": "TC-ENTR-042",
+      "titre": "PATCH questions/:qid — nominal : mise à jour du texte seul (réponse intacte)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision (texte présent / réponse absente)",
+      "preconditions": "Session possédée ; une question avec une réponse non vide.",
+      "donnees": "{ texte: 'Nouveau libellé' } (sans champ reponse).",
+      "etapes": [
+        "PATCH .../questions/:qid { texte:'Nouveau libellé' }",
+        "GET sessions/:id"
+      ],
+      "attendu": "200 ; { ok: true } ; texte mis à jour ; reponse INCHANGÉE (mise à jour partielle : seul le champ fourni est modifié).",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-043",
+      "titre": "PATCH questions/:qid — nominal : mise à jour de la réponse seule (texte intact)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "table de décision (réponse présente / texte absent)",
+      "preconditions": "Session possédée ; une question existante.",
+      "donnees": "{ reponse: 'Réponse de la personne' }.",
+      "etapes": [
+        "PATCH .../questions/:qid { reponse:'Réponse de la personne' }",
+        "GET sessions/:id"
+      ],
+      "attendu": "200 ; { ok: true } ; reponse mise à jour ; texte INCHANGÉ.",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-044",
+      "titre": "PATCH questions/:qid — texte ET réponse simultanés",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "table de décision (les deux champs présents)",
+      "preconditions": "Session possédée ; une question existante.",
+      "donnees": "{ texte: 'T2', reponse: 'R2' }.",
+      "etapes": [
+        "PATCH .../questions/:qid { texte:'T2', reponse:'R2' }",
+        "GET sessions/:id"
+      ],
+      "attendu": "200 ; { ok: true } ; texte='T2' ET reponse='R2'.",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-045",
+      "titre": "PATCH questions/:qid — réponse vide autorisée (efface la réponse)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites (reponse='' non null)",
+      "preconditions": "Session possédée ; question avec réponse non vide.",
+      "donnees": "{ reponse: '' }.",
+      "etapes": [
+        "PATCH .../questions/:qid { reponse:'' }",
+        "GET sessions/:id"
+      ],
+      "attendu": "200 ; { ok: true } ; reponse devient '' (req.body.reponse != null est vrai pour '', donc le champ est inclus). Texte inchangé.",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-046",
+      "titre": "PATCH questions/:qid — corps vide : no-op 200 (aucun champ touché)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence (sets.length===0)",
+      "preconditions": "Session possédée ; question existante.",
+      "donnees": "{} (ni texte ni reponse).",
+      "etapes": [
+        "PATCH .../questions/:qid {}",
+        "GET sessions/:id"
+      ],
+      "attendu": "200 ; { ok: true } ; aucune modification en base (la branche sets.length===0 retourne ok sans UPDATE).",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-047",
+      "titre": "PATCH questions/:qid — 400 texte présent mais vide après trim",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "valeurs limites (texte='   ')",
+      "preconditions": "Session possédée ; question existante.",
+      "donnees": "{ texte: '   ' }.",
+      "etapes": [
+        "PATCH .../questions/:qid { texte:'   ' }"
+      ],
+      "attendu": "400 ; { error: 'Question vide' } ; aucune écriture (validation seulement quand le champ texte est fourni).",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-048",
+      "titre": "PATCH questions/:qid — qid d'une autre session du même propriétaire non modifié",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "test du contrat (clause WHERE id=? AND session_id=?)",
+      "preconditions": "Accompagnateur possédant deux sessions S1 et S2 ; une question qX appartient à S2.",
+      "donnees": "PATCH /sessions/S1/questions/qX { texte:'X' }.",
+      "etapes": [
+        "PATCH .../sessions/S1/questions/qX { texte:'X' }",
+        "GET sessions/S2/:id"
+      ],
+      "attendu": "200 ; { ok: true } MAIS aucune ligne affectée (WHERE id=qX AND session_id=S1 ne correspond pas) ; la question qX de S2 reste inchangée.",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-049",
+      "titre": "PATCH questions/:qid — 404 session d'autrui",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles (ownsSession)",
+      "preconditions": "Camille connectée ; session de Mohamed.",
+      "donnees": "{ texte:'x' }.",
+      "etapes": [
+        "Se connecter (Camille)",
+        "PATCH /sessions/<session Mohamed>/questions/1"
+      ],
+      "attendu": "404 ; { error: 'Session introuvable' }.",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-050",
+      "titre": "PATCH questions/:qid — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "{ texte:'x' }.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "PATCH /sessions/1/questions/1"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-051",
+      "titre": "PATCH questions/:qid — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "{ texte:'x' } sans cookie.",
+      "etapes": [
+        "PATCH /sessions/1/questions/1 sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | PATCH /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-052",
+      "titre": "DELETE questions/:qid — nominal : suppression d'une question",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Session possédée avec une question qX.",
+      "donnees": "DELETE /sessions/:id/questions/qX.",
+      "etapes": [
+        "DELETE .../questions/qX",
+        "GET sessions/:id"
+      ],
+      "attendu": "200 ; { ok: true } ; la question qX n'apparaît plus dans le tableau questions.",
+      "tracabilite": "entretien | DELETE /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-053",
+      "titre": "DELETE questions/:qid — qid inexistant : 200 idempotent",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "valeurs limites (id inexistant)",
+      "preconditions": "Session possédée.",
+      "donnees": "DELETE /sessions/:id/questions/999999.",
+      "etapes": [
+        "DELETE .../questions/999999"
+      ],
+      "attendu": "200 ; { ok: true } (aucune ligne supprimée, opération idempotente sans erreur).",
+      "tracabilite": "entretien | DELETE /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-054",
+      "titre": "DELETE questions/:qid — qid appartenant à une autre session non supprimé",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "test du contrat (WHERE id=? AND session_id=?)",
+      "preconditions": "Accompagnateur avec S1 et S2 ; question qX dans S2.",
+      "donnees": "DELETE /sessions/S1/questions/qX.",
+      "etapes": [
+        "DELETE .../sessions/S1/questions/qX",
+        "GET sessions/S2/:id"
+      ],
+      "attendu": "200 ; { ok: true } mais qX toujours présente dans S2 (clause session_id ne correspond pas).",
+      "tracabilite": "entretien | DELETE /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-055",
+      "titre": "DELETE questions/:qid — 404 session d'autrui",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles (ownsSession)",
+      "preconditions": "Camille connectée ; session de Mohamed.",
+      "donnees": "DELETE /sessions/<session Mohamed>/questions/1.",
+      "etapes": [
+        "Se connecter (Camille)",
+        "DELETE /sessions/<session Mohamed>/questions/1"
+      ],
+      "attendu": "404 ; { error: 'Session introuvable' } ; aucune suppression.",
+      "tracabilite": "entretien | DELETE /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-056",
+      "titre": "DELETE questions/:qid — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "DELETE /sessions/1/questions/1.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "DELETE /sessions/1/questions/1"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "tracabilite": "entretien | DELETE /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-057",
+      "titre": "DELETE questions/:qid — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "DELETE /sessions/1/questions/1 sans cookie.",
+      "etapes": [
+        "DELETE /sessions/1/questions/1 sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | DELETE /api/entretien/sessions/:id/questions/:qid"
+    },
+    {
+      "id": "TC-ENTR-058",
+      "titre": "POST /sessions/:id/cloturer — nominal : passe la session à 'terminee'",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat",
+      "preconditions": "Session possédée statut='en_cours'.",
+      "donnees": "POST /sessions/:id/cloturer.",
+      "etapes": [
+        "POST .../cloturer",
+        "GET sessions/:id"
+      ],
+      "attendu": "200 ; { ok: true } ; session.statut='terminee'.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/cloturer"
+    },
+    {
+      "id": "TC-ENTR-059",
+      "titre": "POST /sessions/:id/cloturer — clôture répétée idempotente",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "partition d'équivalence (déjà terminée)",
+      "preconditions": "Session déjà 'terminee'.",
+      "donnees": "POST /sessions/:id/cloturer.",
+      "etapes": [
+        "POST .../cloturer une 2e fois"
+      ],
+      "attendu": "200 ; { ok: true } ; statut reste 'terminee' (UPDATE inconditionnel, sans effet de bord).",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/cloturer"
+    },
+    {
+      "id": "TC-ENTR-060",
+      "titre": "POST /sessions/:id/cloturer — après clôture, POST /sessions crée une nouvelle session",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "table de décision (enchaînement clôture→reprise)",
+      "preconditions": "Dossier possédé avec session en_cours.",
+      "donnees": "Clôture puis POST /sessions { dossierId }.",
+      "etapes": [
+        "POST .../cloturer",
+        "POST /api/entretien/sessions { dossierId }"
+      ],
+      "attendu": "La nouvelle session a un id différent (aucune session en_cours ne subsiste après clôture).",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/cloturer"
+    },
+    {
+      "id": "TC-ENTR-061",
+      "titre": "POST /sessions/:id/cloturer — 404 session d'autrui",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles (ownsSession)",
+      "preconditions": "Camille connectée ; session de Mohamed.",
+      "donnees": "POST /sessions/<session Mohamed>/cloturer.",
+      "etapes": [
+        "Se connecter (Camille)",
+        "POST /sessions/<session Mohamed>/cloturer"
+      ],
+      "attendu": "404 ; { error: 'Session introuvable' } ; statut inchangé.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/cloturer"
+    },
+    {
+      "id": "TC-ENTR-062",
+      "titre": "POST /sessions/:id/cloturer — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "POST /sessions/1/cloturer.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "POST /sessions/1/cloturer"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/cloturer"
+    },
+    {
+      "id": "TC-ENTR-063",
+      "titre": "POST /sessions/:id/cloturer — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "POST /sessions/1/cloturer sans cookie.",
+      "etapes": [
+        "POST /sessions/1/cloturer sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | POST /api/entretien/sessions/:id/cloturer"
+    },
+    {
+      "id": "TC-ENTR-064",
+      "titre": "POST /suggestions — contrat : 200 avec questions[], reformulation, a_surveiller",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat (ne pas figer le texte)",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "{ phase: 2, transcript: 'La personne raconte sa refonte de site...' }.",
+      "etapes": [
+        "POST /api/entretien/suggestions { phase:2, transcript:'...' }"
+      ],
+      "attendu": "200 ; body { questions: string[] (non vide), reformulation: string|null, a_surveiller: string|null } ; questions typées chaînes, longueur ≥ 1. Pas d'assertion sur le contenu exact.",
+      "tracabilite": "entretien | POST /api/entretien/suggestions | claudeSuggest.suggestForPhase"
+    },
+    {
+      "id": "TC-ENTR-065",
+      "titre": "POST /suggestions — repli déterministe sans ANTHROPIC_API_KEY",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat (repli)",
+      "preconditions": "Stack démarrée SANS ANTHROPIC_API_KEY (cas par défaut).",
+      "donnees": "{ phase: 0, transcript: '' }.",
+      "etapes": [
+        "POST /api/entretien/suggestions { phase:0, transcript:'' }"
+      ],
+      "attendu": "200 ; questions = les 3 premières questions de PHASES[0] ('Accueil et mise en confiance') ; reformulation=null ; a_surveiller = PHASES[0].vigilance[0] ('Ne pas sauter l'étape pour gagner du temps').",
+      "tracabilite": "entretien | POST /api/entretien/suggestions | claudeSuggest.suggestForPhase (fallback)"
+    },
+    {
+      "id": "TC-ENTR-066",
+      "titre": "POST /suggestions — phase invalide repli sur PHASES[0]",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "partition d'équivalence (phaseId hors 0..5 → ?? PHASES[0])",
+      "preconditions": "Sans clé IA.",
+      "donnees": "{ phase: 42, transcript: 'x' }.",
+      "etapes": [
+        "POST /api/entretien/suggestions { phase:42 }"
+      ],
+      "attendu": "200 ; suggestions issues de PHASES[0] (PHASES.find renvoie undefined → fallback ?? PHASES[0]) ; questions = 3 questions de la phase 0.",
+      "tracabilite": "entretien | POST /api/entretien/suggestions | claudeSuggest.suggestForPhase"
+    },
+    {
+      "id": "TC-ENTR-067",
+      "titre": "POST /suggestions — phase non numérique (NaN) gérée par repli",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "partition d'équivalence (Number(phase)=NaN)",
+      "preconditions": "Sans clé IA.",
+      "donnees": "{ phase: 'abc', transcript: 'x' }.",
+      "etapes": [
+        "POST /api/entretien/suggestions { phase:'abc' }"
+      ],
+      "attendu": "200 ; Number('abc')=NaN ne matche aucune phase → fallback PHASES[0] ; structure de contrat respectée.",
+      "tracabilite": "entretien | POST /api/entretien/suggestions | claudeSuggest.suggestForPhase"
+    },
+    {
+      "id": "TC-ENTR-068",
+      "titre": "POST /suggestions — transcript manquant traité comme chaîne vide",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "valeurs limites (transcript absent → '')",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "{ phase: 1 } (sans transcript).",
+      "etapes": [
+        "POST /api/entretien/suggestions { phase:1 }"
+      ],
+      "attendu": "200 ; aucune erreur (String(undefined||'')='') ; suggestions de contrat renvoyées.",
+      "tracabilite": "entretien | POST /api/entretien/suggestions"
+    },
+    {
+      "id": "TC-ENTR-069",
+      "titre": "POST /suggestions — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Compte accompagné.",
+      "donnees": "{ phase:0, transcript:'x' }.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "POST /api/entretien/suggestions"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' } (requireRole('accompagnateur')).",
+      "tracabilite": "entretien | POST /api/entretien/suggestions"
+    },
+    {
+      "id": "TC-ENTR-070",
+      "titre": "POST /suggestions — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Aucun cookie.",
+      "donnees": "{ phase:0, transcript:'x' } sans cookie.",
+      "etapes": [
+        "POST /api/entretien/suggestions sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "entretien | POST /api/entretien/suggestions"
+    },
+    {
+      "id": "TC-ENTR-071",
+      "titre": "POST /suggestions — 500 si suggestForPhase lève (gestion d'erreur)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "test du contrat (chemin d'erreur)",
+      "preconditions": "Environnement où suggestForPhase peut lever (ex. erreur interne simulée). Note : avec clé absente, suggestForPhase ne lève jamais (try/catch interne renvoie fallback), donc ce cas exige une injection de panne.",
+      "donnees": "Condition forçant une exception non interceptée dans suggestForPhase.",
+      "etapes": [
+        "Provoquer une exception interne",
+        "POST /api/entretien/suggestions"
+      ],
+      "attendu": "500 ; { error: 'Erreur lors de la génération des suggestions' }.",
+      "tracabilite": "entretien | POST /api/entretien/suggestions (catch → 500)"
+    },
+    {
+      "id": "TC-ENTR-072",
+      "titre": "Unitaire suggestForPhase(0,'') — repli exact phase 0",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test unitaire de repli (partition d'équivalence)",
+      "preconditions": "process.env.ANTHROPIC_API_KEY non défini ; import direct de suggestForPhase.",
+      "donnees": "phaseId=0, transcript=''.",
+      "etapes": [
+        "Appeler suggestForPhase(0, '')"
+      ],
+      "attendu": "{ questions: PHASES[0].questions.slice(0,3), reformulation: null, a_surveiller: PHASES[0].vigilance[0] } ; exactement 3 questions.",
+      "tracabilite": "claudeSuggest.ts suggestForPhase (fallback)"
+    },
+    {
+      "id": "TC-ENTR-073",
+      "titre": "Unitaire suggestForPhase — chaque phase 0..5 renvoie ses 3 questions et sa 1re vigilance",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "test unitaire de repli (partition d'équivalence sur 6 classes)",
+      "preconditions": "Sans clé IA.",
+      "donnees": "phaseId ∈ {0,1,2,3,4,5}.",
+      "etapes": [
+        "Pour chaque pid, appeler suggestForPhase(pid,'')",
+        "Comparer aux PHASES[pid]"
+      ],
+      "attendu": "Pour chaque phase : questions = PHASES[pid].questions.slice(0,3) ; a_surveiller = PHASES[pid].vigilance[0] ; reformulation=null. Phase 3 a 2 questions → renvoie 2 (slice(0,3) tolérant).",
+      "tracabilite": "claudeSuggest.ts suggestForPhase (fallback) ; phases.ts"
+    },
+    {
+      "id": "TC-ENTR-074",
+      "titre": "Unitaire suggestForPhase — phaseId hors borne repli sur PHASES[0]",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "valeurs limites (phaseId = -1, 6, 999)",
+      "preconditions": "Sans clé IA.",
+      "donnees": "phaseId ∈ {-1, 6, 999}.",
+      "etapes": [
+        "Appeler suggestForPhase(999,'x')"
+      ],
+      "attendu": "Repli sur PHASES[0] (find renvoie undefined → ?? PHASES[0]) ; questions = 3 questions de la phase 0.",
+      "tracabilite": "claudeSuggest.ts suggestForPhase (?? PHASES[0])"
+    },
+    {
+      "id": "TC-ENTR-075",
+      "titre": "Unitaire extractJson — extraction de l'objet JSON dans un texte bruité",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "valeurs limites (présence/absence d'accolades)",
+      "preconditions": "Fonction extractJson exportée ou testée indirectement.",
+      "donnees": "'blabla {\"questions\":[]} fin' ; texte sans accolade ; accolades inversées.",
+      "etapes": [
+        "extractJson('xx {\"a\":1} yy') → '{\"a\":1}'",
+        "extractJson('aucune accolade') → renvoie le texte tel quel"
+      ],
+      "attendu": "Quand { et } présents et b>a : renvoie la sous-chaîne entre la 1re { et la dernière } ; sinon renvoie le texte original.",
+      "tracabilite": "claudeSuggest.ts extractJson"
+    },
+    {
+      "id": "TC-ENTR-076",
+      "titre": "UI Dashboard accompagnateur — affichage des cartes et agrégats",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat (bout-en-bout)",
+      "preconditions": "Stack http://localhost:8080 ; connecté en accompagnateur (Mohamed, BoussoleDemo2026).",
+      "donnees": "Navigation vers /tableau-de-bord.",
+      "etapes": [
+        "Se connecter (accompagnateur)",
+        "Ouvrir le Tableau de bord",
+        "Observer les cartes accompagnés"
+      ],
+      "attendu": "Chaque carte affiche prénom/email, Questionnaire (✓/—), Entretiens (nb_sessions), Comptes rendus (nb_cr), Actions en cours (actions_ouvertes) ; bouton 'Ouvrir le dossier' présent ; données issues de GET /entretien/dashboard.",
+      "tracabilite": "entretien | GET /api/entretien/dashboard | page Dashboard.tsx"
+    },
+    {
+      "id": "TC-ENTR-077",
+      "titre": "UI Entretien — sélection d'un accompagné et démarrage de session",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat (bout-en-bout, rôle accompagnateur)",
+      "preconditions": "Accompagnateur avec ≥1 dossier (Amine).",
+      "donnees": "Page /entretien.",
+      "etapes": [
+        "Ouvrir l'entretien guidé",
+        "Cliquer 'Démarrer l'entretien' sur la carte d'un accompagné"
+      ],
+      "attendu": "POST /entretien/sessions appelé ; la vue passe à la phase 1/6 ; les phases, notes et questions existantes sont chargées via GET /entretien/sessions/:id.",
+      "tracabilite": "entretien | POST /sessions + GET /sessions/:id | page Entretien.tsx"
+    },
+    {
+      "id": "TC-ENTR-078",
+      "titre": "UI Entretien — navigation entre phases sauvegarde les notes",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat (bout-en-bout)",
+      "preconditions": "Session démarrée.",
+      "donnees": "Saisie de notes en phase 1 puis passage à la phase 2.",
+      "etapes": [
+        "Saisir un texte dans 'Notes générales de la phase'",
+        "Cliquer 'Suivant →'",
+        "Revenir à la phase précédente"
+      ],
+      "attendu": "Au changement de phase, POST /reponses sauvegarde les notes ; en revenant, le texte saisi est toujours présent (relu depuis la session).",
+      "tracabilite": "entretien | POST /sessions/:id/reponses | page Entretien.tsx (goTo/saveCurrent)"
+    },
+    {
+      "id": "TC-ENTR-079",
+      "titre": "UI Entretien — ajouter, modifier, supprimer une question posée",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "test du contrat (CRUD bout-en-bout)",
+      "preconditions": "Session démarrée.",
+      "donnees": "Question 'Comment t'es-tu senti ?' + réponse.",
+      "etapes": [
+        "Saisir une question et cliquer '＋ Ajouter'",
+        "Saisir une réponse dans la zone de la question",
+        "Cliquer ✎ pour modifier le texte, valider",
+        "Cliquer × pour supprimer"
+      ],
+      "attendu": "Ajout → POST /questions (201) ; réponse → PATCH {reponse} ; édition texte → PATCH {texte} (réponse conservée) ; suppression → DELETE puis la question disparaît.",
+      "tracabilite": "entretien | POST/PATCH/DELETE /sessions/:id/questions | page Entretien.tsx"
+    },
+    {
+      "id": "TC-ENTR-080",
+      "titre": "UI Entretien — suggestions IA affichées et ajoutables",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "test du contrat (IA, ne pas figer le texte)",
+      "preconditions": "Session démarrée ; sans clé IA (repli).",
+      "donnees": "Clic sur '✨ Suggestions de l'IA'.",
+      "etapes": [
+        "Saisir des notes",
+        "Cliquer '✨ Suggestions de l'IA'",
+        "Cliquer une question suggérée pour l'ajouter"
+      ],
+      "attendu": "POST /entretien/suggestions renvoie reformulation/questions/a_surveiller ; les questions s'affichent (effet machine à écrire) ; cliquer '＋' ajoute la question (POST /questions). En repli : questions = banque de la phase.",
+      "tracabilite": "entretien | POST /suggestions | page Entretien.tsx (askIA)"
+    },
+    {
+      "id": "TC-ENTR-081",
+      "titre": "UI Entretien — clôture et ouverture du compte rendu",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "test du contrat (bout-en-bout)",
+      "preconditions": "Session démarrée avec des notes.",
+      "donnees": "Clic '✓ Clôturer & générer le CR'.",
+      "etapes": [
+        "Cliquer 'Clôturer & générer le CR'",
+        "Observer l'écran de clôture",
+        "Cliquer 'Ouvrir le compte rendu'"
+      ],
+      "attendu": "POST /sessions/:id/cloturer appelé ; écran 'Entretien clôturé ✅' ; le modal de compte rendu s'ouvre pour la session clôturée.",
+      "tracabilite": "entretien | POST /sessions/:id/cloturer | page Entretien.tsx (terminer)"
+    },
+    {
+      "id": "TC-ENTR-082",
+      "titre": "UI Entretien — 'Reprendre plus tard' conserve la session en_cours",
+      "niveau": "ui",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "technique": "test du contrat (reprise de session)",
+      "preconditions": "Session démarrée avec notes en phase 2.",
+      "donnees": "Clic '💾 Reprendre plus tard' puis réouverture.",
+      "etapes": [
+        "Saisir des notes",
+        "Cliquer 'Reprendre plus tard' (retour au dossier)",
+        "Rouvrir l'entretien pour le même accompagné"
+      ],
+      "attendu": "POST /sessions renvoie la MÊME session (en_cours) ; les notes et la phase atteinte sont restaurées (pas de nouvelle session, pas de perte de saisie).",
+      "tracabilite": "entretien | POST /sessions (reprise) + POST /reponses | page Entretien.tsx (pauseEtQuitter)"
+    },
+    {
+      "id": "TC-ENTR-083",
+      "titre": "UI Entretien — accès interdit à l'accompagné (garde de route)",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "test basé sur les rôles",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "Tentative d'accès à /entretien et appels API associés.",
+      "etapes": [
+        "Se connecter (accompagné)",
+        "Tenter d'ouvrir /entretien ou de charger /entretien/dossiers"
+      ],
+      "attendu": "Les appels GET /entretien/dossiers et /entretien/dashboard renvoient 403 ; l'UI ne présente pas l'entretien guidé à l'accompagné (rôle restreint).",
+      "tracabilite": "entretien | GET /dossiers, /dashboard | gardes de rôle"
+    },
+    {
+      "id": "TC-ENTR-084",
+      "titre": "Non-régression — entretien accessible sans plan (aucun requireFeature)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "technique": "test du contrat (gating de fonctionnalité)",
+      "preconditions": "Accompagnateur SANS plan (accès à tout) ET accompagnateur avec plan Découverte (socle incluant 'entretien').",
+      "donnees": "Suite d'appels GET /dossiers, /dashboard, POST /sessions, /suggestions.",
+      "etapes": [
+        "Avec un accompagnateur sans plan : appeler les endpoints entretien",
+        "Répéter avec un plan Découverte"
+      ],
+      "attendu": "Tous renvoient 2xx : aucune route entretien n'applique requireFeature, donc l'absence de la feature 'entretien' dans un plan ne bloquerait PAS (à documenter comme écart connu). Les seules gardes sont requireAuth + requireRole.",
+      "tracabilite": "entretien | toutes routes (absence de requireFeature) | features.ts requireFeature"
+    }
+  ]
+}

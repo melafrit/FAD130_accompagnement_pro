@@ -64,10 +64,10 @@ export async function genererContenu(notesByPhase: Record<number, string>): Prom
   }
 }
 
-function esc(s: string): string {
+export function esc(s: string): string {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
-function parasHtml(text: string): string {
+export function parasHtml(text: string): string {
   const lines = (text || '').split('\n').map((l) => l.trim()).filter(Boolean)
   if (lines.length === 0) return '<p>—</p>'
   return lines.map((l) => `<p>${esc(l)}</p>`).join('')

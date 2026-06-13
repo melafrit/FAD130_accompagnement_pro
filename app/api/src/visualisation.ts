@@ -30,7 +30,7 @@ async function callClaude(system: string, user: string, maxTokens = 1000): Promi
     return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text || '').join('') || null
   } catch { return null }
 }
-function extractJson<T>(text: string | null): T | null {
+export function extractJson<T>(text: string | null): T | null {
   if (!text) return null
   const a = text.indexOf('{'), b = text.lastIndexOf('}')
   if (a < 0 || b < 0) return null
@@ -41,7 +41,7 @@ function extractJson<T>(text: string | null): T | null {
 //  1. Nuage de thèmes
 // ====================================================================================
 interface Theme { mot: string; poids: number }
-const strip = (html: string) => (html || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ')
+export const strip = (html: string) => (html || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ')
 function texteDossier(did: number): string {
   const parts: string[] = []
   const q = db.prepare('SELECT cr_recap FROM questionnaires_initiaux WHERE dossier_id=?').get(did) as { cr_recap: string | null } | undefined
@@ -57,7 +57,7 @@ function texteDossier(did: number): string {
   return parts.join('\n')
 }
 const STOP = new Set('le la les un une des de du au aux et ou à a en dans pour par sur avec sans sous que qui quoi dont où ce cet cette ces mon ma mes ton ta tes son sa ses se sa il elle ils elles je tu nous vous on ne pas plus moins très bien plus est sont été être avoir fait faire suis tout tous toute toutes comme mais donc car si quand leur leurs lui me te se y d l n s c j qu aussi entre vers chez son the of and'.split(/\s+/))
-function nuageFallback(did: number): { themes: Theme[] } {
+export function nuageFallback(did: number): { themes: Theme[] } {
   const txt = texteDossier(did).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   const freq: Record<string, number> = {}
   for (const w of txt.split(/[^a-z'-]+/i)) {
@@ -102,7 +102,7 @@ router.post('/nuage/dossier/:id', requireAuth, requireFeature('nuage_themes'), a
 //  2. Roue des émotions (outil distinct de la météo)
 // ====================================================================================
 // Familles d'émotions (clé -> famille). Sert à valider les sélections côté serveur.
-const EMOTIONS: Record<string, string> = {
+export const EMOTIONS: Record<string, string> = {
   fier: 'joie', confiant: 'joie', enthousiaste: 'joie', soulage: 'joie',
   inquiet: 'peur', stresse: 'peur', depasse: 'peur',
   decourage: 'tristesse', seul: 'tristesse', decu: 'tristesse',
@@ -110,7 +110,7 @@ const EMOTIONS: Record<string, string> = {
   etonne: 'surprise', curieux: 'surprise',
   serein: 'calme', pose: 'calme',
 }
-const sanitizeEmotions = (arr: unknown): string[] => (Array.isArray(arr) ? [...new Set(arr.map(String).filter((e) => e in EMOTIONS))] : [])
+export const sanitizeEmotions = (arr: unknown): string[] => (Array.isArray(arr) ? [...new Set(arr.map(String).filter((e) => e in EMOTIONS))] : [])
 
 router.get('/emotions/catalogue', requireAuth, requireFeature('roue_emotions'), (_req: Request, res: Response) => {
   res.json({ emotions: Object.entries(EMOTIONS).map(([cle, famille]) => ({ cle, famille })) })

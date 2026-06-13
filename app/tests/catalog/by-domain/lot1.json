@@ -1,0 +1,1094 @@
+{
+  "domaine": "lot1",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/auth/me/features",
+      "feature": "(socle session)",
+      "role": "authentifié (tout rôle)",
+      "summary": "Liste des clés de fonctionnalités activées pour l'utilisateur courant selon son plan (aucun plan = toutes)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/users",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Liste de tous les comptes avec leur plan d'abonnement éventuel"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/features",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Registre complet des fonctionnalités (FEATURES + ALL_FEATURE_KEYS) pour construire les plans"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/plans",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Liste des plans avec features assainies et nombre d'utilisateurs rattachés (nb_users)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/plans",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Créer un plan (nom requis, features assainies)"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/plans/:id",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Modifier un plan (nom non vide, description, features assainies)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/plans/:id/duplication",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Dupliquer un plan (nom suffixé « (copie) », mêmes features)"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/plans/:id",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Supprimer un plan ; les utilisateurs rattachés repassent à plan_id NULL (niveau max)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/users",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Créer un compte sans mot de passe + envoi d'un lien d'activation (email + role requis, 409 si email pris)"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/users/:id",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Modifier un compte (actif, role, plan_id) ; refuse l'auto-modification de l'admin"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/lien",
+      "feature": "(admin)",
+      "role": "admin",
+      "summary": "Rattacher un accompagné à un accompagnateur"
+    },
+    {
+      "method": "GET",
+      "path": "/api/visualisation/emotions/catalogue",
+      "feature": "roue_emotions",
+      "role": "authentifié + requireFeature(roue_emotions)",
+      "summary": "Endpoint hors-socle utilisé pour la matrice de gating (403 sous plan Découverte)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/collaboration/ressources",
+      "feature": "mutualisation",
+      "role": "accompagnateur + requireFeature(mutualisation)",
+      "summary": "Endpoint hors-socle utilisé pour la matrice de gating (403 sous plan Découverte)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/entretien/...",
+      "feature": "entretien",
+      "role": "authentifié + requireFeature(entretien)",
+      "summary": "Référence d'une fonctionnalité SOCLE pour la matrice de gating (200 sous plan Découverte)"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-LOT1-001",
+      "titre": "GET /auth/me/features — utilisateur sans plan reçoit TOUTES les clés",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Compte accompagnateur Mohamed (elafrit.mohamed@gmail.com) sans plan_id (NULL), connecté.",
+      "donnees": "Cookie de session valide ; plan_id = NULL",
+      "etapes": [
+        "Se connecter (POST /api/auth/login)",
+        "GET /api/auth/me/features"
+      ],
+      "attendu": "200 ; body { features: string[] } ; longueur = 37 (= ALL_FEATURE_KEYS) ; contient 'questionnaire' et 'mutualisation' (hors-socle).",
+      "technique": "test du contrat ; partition d'équivalence (classe : sans plan)",
+      "tracabilite": "userFeatures (features.ts) — GET /api/auth/me/features"
+    },
+    {
+      "id": "TC-LOT1-002",
+      "titre": "GET /auth/me/features — utilisateur sur plan Découverte ne reçoit QUE le socle",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Un accompagné (ex. lea.martin@boussole.demo) rattaché au plan 'Découverte' (8 clés socle) via PATCH /admin/users/:id.",
+      "donnees": "plan_id = id(Découverte) ; SOCLE = questionnaire,entretien,comptes_rendus,rdv,plan_action,synthese,auto_evaluation,multi_parcours",
+      "etapes": [
+        "Admin : PATCH /api/admin/users/:id { plan_id: idDecouverte }",
+        "Se connecter en accompagné",
+        "GET /api/auth/me/features"
+      ],
+      "attendu": "200 ; features de longueur 8 ; contient 'questionnaire' ; NE contient PAS 'roue_emotions' ni 'mutualisation'.",
+      "technique": "partition d'équivalence (classe : plan socle) ; test du contrat",
+      "tracabilite": "userFeatures (features.ts) — GET /api/auth/me/features"
+    },
+    {
+      "id": "TC-LOT1-003",
+      "titre": "GET /auth/me/features — plan Pro renvoie l'intégralité des clés",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Compte rattaché au plan 'Pro' (= ALL_FEATURE_KEYS).",
+      "donnees": "plan_id = id(Pro)",
+      "etapes": [
+        "Admin : PATCH /api/admin/users/:id { plan_id: idPro }",
+        "Se connecter",
+        "GET /api/auth/me/features"
+      ],
+      "attendu": "200 ; features identiques (ensemble) à GET /admin/features → all (37 clés).",
+      "technique": "test du contrat ; partition d'équivalence (classe : plan complet)",
+      "tracabilite": "userFeatures (features.ts) — GET /api/auth/me/features"
+    },
+    {
+      "id": "TC-LOT1-004",
+      "titre": "GET /auth/me/features — non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie de session.",
+      "donnees": "Pas de cookie boussole_token",
+      "etapes": [
+        "GET /api/auth/me/features sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "technique": "test basé sur les rôles (anonyme) ; requireAuth",
+      "tracabilite": "requireAuth (auth.ts) — GET /api/auth/me/features"
+    },
+    {
+      "id": "TC-LOT1-005",
+      "titre": "GET /auth/me/features — cookie/JWT invalide ou expiré",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Cookie boussole_token présent mais falsifié.",
+      "donnees": "boussole_token = 'abc.invalid.token'",
+      "etapes": [
+        "GET /api/auth/me/features avec cookie altéré"
+      ],
+      "attendu": "401 ; { error: 'Session invalide' }.",
+      "technique": "valeurs limites (jeton corrompu) ; requireAuth",
+      "tracabilite": "requireAuth (auth.ts) — GET /api/auth/me/features"
+    },
+    {
+      "id": "TC-LOT1-006",
+      "titre": "GET /auth/me/features — repli toutes-fonctionnalités si features du plan JSON corrompu",
+      "niveau": "unitaire",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "En base, un plan dont la colonne features n'est pas un JSON valide, rattaché à un user.",
+      "donnees": "plans.features = 'not-json' ; user.plan_id = ce plan",
+      "etapes": [
+        "Appeler userFeatures(userId)"
+      ],
+      "attendu": "Renvoie un Set = ALL_FEATURE_KEYS (catch JSON.parse → niveau max).",
+      "technique": "test unitaire de repli déterministe ; partition d'équivalence (JSON valide / invalide)",
+      "tracabilite": "userFeatures catch (features.ts) — GET /api/auth/me/features"
+    },
+    {
+      "id": "TC-LOT1-007",
+      "titre": "Gating MATRICE — Découverte : 403 sur fonctionnalité HORS socle (roue_emotions)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur/accompagné rattaché au plan 'Découverte'.",
+      "donnees": "plan = Découverte ; clé requise = 'roue_emotions' (hors socle)",
+      "etapes": [
+        "Se connecter",
+        "GET /api/visualisation/emotions/catalogue"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' }.",
+      "technique": "table de décision (plan × feature) ; requireFeature",
+      "tracabilite": "requireFeature('roue_emotions') (features.ts) — GET /api/visualisation/emotions/catalogue"
+    },
+    {
+      "id": "TC-LOT1-008",
+      "titre": "Gating MATRICE — Découverte : 403 sur mutualisation (hors socle, accompagnateur)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur (camille.laurent@boussole.demo) rattaché au plan 'Découverte'.",
+      "donnees": "plan = Découverte ; clé = 'mutualisation'",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "GET /api/collaboration/ressources"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' } (requireRole passe, requireFeature bloque).",
+      "technique": "table de décision (rôle × plan × feature) ; requireFeature",
+      "tracabilite": "requireFeature('mutualisation') (features.ts) — GET /api/collaboration/ressources"
+    },
+    {
+      "id": "TC-LOT1-009",
+      "titre": "Gating MATRICE — Découverte : 200 sur fonctionnalité DU socle (entretien)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Compte rattaché au plan 'Découverte' (entretien ∈ socle).",
+      "donnees": "plan = Découverte ; clé = 'entretien'",
+      "etapes": [
+        "Se connecter",
+        "Appeler un endpoint protégé par requireFeature('entretien')"
+      ],
+      "attendu": "Pas de 403 lié au gating (200 ou 404 ressource selon données, mais jamais 'Fonctionnalité non disponible').",
+      "technique": "table de décision (plan socle × feature socle = autorisé)",
+      "tracabilite": "requireFeature('entretien') (features.ts)"
+    },
+    {
+      "id": "TC-LOT1-010",
+      "titre": "Gating MATRICE — sans plan : 200 sur fonctionnalité hors socle",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Compte sans plan (plan_id NULL).",
+      "donnees": "plan_id = NULL ; clé = 'roue_emotions'",
+      "etapes": [
+        "Se connecter",
+        "GET /api/visualisation/emotions/catalogue"
+      ],
+      "attendu": "200 (aucun blocage de gating ; userFeatures = niveau max).",
+      "technique": "table de décision (sans plan = tout autorisé)",
+      "tracabilite": "requireFeature('roue_emotions') (features.ts) — GET /api/visualisation/emotions/catalogue"
+    },
+    {
+      "id": "TC-LOT1-011",
+      "titre": "requireFeature — non authentifié renvoie 401 (avant le 403 de gating)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Endpoint protégé par requireFeature mais appelé sans requireAuth en amont OU sans session.",
+      "donnees": "Pas de user en req",
+      "etapes": [
+        "Appeler un endpoint requireFeature sans cookie"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' } (branche !u du middleware requireFeature).",
+      "technique": "test basé sur les rôles (anonyme) ; couverture de branche",
+      "tracabilite": "requireFeature branche !u (features.ts)"
+    },
+    {
+      "id": "TC-LOT1-012",
+      "titre": "sanitizeKeys — dédoublonne, filtre les clés inconnues, conserve l'ordre",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Fonction sanitizeKeys importable.",
+      "donnees": "['rdv','rdv','inconnu','synthese', 42, 'falc']",
+      "etapes": [
+        "Appeler sanitizeKeys(['rdv','rdv','inconnu','synthese',42,'falc'])"
+      ],
+      "attendu": "Retourne ['rdv','synthese','falc'] : doublon supprimé, 'inconnu' et 42 (non-clé) filtrés.",
+      "technique": "partition d'équivalence (valide/invalide/doublon) ; test unitaire",
+      "tracabilite": "sanitizeKeys (features.ts)"
+    },
+    {
+      "id": "TC-LOT1-013",
+      "titre": "sanitizeKeys — entrée non-tableau renvoie []",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Fonction sanitizeKeys importable.",
+      "donnees": "null ; undefined ; 'rdv' (string) ; { a:1 } ; 5",
+      "etapes": [
+        "Appeler sanitizeKeys avec chacune de ces valeurs"
+      ],
+      "attendu": "Retourne [] pour toute entrée non-Array (garde !Array.isArray).",
+      "technique": "valeurs limites / partition d'équivalence (type) ; test unitaire",
+      "tracabilite": "sanitizeKeys garde Array.isArray (features.ts)"
+    },
+    {
+      "id": "TC-LOT1-014",
+      "titre": "sanitizeKeys — tableau vide et toutes clés valides",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Fonction sanitizeKeys importable.",
+      "donnees": "[] ; ALL_FEATURE_KEYS",
+      "etapes": [
+        "sanitizeKeys([])",
+        "sanitizeKeys(ALL_FEATURE_KEYS)"
+      ],
+      "attendu": "[] pour le vide ; un tableau de 37 clés (toutes conservées, sans doublon) pour ALL_FEATURE_KEYS.",
+      "technique": "valeurs limites (vide / ensemble complet) ; test unitaire",
+      "tracabilite": "sanitizeKeys (features.ts)"
+    },
+    {
+      "id": "TC-LOT1-015",
+      "titre": "GET /admin/features — nominal (registre complet)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecté (mohamed@elafrit.com).",
+      "donnees": "Cookie admin",
+      "etapes": [
+        "GET /api/admin/features"
+      ],
+      "attendu": "200 ; { features: Feature[], all: string[] } ; chaque Feature a {key,label,categorie} non vides ; all.length === features.length === 37 ; catégories incluent 'Socle','Visuel','IA & posture'.",
+      "technique": "test du contrat (forme et typage)",
+      "tracabilite": "FEATURES/ALL_FEATURE_KEYS (features.ts) — GET /api/admin/features"
+    },
+    {
+      "id": "TC-LOT1-016",
+      "titre": "GET /admin/features — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucun cookie.",
+      "donnees": "—",
+      "etapes": [
+        "GET /api/admin/features sans session"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "technique": "test basé sur les rôles (anonyme) ; requireAuth",
+      "tracabilite": "requireAuth — GET /api/admin/features"
+    },
+    {
+      "id": "TC-LOT1-017",
+      "titre": "GET /admin/features — 403 rôle non admin (accompagnateur)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur (Mohamed).",
+      "donnees": "Cookie role=accompagnateur",
+      "etapes": [
+        "GET /api/admin/features"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "technique": "test basé sur les rôles ; requireRole('admin')",
+      "tracabilite": "requireRole('admin') — GET /api/admin/features"
+    },
+    {
+      "id": "TC-LOT1-018",
+      "titre": "GET /admin/features — 403 rôle accompagné",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné (Amine).",
+      "donnees": "Cookie role=accompagne",
+      "etapes": [
+        "GET /api/admin/features"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "technique": "test basé sur les rôles ; requireRole('admin')",
+      "tracabilite": "requireRole('admin') — GET /api/admin/features"
+    },
+    {
+      "id": "TC-LOT1-019",
+      "titre": "GET /admin/users — nominal (liste + plan)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecté ; jeu de démo (≥ 6 comptes).",
+      "donnees": "Cookie admin",
+      "etapes": [
+        "GET /api/admin/users"
+      ],
+      "attendu": "200 ; { users: [...] } trié par cree_le DESC ; chaque user expose id,email,role,nom,prenom,actif,email_verifie,plan_id,plan_nom ; plan_nom NULL si aucun plan.",
+      "technique": "test du contrat ; jointure LEFT JOIN plans",
+      "tracabilite": "admin GET /users — GET /api/admin/users"
+    },
+    {
+      "id": "TC-LOT1-020",
+      "titre": "GET /admin/users — 403 rôle non admin",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur.",
+      "donnees": "Cookie role=accompagnateur",
+      "etapes": [
+        "GET /api/admin/users"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "technique": "test basé sur les rôles ; requireRole('admin')",
+      "tracabilite": "requireRole('admin') — GET /api/admin/users"
+    },
+    {
+      "id": "TC-LOT1-021",
+      "titre": "GET /admin/users — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucun cookie.",
+      "donnees": "—",
+      "etapes": [
+        "GET /api/admin/users sans session"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "technique": "test basé sur les rôles (anonyme) ; requireAuth",
+      "tracabilite": "requireAuth — GET /api/admin/users"
+    },
+    {
+      "id": "TC-LOT1-022",
+      "titre": "GET /admin/plans — nominal (features assainies + nb_users)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecté ; plans seedés (Découverte, Essentiel, Pro).",
+      "donnees": "Cookie admin",
+      "etapes": [
+        "GET /api/admin/plans"
+      ],
+      "attendu": "200 ; { plans: [...] } trié par cree_le ASC ; chaque plan a id,nom,description,features (tableau de clés valides), cree_le, nb_users (entier ≥ 0) ; Découverte.features.length === 8 ; Pro.features.length === 37.",
+      "technique": "test du contrat ; sanitizeStockées via sanitizeKeys(safeParse)",
+      "tracabilite": "admin GET /plans — GET /api/admin/plans"
+    },
+    {
+      "id": "TC-LOT1-023",
+      "titre": "GET /admin/plans — features stockées corrompues assainies à []",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "basse",
+      "preconditions": "Admin ; un plan dont features = JSON invalide en base.",
+      "donnees": "plans.features = 'broken'",
+      "etapes": [
+        "GET /api/admin/plans"
+      ],
+      "attendu": "200 ; le plan concerné a features: [] (safeParse → [] → sanitizeKeys → []) sans erreur 500.",
+      "technique": "test du contrat ; gestion d'erreur safeParse",
+      "tracabilite": "safeParse + sanitizeKeys (admin.ts) — GET /api/admin/plans"
+    },
+    {
+      "id": "TC-LOT1-024",
+      "titre": "GET /admin/plans — 403 non admin / 401 anonyme",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur connecté, puis sans cookie.",
+      "donnees": "Cookie accompagnateur / aucun",
+      "etapes": [
+        "GET /api/admin/plans en accompagnateur",
+        "GET /api/admin/plans sans session"
+      ],
+      "attendu": "403 'Accès refusé' (accompagnateur) ; 401 'Non authentifié' (anonyme).",
+      "technique": "test basé sur les rôles ; requireAuth + requireRole",
+      "tracabilite": "requireAuth + requireRole('admin') — GET /api/admin/plans"
+    },
+    {
+      "id": "TC-LOT1-025",
+      "titre": "POST /admin/plans — création nominale",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecté.",
+      "donnees": "{ nom: 'Test QA', description: 'desc', features: ['rdv','synthese'] }",
+      "etapes": [
+        "POST /api/admin/plans avec le corps",
+        "GET /api/admin/plans"
+      ],
+      "attendu": "201 ; { id: <number> } ; le plan apparaît dans la liste avec features ['rdv','synthese'] et nb_users 0.",
+      "technique": "test du contrat ; partition d'équivalence (entrée valide)",
+      "tracabilite": "admin POST /plans — POST /api/admin/plans"
+    },
+    {
+      "id": "TC-LOT1-026",
+      "titre": "POST /admin/plans — nom manquant ou vide → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin connecté.",
+      "donnees": "{} ; { nom: '' } ; { nom: '   ' }",
+      "etapes": [
+        "POST /api/admin/plans pour chaque variante"
+      ],
+      "attendu": "400 ; { error: 'Le nom du plan est requis' } pour chaque cas (trim donne '').",
+      "technique": "valeurs limites (chaîne vide / espaces) ; partition d'équivalence",
+      "tracabilite": "admin POST /plans validation nom — POST /api/admin/plans"
+    },
+    {
+      "id": "TC-LOT1-027",
+      "titre": "POST /admin/plans — features invalides assainies (clés inconnues ignorées)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecté.",
+      "donnees": "{ nom: 'Mix', features: ['rdv','inconnu','rdv', 7] }",
+      "etapes": [
+        "POST /api/admin/plans",
+        "GET /api/admin/plans"
+      ],
+      "attendu": "201 ; le plan créé a features ['rdv'] (dédoublonné, 'inconnu'/7 filtrés par sanitizeKeys).",
+      "technique": "partition d'équivalence (clés valides/invalides) ; test du contrat",
+      "tracabilite": "sanitizeKeys (admin POST /plans) — POST /api/admin/plans"
+    },
+    {
+      "id": "TC-LOT1-028",
+      "titre": "POST /admin/plans — features absent → plan sans fonctionnalité",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Admin connecté.",
+      "donnees": "{ nom: 'Vide' } (pas de features)",
+      "etapes": [
+        "POST /api/admin/plans",
+        "Relire le plan"
+      ],
+      "attendu": "201 ; features = [] (sanitizeKeys(undefined) → []).",
+      "technique": "valeurs limites (champ optionnel absent)",
+      "tracabilite": "sanitizeKeys(req.body?.features) — POST /api/admin/plans"
+    },
+    {
+      "id": "TC-LOT1-029",
+      "titre": "POST /admin/plans — 403 non admin / 401 anonyme",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur, puis anonyme.",
+      "donnees": "{ nom: 'X' }",
+      "etapes": [
+        "POST /api/admin/plans en accompagnateur",
+        "POST sans session"
+      ],
+      "attendu": "403 'Accès refusé' puis 401 'Non authentifié' ; aucun plan créé.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireAuth + requireRole('admin') — POST /api/admin/plans"
+    },
+    {
+      "id": "TC-LOT1-030",
+      "titre": "PATCH /admin/plans/:id — modification nominale (nom + description + features)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecté ; un plan existant (ex. créé en TC-LOT1-025).",
+      "donnees": "{ nom: 'Test QA v2', description: 'maj', features: ['rdv','synthese','falc'] }",
+      "etapes": [
+        "PATCH /api/admin/plans/:id",
+        "GET /api/admin/plans"
+      ],
+      "attendu": "200 ; { ok: true } ; le plan reflète nom/description/features mis à jour (features assainies).",
+      "technique": "table de décision (présence/absence de chaque champ) ; test du contrat",
+      "tracabilite": "admin PATCH /plans/:id — PATCH /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-031",
+      "titre": "PATCH /admin/plans/:id — mise à jour partielle (description seule)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin ; plan existant avec nom et features connus.",
+      "donnees": "{ description: 'nouvelle desc' } (nom et features non fournis)",
+      "etapes": [
+        "PATCH /api/admin/plans/:id",
+        "Relire"
+      ],
+      "attendu": "200 ; seule la description change ; nom et features inchangés (champs undefined ignorés).",
+      "technique": "table de décision (champ undefined → pas d'UPDATE)",
+      "tracabilite": "admin PATCH /plans/:id branches undefined — PATCH /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-032",
+      "titre": "PATCH /admin/plans/:id — nom fourni mais vide → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin ; plan existant.",
+      "donnees": "{ nom: '   ' }",
+      "etapes": [
+        "PATCH /api/admin/plans/:id"
+      ],
+      "attendu": "400 ; { error: 'Le nom du plan ne peut pas être vide' } ; plan inchangé.",
+      "technique": "valeurs limites (chaîne d'espaces après trim)",
+      "tracabilite": "admin PATCH /plans/:id validation nom — PATCH /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-033",
+      "titre": "PATCH /admin/plans/:id — description null efface la description",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Admin ; plan avec description existante.",
+      "donnees": "{ description: null }",
+      "etapes": [
+        "PATCH /api/admin/plans/:id",
+        "Relire"
+      ],
+      "attendu": "200 ; description devient NULL (branche description != null ? String : null).",
+      "technique": "partition d'équivalence (null vs valeur)",
+      "tracabilite": "admin PATCH /plans/:id description — PATCH /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-034",
+      "titre": "PATCH /admin/plans/:id — plan inexistant → 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin connecté.",
+      "donnees": "id = 999999",
+      "etapes": [
+        "PATCH /api/admin/plans/999999 { nom: 'X' }"
+      ],
+      "attendu": "404 ; { error: 'Plan introuvable' }.",
+      "technique": "valeurs limites (id inexistant) ; partition d'équivalence",
+      "tracabilite": "admin PATCH /plans/:id garde existence — PATCH /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-035",
+      "titre": "PATCH /admin/plans/:id — 403 non admin / 401 anonyme",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur puis anonyme.",
+      "donnees": "id valide ; { nom: 'X' }",
+      "etapes": [
+        "PATCH en accompagnateur",
+        "PATCH sans session"
+      ],
+      "attendu": "403 'Accès refusé' puis 401 'Non authentifié' ; plan inchangé.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireAuth + requireRole('admin') — PATCH /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-036",
+      "titre": "POST /admin/plans/:id/duplication — nominal (copie suffixée)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin ; plan 'Essentiel' existant.",
+      "donnees": "id = id(Essentiel)",
+      "etapes": [
+        "POST /api/admin/plans/:id/duplication",
+        "GET /api/admin/plans"
+      ],
+      "attendu": "201 ; { id: <number> nouveau } ; nouveau plan nommé 'Essentiel (copie)' avec mêmes description et features ; nb_users 0.",
+      "technique": "test du contrat ; test fonctionnel de duplication",
+      "tracabilite": "admin POST /plans/:id/duplication — POST /api/admin/plans/:id/duplication"
+    },
+    {
+      "id": "TC-LOT1-037",
+      "titre": "POST /admin/plans/:id/duplication — plan source inexistant → 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecté.",
+      "donnees": "id = 999999",
+      "etapes": [
+        "POST /api/admin/plans/999999/duplication"
+      ],
+      "attendu": "404 ; { error: 'Plan introuvable' } ; aucun plan créé.",
+      "technique": "valeurs limites (id inexistant)",
+      "tracabilite": "admin POST /plans/:id/duplication garde — POST /api/admin/plans/:id/duplication"
+    },
+    {
+      "id": "TC-LOT1-038",
+      "titre": "POST /admin/plans/:id/duplication — 403 non admin",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "id valide",
+      "etapes": [
+        "POST /api/admin/plans/:id/duplication en accompagnateur"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('admin') — POST /api/admin/plans/:id/duplication"
+    },
+    {
+      "id": "TC-LOT1-039",
+      "titre": "DELETE /admin/plans/:id — suppression réaffecte les utilisateurs à NULL (niveau max)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin ; un plan ayant ≥ 1 utilisateur rattaché (préparer via PATCH /admin/users/:id).",
+      "donnees": "id = plan rattaché à userX ; userX.plan_id = id",
+      "etapes": [
+        "DELETE /api/admin/plans/:id",
+        "GET /api/admin/users",
+        "GET /api/auth/me/features (userX)"
+      ],
+      "attendu": "200 ; { ok: true } ; plan absent de /admin/plans ; userX.plan_id devient NULL et plan_nom NULL ; userX obtient désormais 37 features (niveau max).",
+      "technique": "test fonctionnel ; test du contrat (effet de bord UPDATE plan_id=NULL)",
+      "tracabilite": "admin DELETE /plans/:id (UPDATE users plan_id=NULL) — DELETE /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-040",
+      "titre": "DELETE /admin/plans/:id — plan inexistant → 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecté.",
+      "donnees": "id = 999999",
+      "etapes": [
+        "DELETE /api/admin/plans/999999"
+      ],
+      "attendu": "404 ; { error: 'Plan introuvable' }.",
+      "technique": "valeurs limites (id inexistant)",
+      "tracabilite": "admin DELETE /plans/:id garde — DELETE /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-041",
+      "titre": "DELETE /admin/plans/:id — 403 non admin / 401 anonyme",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur puis anonyme.",
+      "donnees": "id valide",
+      "etapes": [
+        "DELETE en accompagnateur",
+        "DELETE sans session"
+      ],
+      "attendu": "403 'Accès refusé' puis 401 'Non authentifié' ; plan non supprimé.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireAuth + requireRole('admin') — DELETE /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-042",
+      "titre": "PATCH /admin/users/:id — affecter un plan à un utilisateur",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin ; un accompagné cible distinct de l'admin ; plan 'Découverte' existant.",
+      "donnees": "{ plan_id: idDecouverte }",
+      "etapes": [
+        "PATCH /api/admin/users/:id { plan_id: idDecouverte }",
+        "GET /api/admin/users"
+      ],
+      "attendu": "200 ; { ok: true } ; user.plan_id = idDecouverte, plan_nom = 'Découverte'.",
+      "technique": "test du contrat ; test fonctionnel d'affectation",
+      "tracabilite": "admin PATCH /users/:id plan_id — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-043",
+      "titre": "PATCH /admin/users/:id — retirer le plan (plan_id null ou '') → niveau max",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin ; user actuellement sur un plan.",
+      "donnees": "{ plan_id: null } puis { plan_id: '' }",
+      "etapes": [
+        "PATCH /api/admin/users/:id { plan_id: null }",
+        "Relire",
+        "Répéter avec ''"
+      ],
+      "attendu": "200 dans les deux cas ; user.plan_id devient NULL (branche plan_id === null || === '') ; GET /auth/me/features de ce user renvoie 37 clés.",
+      "technique": "partition d'équivalence (null, chaîne vide) ; valeurs limites",
+      "tracabilite": "admin PATCH /users/:id plan_id NULL — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-044",
+      "titre": "PATCH /admin/users/:id — plan_id inexistant → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin ; user cible ≠ admin.",
+      "donnees": "{ plan_id: 999999 }",
+      "etapes": [
+        "PATCH /api/admin/users/:id { plan_id: 999999 }"
+      ],
+      "attendu": "400 ; { error: 'Plan introuvable' } ; plan_id du user inchangé.",
+      "technique": "valeurs limites (id inexistant) ; table de décision",
+      "tracabilite": "admin PATCH /users/:id plan introuvable — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-045",
+      "titre": "PATCH /admin/users/:id — changement de rôle valide",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin ; un user cible ≠ admin.",
+      "donnees": "{ role: 'accompagnateur' }",
+      "etapes": [
+        "PATCH /api/admin/users/:id { role: 'accompagnateur' }",
+        "Relire"
+      ],
+      "attendu": "200 ; { ok: true } ; user.role = 'accompagnateur'.",
+      "technique": "partition d'équivalence (rôle ∈ ROLES)",
+      "tracabilite": "admin PATCH /users/:id role — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-046",
+      "titre": "PATCH /admin/users/:id — rôle invalide ignoré (pas d'erreur, pas de changement)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin ; user cible avec role connu (ex. 'accompagne').",
+      "donnees": "{ role: 'superadmin' }",
+      "etapes": [
+        "PATCH /api/admin/users/:id { role: 'superadmin' }",
+        "Relire"
+      ],
+      "attendu": "200 ; { ok: true } ; role inchangé (condition ROLES.includes false → pas d'UPDATE).",
+      "technique": "partition d'équivalence (rôle hors liste) ; couverture de branche",
+      "tracabilite": "admin PATCH /users/:id role garde ROLES — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-047",
+      "titre": "PATCH /admin/users/:id — activer / désactiver un compte",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin ; user cible ≠ admin, actif=1.",
+      "donnees": "{ actif: 0 } puis { actif: 1 }",
+      "etapes": [
+        "PATCH { actif: 0 }",
+        "Relire",
+        "PATCH { actif: 1 }"
+      ],
+      "attendu": "200 ; actif passe à 0 (désactivé) puis 1 (réactivé) ; un user désactivé voit son login renvoyer 403 'Compte désactivé'.",
+      "technique": "partition d'équivalence (valeur truthy/falsy de actif)",
+      "tracabilite": "admin PATCH /users/:id actif — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-048",
+      "titre": "PATCH /admin/users/:id — auto-modification de l'admin refusée → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin connecté (mohamed@elafrit.com), id = son propre id.",
+      "donnees": "id = meId ; { actif: 0 }",
+      "etapes": [
+        "PATCH /api/admin/users/<monId> { actif: 0 }"
+      ],
+      "attendu": "400 ; { error: 'Vous ne pouvez pas modifier votre propre compte administrateur' } ; aucun changement.",
+      "technique": "table de décision (id === meId) ; test basé sur les rôles",
+      "tracabilite": "admin PATCH /users/:id garde auto — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-049",
+      "titre": "PATCH /admin/users/:id — utilisateur inexistant → 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecté.",
+      "donnees": "id = 999999 ; { actif: 1 }",
+      "etapes": [
+        "PATCH /api/admin/users/999999"
+      ],
+      "attendu": "404 ; { error: 'Utilisateur introuvable' }.",
+      "technique": "valeurs limites (id inexistant)",
+      "tracabilite": "admin PATCH /users/:id garde existence — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-050",
+      "titre": "PATCH /admin/users/:id — 403 non admin / 401 anonyme",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur puis anonyme.",
+      "donnees": "id valide ; { plan_id: null }",
+      "etapes": [
+        "PATCH en accompagnateur",
+        "PATCH sans session"
+      ],
+      "attendu": "403 'Accès refusé' puis 401 'Non authentifié'.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireAuth + requireRole('admin') — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-051",
+      "titre": "POST /admin/users — création nominale + lien d'activation",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecté ; email non utilisé.",
+      "donnees": "{ email: 'qa.lot1@boussole.demo', role: 'accompagne', prenom: 'QA', nom: 'Lot1' }",
+      "etapes": [
+        "POST /api/admin/users",
+        "GET /api/admin/users"
+      ],
+      "attendu": "201 ; { id: <number> } ; compte créé email_verifie=1, sans mot de passe ; un token reset_mdp est émis (lien d'activation envoyé).",
+      "technique": "test du contrat ; test fonctionnel",
+      "tracabilite": "admin POST /users — POST /api/admin/users"
+    },
+    {
+      "id": "TC-LOT1-052",
+      "titre": "POST /admin/users — données invalides (email manquant ou rôle hors liste) → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin connecté.",
+      "donnees": "{ role: 'accompagne' } (email absent) ; { email: 'x@y.z', role: 'superadmin' }",
+      "etapes": [
+        "POST /api/admin/users pour chaque variante"
+      ],
+      "attendu": "400 ; { error: 'Données invalides' } pour chaque cas (email falsy OU role ∉ ROLES).",
+      "technique": "table de décision (email présent × rôle valide) ; partition d'équivalence",
+      "tracabilite": "admin POST /users validation — POST /api/admin/users"
+    },
+    {
+      "id": "TC-LOT1-053",
+      "titre": "POST /admin/users — email déjà utilisé → 409",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin ; email existant (ex. afrit_mohamed@yahoo.fr).",
+      "donnees": "{ email: 'afrit_mohamed@yahoo.fr', role: 'accompagne' }",
+      "etapes": [
+        "POST /api/admin/users"
+      ],
+      "attendu": "409 ; { error: 'Email déjà utilisé' } ; pas de doublon créé.",
+      "technique": "test de conflit (409) ; partition d'équivalence",
+      "tracabilite": "admin POST /users conflit — POST /api/admin/users"
+    },
+    {
+      "id": "TC-LOT1-054",
+      "titre": "POST /admin/users — 403 non admin / 401 anonyme",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur puis anonyme.",
+      "donnees": "{ email: 'z@z.z', role: 'accompagne' }",
+      "etapes": [
+        "POST /api/admin/users en accompagnateur",
+        "POST sans session"
+      ],
+      "attendu": "403 'Accès refusé' puis 401 'Non authentifié' ; aucun compte créé.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireAuth + requireRole('admin') — POST /api/admin/users"
+    },
+    {
+      "id": "TC-LOT1-055",
+      "titre": "POST /admin/lien — rattachement nominal accompagné ↔ accompagnateur",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin ; un accompagnateur et un accompagné existants.",
+      "donnees": "{ accompagnateurId: idAcc, accompagneId: idAcp }",
+      "etapes": [
+        "POST /api/admin/lien"
+      ],
+      "attendu": "200 ; { ok: true } ; lien inséré (INSERT OR IGNORE, idempotent).",
+      "technique": "test du contrat ; test fonctionnel",
+      "tracabilite": "admin POST /lien — POST /api/admin/lien"
+    },
+    {
+      "id": "TC-LOT1-056",
+      "titre": "POST /admin/lien — sélection invalide (rôles incohérents) → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecté.",
+      "donnees": "{ accompagnateurId: idAccompagne, accompagneId: idAccompagnateur } (rôles inversés)",
+      "etapes": [
+        "POST /api/admin/lien"
+      ],
+      "attendu": "400 ; { error: 'Sélection invalide (accompagnateur et accompagné requis)' }.",
+      "technique": "table de décision (rôle attendu côté chaque id) ; partition d'équivalence",
+      "tracabilite": "admin POST /lien validation rôles — POST /api/admin/lien"
+    },
+    {
+      "id": "TC-LOT1-057",
+      "titre": "POST /admin/lien — 403 non admin",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur connecté.",
+      "donnees": "{ accompagnateurId, accompagneId } valides",
+      "etapes": [
+        "POST /api/admin/lien en accompagnateur"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' }.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('admin') — POST /api/admin/lien"
+    },
+    {
+      "id": "TC-LOT1-058",
+      "titre": "UI Admin — l'admin gère les plans (créer, cocher catégorie, enregistrer)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecté ; page /admin affichée (PlansManager).",
+      "donnees": "Compte admin",
+      "etapes": [
+        "Ouvrir l'onglet Administration",
+        "Cliquer '+ Nouveau plan'",
+        "Déplier le plan créé",
+        "Cliquer 'Tout cocher' sur la catégorie 'Visuel'",
+        "Saisir un nom",
+        "Cliquer 'Enregistrer'"
+      ],
+      "attendu": "Message de succès « Plan … enregistré. » ; la pastille du nombre de fonctionnalités reflète les clés de la catégorie Visuel ; rechargement de la liste OK.",
+      "technique": "test bout-en-bout basé sur les rôles (admin)",
+      "tracabilite": "PlansManager.tsx — POST/PATCH /api/admin/plans"
+    },
+    {
+      "id": "TC-LOT1-059",
+      "titre": "UI Admin — dupliquer puis supprimer un plan (confirmation et réaffectation)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecté ; un plan avec ≥ 1 utilisateur rattaché.",
+      "donnees": "Plan 'Essentiel'",
+      "etapes": [
+        "Déplier 'Essentiel'",
+        "Cliquer 'Dupliquer'",
+        "Sur la copie cliquer 'Supprimer'",
+        "Confirmer la boîte window.confirm"
+      ],
+      "attendu": "Une copie « Essentiel (copie) » apparaît ; après suppression confirmée, le plan disparaît ; le texte de confirmation mentionne la réaffectation au niveau max si nb_users > 0.",
+      "technique": "test bout-en-bout ; table de décision (nb_users 0 vs > 0 dans le message)",
+      "tracabilite": "PlansManager.tsx — POST /api/admin/plans/:id/duplication, DELETE /api/admin/plans/:id"
+    },
+    {
+      "id": "TC-LOT1-060",
+      "titre": "UI Admin — affecter un plan à un utilisateur dans le tableau des comptes",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin connecté ; page /admin ; un accompagné cible.",
+      "donnees": "User cible ; plan 'Découverte'",
+      "etapes": [
+        "Dans la colonne Abonnement, choisir 'Découverte' pour la ligne du user",
+        "Observer le rechargement"
+      ],
+      "attendu": "La sélection persiste après reload ; le user a désormais l'abonnement 'Découverte' ; option 'Niveau max' correspond à plan NULL.",
+      "technique": "test bout-en-bout ; partition d'équivalence (Niveau max vs plan)",
+      "tracabilite": "Admin.tsx setPlan — PATCH /api/admin/users/:id"
+    },
+    {
+      "id": "TC-LOT1-061",
+      "titre": "UI gating — une fonctionnalité hors offre est masquée pour l'utilisateur restreint",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Un accompagnateur rattaché au plan 'Découverte' (pas 'mutualisation').",
+      "donnees": "Compte sous Découverte",
+      "etapes": [
+        "Se connecter en accompagnateur restreint",
+        "Naviguer vers les écrans dépendant de useFeature (ex. mutualisation/ressources)"
+      ],
+      "attendu": "Le bloc/entrée de menu gardé par useFeature('mutualisation') n'est pas rendu (has() false une fois ready) ; aucun appel d'API hors offre déclenché.",
+      "technique": "test bout-en-bout de gating ; test basé sur les rôles/offre",
+      "tracabilite": "FeaturesContext.tsx useFeature — GET /api/auth/me/features"
+    },
+    {
+      "id": "TC-LOT1-062",
+      "titre": "UI gating — utilisateur sans plan voit toutes les fonctionnalités",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Compte sans plan (plan_id NULL).",
+      "donnees": "Compte niveau max",
+      "etapes": [
+        "Se connecter",
+        "Vérifier l'affichage des sections gardées par useFeature"
+      ],
+      "attendu": "Toutes les sections gardées sont rendues (features = 37 clés ; has() true).",
+      "technique": "test bout-en-bout ; partition d'équivalence (sans plan)",
+      "tracabilite": "FeaturesContext.tsx — GET /api/auth/me/features"
+    },
+    {
+      "id": "TC-LOT1-063",
+      "titre": "userFeatures — utilisateur inexistant / sans jointure plan renvoie niveau max",
+      "niveau": "unitaire",
+      "type": "non-regression",
+      "priorite": "basse",
+      "preconditions": "Fonction userFeatures importable ; userId sans plan_id (NULL) ou inexistant.",
+      "donnees": "userId d'un compte plan_id NULL",
+      "etapes": [
+        "Appeler userFeatures(userId)"
+      ],
+      "attendu": "La requête JOIN ne renvoie aucune ligne (pas de plan) → Set = ALL_FEATURE_KEYS (niveau max).",
+      "technique": "test unitaire ; couverture de branche (row undefined)",
+      "tracabilite": "userFeatures branche !row (features.ts)"
+    }
+  ]
+}

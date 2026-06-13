@@ -105,8 +105,8 @@ async function suggererMiroir(sid: number): Promise<Miroir | null> {
 }
 
 // Repli heuristique (sans clé API) : analyse simple du type de questions posées.
-const OPEN_RE = /^(quel|quelle|comment|qu['’ ]|raconte|en quoi|pourquoi|à quoi|que pense|qu'attends|si tout|décris|parle-moi|dis-moi)/i
-function fallbackMiroir(sid: number): Miroir {
+export const OPEN_RE = /^(quel|quelle|comment|qu['’ ]|raconte|en quoi|pourquoi|à quoi|que pense|qu'attends|si tout|décris|parle-moi|dis-moi)/i
+export function fallbackMiroir(sid: number): Miroir {
   const { ques, notes } = sessionData(sid)
   const allQ = ques.map((q) => (q.texte || '').trim()).filter(Boolean)
   const open = allQ.filter((t) => OPEN_RE.test(t))

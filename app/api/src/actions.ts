@@ -14,7 +14,7 @@ const PRIORITES = ['haute', 'moyenne', 'basse']
 const COLS = 'id, libelle, echeance, critere, details, priorite, statut, rappel_le, cree_le, ordre'
 
 // Texte optionnel -> valeur nettoyée ou null
-function opt(v: unknown): string | null {
+export function opt(v: unknown): string | null {
   if (v == null) return null
   const t = String(v).trim()
   return t ? t : null

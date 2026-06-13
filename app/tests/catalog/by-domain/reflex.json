@@ -1,0 +1,1189 @@
+{
+  "domaine": "reflex",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/reflexivite/bilan",
+      "feature": "bilan_pratique",
+      "role": "accompagnateur",
+      "summary": "Relit le bilan de pratique global persisté (ou null) + compteurs de base (nbDossiers, nbEntretiens, miroirs, indicateurs)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/bilan",
+      "feature": "bilan_pratique",
+      "role": "accompagnateur",
+      "summary": "Génère/regénère le bilan réflexif global (IA si scores présents, sinon repli heuristique bilanFallback) et le persiste (upsert) ; renvoie forces/axes/evolution/synthese/conseils/source"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reflexivite/coach/phase/:phase",
+      "feature": "coach_posture",
+      "role": "accompagnateur",
+      "summary": "Rappels de posture pour une phase (titre, objectif, vigilance, questions) ; 404 si phase inconnue"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/coach/analyser",
+      "feature": "coach_posture",
+      "role": "accompagnateur",
+      "summary": "Analyse une question (ouverte/fermée/inductive) via IA, repli déterministe analyseQuestionFallback (OPEN_RE/FERME_RE) ; 400 si question vide"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reflexivite/debriefing/session/:sid",
+      "feature": "debriefing",
+      "role": "accompagnateur",
+      "summary": "Relit le débriefing d'un entretien + les 3 questions guidées ; 404 si session non possédée"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/debriefing/session/:sid",
+      "feature": "debriefing",
+      "role": "accompagnateur",
+      "summary": "Enregistre (upsert) les réponses du débriefing (source=manuel) ; 404 si session non possédée"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/debriefing/session/:sid/suggerer",
+      "feature": "debriefing",
+      "role": "accompagnateur",
+      "summary": "Amorce IA du débriefing à partir des traces de session ; repli heuristique 3 réponses ; 404 si session non possédée"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reflexivite/replay/session/:sid",
+      "feature": "replay_annote",
+      "role": "accompagnateur",
+      "summary": "Relit le replay annoté (moments construits depuis questions_entretien + annotations sauvées) ; 404 si session non possédée"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/replay/session/:sid",
+      "feature": "replay_annote",
+      "role": "accompagnateur",
+      "summary": "Enregistre (upsert) les annotations par moment (ref/annotation, source=manuel) ; 404 si session non possédée"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/replay/session/:sid/initialiser",
+      "feature": "replay_annote",
+      "role": "accompagnateur",
+      "summary": "Amorce IA d'une annotation par moment ; repli déterministe via OPEN_RE ; si aucun moment renvoie liste vide source=heuristique ; 404 si session non possédée"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-REFLEX-001",
+      "titre": "GET /bilan — relecture nominale (accompagnateur, bilan pré-publié)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur (Mohamed elafrit.mohamed@gmail.com) possédant des parcours/auto-évaluations ; un bilan déjà persisté dans bilans_pratique.",
+      "donnees": "Cookie accompagnateur valide.",
+      "etapes": [
+        "GET /api/reflexivite/bilan avec cookie accompagnateur"
+      ],
+      "attendu": "200 ; corps {bilan, base} ; bilan non null avec forces[], axes[], evolution, synthese, conseils[], source, genere_le ; base contient nbDossiers, nbEntretiens, miroirs, indicateurs (entiers ≥0).",
+      "technique": "Test du contrat",
+      "tracabilite": "bilan_pratique — GET /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-002",
+      "titre": "GET /bilan — bilan null si jamais généré",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sans ligne dans bilans_pratique (camille.laurent@boussole.demo si bilan non généré).",
+      "donnees": "Cookie accompagnateur valide sans bilan persisté.",
+      "etapes": [
+        "GET /api/reflexivite/bilan"
+      ],
+      "attendu": "200 ; bilan=null ; base présent avec compteurs cohérents.",
+      "technique": "Partition d'équivalence (présence/absence de bilan)",
+      "tracabilite": "bilan_pratique — GET /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-003",
+      "titre": "GET /bilan — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie de session.",
+      "donnees": "Requête sans cookie boussole_token.",
+      "etapes": [
+        "GET /api/reflexivite/bilan sans cookie"
+      ],
+      "attendu": "401 ; {error:'Non authentifié'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth — GET /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-004",
+      "titre": "GET /bilan — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné (Amine afrit_mohamed@yahoo.fr).",
+      "donnees": "Cookie accompagné valide.",
+      "etapes": [
+        "GET /api/reflexivite/bilan avec cookie accompagné"
+      ],
+      "attendu": "403 ; {error:'Accès refusé'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') — GET /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-005",
+      "titre": "GET /bilan — 403 plan sans la fonctionnalité bilan_pratique",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur affecté à un plan (ex. Découverte/Essentiel) dont les features n'incluent pas 'bilan_pratique'.",
+      "donnees": "Cookie accompagnateur avec plan_id restreint.",
+      "etapes": [
+        "GET /api/reflexivite/bilan"
+      ],
+      "attendu": "403 ; {error:'Fonctionnalité non disponible dans votre offre'}.",
+      "technique": "Table de décision (rôle OK x feature absente)",
+      "tracabilite": "requireFeature('bilan_pratique') — GET /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-006",
+      "titre": "POST /bilan — génération nominale et persistance (contrat IA)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur avec au moins un indicateur d'auto-évaluation noté (scores.length>0) ; clé ANTHROPIC_API_KEY présente.",
+      "donnees": "Cookie accompagnateur ; corps vide.",
+      "etapes": [
+        "POST /api/reflexivite/bilan",
+        "Puis GET /api/reflexivite/bilan"
+      ],
+      "attendu": "200 ; corps {forces[3], axes[3], evolution, synthese, conseils[], source} ; champs string non vides, tableaux typés ; source ∈ {'ia','heuristique'} ; le GET suivant relit le même contenu persisté (genere_le récent).",
+      "technique": "Test du contrat + persistance/relecture",
+      "tracabilite": "bilan_pratique — POST /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-007",
+      "titre": "POST /bilan — repli heuristique quand pas de scores",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur sans aucun score d'auto-évaluation (scores.length===0).",
+      "donnees": "Cookie accompagnateur sans auto_evaluation_scores rattachés.",
+      "etapes": [
+        "POST /api/reflexivite/bilan"
+      ],
+      "attendu": "200 ; source='heuristique' ; structure complète (forces, axes, evolution, synthese, conseils) renseignée par bilanFallback même si forces/axes peuvent être vides faute de scores.",
+      "technique": "Partition d'équivalence (avec/sans scores) + test du contrat",
+      "tracabilite": "bilan_pratique — POST /api/reflexivite/bilan (bilanFallback)"
+    },
+    {
+      "id": "TC-REFLEX-008",
+      "titre": "POST /bilan — upsert idempotent (un seul bilan par accompagnateur)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur ayant déjà généré un bilan.",
+      "donnees": "Cookie accompagnateur.",
+      "etapes": [
+        "POST /api/reflexivite/bilan deux fois de suite",
+        "GET /api/reflexivite/bilan"
+      ],
+      "attendu": "200 aux deux POST ; le second remplace le premier (ON CONFLICT accompagnateur_id) ; GET ne renvoie qu'un bilan avec genere_le mis à jour.",
+      "technique": "Test du contrat (idempotence upsert)",
+      "tracabilite": "bilan_pratique — POST /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-009",
+      "titre": "POST /bilan — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "Requête sans cookie.",
+      "etapes": [
+        "POST /api/reflexivite/bilan"
+      ],
+      "attendu": "401 ; {error:'Non authentifié'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth — POST /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-010",
+      "titre": "POST /bilan — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "Cookie accompagné valide.",
+      "etapes": [
+        "POST /api/reflexivite/bilan"
+      ],
+      "attendu": "403 ; {error:'Accès refusé'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') — POST /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-011",
+      "titre": "POST /bilan — 403 offre sans bilan_pratique",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur sur plan sans feature bilan_pratique.",
+      "donnees": "Cookie accompagnateur plan restreint.",
+      "etapes": [
+        "POST /api/reflexivite/bilan"
+      ],
+      "attendu": "403 ; {error:'Fonctionnalité non disponible dans votre offre'}.",
+      "technique": "Table de décision (gating feature)",
+      "tracabilite": "requireFeature('bilan_pratique') — POST /api/reflexivite/bilan"
+    },
+    {
+      "id": "TC-REFLEX-012",
+      "titre": "Unitaire — bilanFallback construit forces/axes top et bottom des scores",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Jeu de scores agrégés connu (≥4 indicateurs avec moyennes distinctes), labels présents dans INDIC_LABEL.",
+      "donnees": "scores triés par moy DESC ; ex. moyennes 90,80,70,40,30,20.",
+      "etapes": [
+        "Appeler bilanContexte/bilanFallback avec ces scores mockés",
+        "Inspecter forces (top 3) et axes (bottom 3)"
+      ],
+      "attendu": "forces = 3 premiers (moy DESC) au format '<label> (<arrondi>/100)' ; axes = 3 derniers (ordre inversé) ; evolution/synthese/conseils non vides ; conseils contient 3 entrées.",
+      "technique": "Valeurs limites + partition d'équivalence",
+      "tracabilite": "bilan_pratique — bilanFallback (reflexivite.ts)"
+    },
+    {
+      "id": "TC-REFLEX-013",
+      "titre": "Unitaire — bilanFallback avec label inconnu (repli sur l'id)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Un indicateur dont l'id n'existe pas dans INDIC_LABEL.",
+      "donnees": "score {indicateur:'inconnu_x', moy:55, n:1}.",
+      "etapes": [
+        "Appeler bilanFallback",
+        "Lire l'entrée correspondante"
+      ],
+      "attendu": "Le libellé utilisé est l'id brut ('inconnu_x (55/100)') sans crash (lbl renvoie id si absent).",
+      "technique": "Partition d'équivalence (label connu/inconnu)",
+      "tracabilite": "bilan_pratique — bilanFallback / INDIC_LABEL"
+    },
+    {
+      "id": "TC-REFLEX-014",
+      "titre": "Unitaire — extractJson parse un JSON noyé dans du texte",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Fonction extractJson disponible.",
+      "donnees": "Texte 'voici: {\"forces\":[\"a\"],\"axes\":[]} merci' ; et texte 'pas de json' ; et '{cassé'.",
+      "etapes": [
+        "extractJson sur chaque entrée"
+      ],
+      "attendu": "1er: objet {forces:['a'],axes:[]} ; 2e: null (pas d'accolades) ; 3e: null (JSON.parse échoue) ; entrée null -> null.",
+      "technique": "Valeurs limites + partition d'équivalence",
+      "tracabilite": "bilan_pratique — extractJson (reflexivite.ts)"
+    },
+    {
+      "id": "TC-REFLEX-015",
+      "titre": "GET /coach/phase/:phase — nominale phase valide",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur avec feature coach_posture.",
+      "donnees": "phase=0.",
+      "etapes": [
+        "GET /api/reflexivite/coach/phase/0"
+      ],
+      "attendu": "200 ; {phase:0, titre:'Accueil et mise en confiance', objectif:string, vigilance:[…], questions:[…]} ; vigilance et questions non vides.",
+      "technique": "Test du contrat",
+      "tracabilite": "coach_posture — GET /api/reflexivite/coach/phase/:phase"
+    },
+    {
+      "id": "TC-REFLEX-016",
+      "titre": "GET /coach/phase/:phase — toutes les phases 0..5",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur avec coach_posture.",
+      "donnees": "phase ∈ {0,1,2,3,4,5}.",
+      "etapes": [
+        "GET /api/reflexivite/coach/phase/{i} pour i de 0 à 5"
+      ],
+      "attendu": "200 pour chaque ; phase renvoyée = i ; titre correspond à PHASES[i].",
+      "technique": "Partition d'équivalence (classe valide)",
+      "tracabilite": "coach_posture — GET /api/reflexivite/coach/phase/:phase"
+    },
+    {
+      "id": "TC-REFLEX-017",
+      "titre": "GET /coach/phase/:phase — 404 phase hors plage (6)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur avec coach_posture.",
+      "donnees": "phase=6 (au-delà du max 5).",
+      "etapes": [
+        "GET /api/reflexivite/coach/phase/6"
+      ],
+      "attendu": "404 ; {error:'Phase inconnue'}.",
+      "technique": "Valeurs limites (borne supérieure +1)",
+      "tracabilite": "coach_posture — GET /api/reflexivite/coach/phase/:phase"
+    },
+    {
+      "id": "TC-REFLEX-018",
+      "titre": "GET /coach/phase/:phase — 404 phase non numérique",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur avec coach_posture.",
+      "donnees": "phase='abc' (Number('abc')=NaN).",
+      "etapes": [
+        "GET /api/reflexivite/coach/phase/abc"
+      ],
+      "attendu": "404 ; {error:'Phase inconnue'} (aucune phase ne matche NaN).",
+      "technique": "Partition d'équivalence (entrée invalide)",
+      "tracabilite": "coach_posture — GET /api/reflexivite/coach/phase/:phase"
+    },
+    {
+      "id": "TC-REFLEX-019",
+      "titre": "GET /coach/phase/:phase — 404 phase négative (-1)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur avec coach_posture.",
+      "donnees": "phase=-1.",
+      "etapes": [
+        "GET /api/reflexivite/coach/phase/-1"
+      ],
+      "attendu": "404 ; {error:'Phase inconnue'}.",
+      "technique": "Valeurs limites (borne inférieure -1)",
+      "tracabilite": "coach_posture — GET /api/reflexivite/coach/phase/:phase"
+    },
+    {
+      "id": "TC-REFLEX-020",
+      "titre": "GET /coach/phase/:phase — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "phase=0.",
+      "etapes": [
+        "GET /api/reflexivite/coach/phase/0 sans cookie"
+      ],
+      "attendu": "401 ; {error:'Non authentifié'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth — GET /api/reflexivite/coach/phase/:phase"
+    },
+    {
+      "id": "TC-REFLEX-021",
+      "titre": "GET /coach/phase/:phase — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "phase=0.",
+      "etapes": [
+        "GET /api/reflexivite/coach/phase/0 cookie accompagné"
+      ],
+      "attendu": "403 ; {error:'Accès refusé'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') — GET /api/reflexivite/coach/phase/:phase"
+    },
+    {
+      "id": "TC-REFLEX-022",
+      "titre": "GET /coach/phase/:phase — 403 offre sans coach_posture",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur sur plan sans coach_posture.",
+      "donnees": "phase=0.",
+      "etapes": [
+        "GET /api/reflexivite/coach/phase/0"
+      ],
+      "attendu": "403 ; {error:'Fonctionnalité non disponible dans votre offre'}.",
+      "technique": "Table de décision (gating feature)",
+      "tracabilite": "requireFeature('coach_posture') — GET /api/reflexivite/coach/phase/:phase"
+    },
+    {
+      "id": "TC-REFLEX-023",
+      "titre": "POST /coach/analyser — nominale (contrat, question ouverte)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur avec coach_posture.",
+      "donnees": "{question:'Comment as-tu vécu cette situation ?'}.",
+      "etapes": [
+        "POST /api/reflexivite/coach/analyser"
+      ],
+      "attendu": "200 ; {type, ouverte, remarque, reformulation} ; type ∈ {'ouverte','fermée','inductive'} ; ouverte booléen ; remarque non vide ; reformulation string ou null.",
+      "technique": "Test du contrat",
+      "tracabilite": "coach_posture — POST /api/reflexivite/coach/analyser"
+    },
+    {
+      "id": "TC-REFLEX-024",
+      "titre": "POST /coach/analyser — 400 question vide",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur avec coach_posture.",
+      "donnees": "{question:'   '} (trim -> '') ou corps sans question.",
+      "etapes": [
+        "POST /api/reflexivite/coach/analyser avec question vide"
+      ],
+      "attendu": "400 ; {error:'Question vide'}.",
+      "technique": "Valeurs limites (chaîne vide) + partition d'équivalence",
+      "tracabilite": "coach_posture — POST /api/reflexivite/coach/analyser"
+    },
+    {
+      "id": "TC-REFLEX-025",
+      "titre": "POST /coach/analyser — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "{question:'Comment ?'}.",
+      "etapes": [
+        "POST /api/reflexivite/coach/analyser sans cookie"
+      ],
+      "attendu": "401 ; {error:'Non authentifié'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth — POST /api/reflexivite/coach/analyser"
+    },
+    {
+      "id": "TC-REFLEX-026",
+      "titre": "POST /coach/analyser — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "{question:'Comment ?'}.",
+      "etapes": [
+        "POST /api/reflexivite/coach/analyser cookie accompagné"
+      ],
+      "attendu": "403 ; {error:'Accès refusé'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') — POST /api/reflexivite/coach/analyser"
+    },
+    {
+      "id": "TC-REFLEX-027",
+      "titre": "POST /coach/analyser — 403 offre sans coach_posture",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur plan sans coach_posture.",
+      "donnees": "{question:'Comment ?'}.",
+      "etapes": [
+        "POST /api/reflexivite/coach/analyser"
+      ],
+      "attendu": "403 ; {error:'Fonctionnalité non disponible dans votre offre'}.",
+      "technique": "Table de décision (gating feature)",
+      "tracabilite": "requireFeature('coach_posture') — POST /api/reflexivite/coach/analyser"
+    },
+    {
+      "id": "TC-REFLEX-028",
+      "titre": "Unitaire — analyseQuestionFallback classe une question ouverte",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Fonction analyseQuestionFallback / OPEN_RE accessibles.",
+      "donnees": "q='Comment as-tu vécu cette situation ?' (matche OPEN_RE, pas FERME_RE).",
+      "etapes": [
+        "Appeler analyseQuestionFallback(q)"
+      ],
+      "attendu": "{type:'ouverte', ouverte:true, remarque:'Question ouverte et peu inductive…', reformulation:null}.",
+      "technique": "Partition d'équivalence (classe ouverte) — OPEN_RE",
+      "tracabilite": "coach_posture — analyseQuestionFallback / OPEN_RE (reflexivite.ts)"
+    },
+    {
+      "id": "TC-REFLEX-029",
+      "titre": "Unitaire — analyseQuestionFallback classe une question fermée",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Fonction accessible.",
+      "donnees": "q='As-tu terminé ton plan ?' (matche FERME_RE, pas induite).",
+      "etapes": [
+        "Appeler analyseQuestionFallback(q)"
+      ],
+      "attendu": "{type:'fermée', ouverte:false, remarque commençant par 'Question plutôt fermée', reformulation non null contenant un extrait de q}.",
+      "technique": "Partition d'équivalence (classe fermée) — FERME_RE",
+      "tracabilite": "coach_posture — analyseQuestionFallback / FERME_RE (reflexivite.ts)"
+    },
+    {
+      "id": "TC-REFLEX-030",
+      "titre": "Unitaire — analyseQuestionFallback classe une question inductive",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Fonction accessible.",
+      "donnees": "q='Tu dois revoir ton plan, non ?' (matche regex induite 'tu dois').",
+      "etapes": [
+        "Appeler analyseQuestionFallback(q)"
+      ],
+      "attendu": "{type:'inductive', ouverte:false, remarque mentionnant 'induction', reformulation non null}.",
+      "technique": "Table de décision (induite vs fermée)",
+      "tracabilite": "coach_posture — analyseQuestionFallback (reflexivite.ts)"
+    },
+    {
+      "id": "TC-REFLEX-031",
+      "titre": "Unitaire — OPEN_RE neutralisée par marqueur fermé (ouverte+FERME_RE -> non ouverte)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Fonction accessible.",
+      "donnees": "q='Comment, est-ce que tu as fini ?' (OPEN_RE ET FERME_RE matchent).",
+      "etapes": [
+        "Appeler analyseQuestionFallback(q)"
+      ],
+      "attendu": "ouverte=false (la présence d'un marqueur fermé annule la classification ouverte) ; type non 'ouverte'.",
+      "technique": "Table de décision (OPEN_RE && !FERME_RE)",
+      "tracabilite": "coach_posture — analyseQuestionFallback (OPEN_RE/FERME_RE)"
+    },
+    {
+      "id": "TC-REFLEX-032",
+      "titre": "Unitaire — reformulation tronquée à 60 caractères",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Fonction accessible.",
+      "donnees": "q fermée de plus de 60 caractères.",
+      "etapes": [
+        "Appeler analyseQuestionFallback(q)",
+        "Mesurer l'extrait inséré dans reformulation"
+      ],
+      "attendu": "L'extrait de q dans la reformulation est limité aux 60 premiers caractères (t.slice(0,60)).",
+      "technique": "Valeurs limites (longueur 60)",
+      "tracabilite": "coach_posture — analyseQuestionFallback (reflexivite.ts)"
+    },
+    {
+      "id": "TC-REFLEX-033",
+      "titre": "GET /debriefing/session/:sid — nominale (propriétaire)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire d'une session sid (via dossier.accompagnateur_id) avec feature debriefing.",
+      "donnees": "sid = session appartenant à l'accompagnateur.",
+      "etapes": [
+        "GET /api/reflexivite/debriefing/session/{sid}"
+      ],
+      "attendu": "200 ; {questions:[3 questions DEBRIEF], debriefing:null ou {reponses:[…],source,maj_le}} ; questions = 3 entrées non vides.",
+      "technique": "Test du contrat",
+      "tracabilite": "debriefing — GET /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-034",
+      "titre": "GET /debriefing/session/:sid — 404 session d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté accompagnateur A ; sid appartient à accompagnateur B (Camille).",
+      "donnees": "sid de B.",
+      "etapes": [
+        "GET /api/reflexivite/debriefing/session/{sid_de_B} avec cookie A"
+      ],
+      "attendu": "404 ; {error:'Entretien introuvable'} (ownsSession faux).",
+      "technique": "Test basé sur les rôles (propriété de ressource)",
+      "tracabilite": "ownsSession — GET /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-035",
+      "titre": "GET /debriefing/session/:sid — 404 session inexistante",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur avec debriefing.",
+      "donnees": "sid=999999 inexistant.",
+      "etapes": [
+        "GET /api/reflexivite/debriefing/session/999999"
+      ],
+      "attendu": "404 ; {error:'Entretien introuvable'}.",
+      "technique": "Partition d'équivalence (id inexistant)",
+      "tracabilite": "ownsSession — GET /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-036",
+      "titre": "GET /debriefing/session/:sid — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "sid quelconque.",
+      "etapes": [
+        "GET /api/reflexivite/debriefing/session/1 sans cookie"
+      ],
+      "attendu": "401 ; {error:'Non authentifié'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth — GET /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-037",
+      "titre": "GET /debriefing/session/:sid — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "sid quelconque.",
+      "etapes": [
+        "GET /api/reflexivite/debriefing/session/1 cookie accompagné"
+      ],
+      "attendu": "403 ; {error:'Accès refusé'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') — GET /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-038",
+      "titre": "GET /debriefing/session/:sid — 403 offre sans debriefing",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur plan sans debriefing.",
+      "donnees": "sid possédé.",
+      "etapes": [
+        "GET /api/reflexivite/debriefing/session/{sid}"
+      ],
+      "attendu": "403 ; {error:'Fonctionnalité non disponible dans votre offre'} (gating avant contrôle propriété).",
+      "technique": "Table de décision (gating feature)",
+      "tracabilite": "requireFeature('debriefing') — GET /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-039",
+      "titre": "POST /debriefing/session/:sid — enregistrement nominal + relecture",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire de sid, feature debriefing.",
+      "donnees": "{reponses:['ok cadre','un doute','ouvrir mes questions']}.",
+      "etapes": [
+        "POST /api/reflexivite/debriefing/session/{sid}",
+        "GET /api/reflexivite/debriefing/session/{sid}"
+      ],
+      "attendu": "200 {ok:true} ; le GET relit debriefing.reponses identiques, source='manuel', maj_le récent.",
+      "technique": "Test du contrat + persistance/relecture",
+      "tracabilite": "debriefing — POST /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-040",
+      "titre": "POST /debriefing/session/:sid — body sans reponses (coerce en [])",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire de sid.",
+      "donnees": "{} (reponses absent) puis {reponses:'pas-un-tableau'}.",
+      "etapes": [
+        "POST /api/reflexivite/debriefing/session/{sid} sans reponses",
+        "GET /api/reflexivite/debriefing/session/{sid}"
+      ],
+      "attendu": "200 {ok:true} ; reponses stockées = [] (Array.isArray faux -> tableau vide) ; pas d'erreur 500.",
+      "technique": "Partition d'équivalence (entrée non-tableau)",
+      "tracabilite": "debriefing — POST /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-041",
+      "titre": "POST /debriefing/session/:sid — coercition des éléments en chaîne",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur propriétaire de sid.",
+      "donnees": "{reponses:[1,null,{a:1}]}.",
+      "etapes": [
+        "POST puis GET /api/reflexivite/debriefing/session/{sid}"
+      ],
+      "attendu": "200 ; chaque élément stocké comme String(x ?? '') ; null -> '' ; pas de crash.",
+      "technique": "Partition d'équivalence (types mixtes)",
+      "tracabilite": "debriefing — POST /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-042",
+      "titre": "POST /debriefing/session/:sid — upsert idempotent (ON CONFLICT session_id)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire de sid.",
+      "donnees": "Deux POST avec contenus différents.",
+      "etapes": [
+        "POST reponses A",
+        "POST reponses B",
+        "GET /api/reflexivite/debriefing/session/{sid}"
+      ],
+      "attendu": "Le second remplace le premier ; GET renvoie reponses B uniquement.",
+      "technique": "Test du contrat (upsert)",
+      "tracabilite": "debriefing — POST /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-043",
+      "titre": "POST /debriefing/session/:sid — 404 non-propriétaire",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur A ; sid de B.",
+      "donnees": "{reponses:['x']}.",
+      "etapes": [
+        "POST /api/reflexivite/debriefing/session/{sid_de_B} cookie A"
+      ],
+      "attendu": "404 ; {error:'Entretien introuvable'} ; aucune écriture.",
+      "technique": "Test basé sur les rôles (propriété)",
+      "tracabilite": "ownsSession — POST /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-044",
+      "titre": "POST /debriefing/session/:sid — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "{reponses:['x']}.",
+      "etapes": [
+        "POST sans cookie"
+      ],
+      "attendu": "401 ; {error:'Non authentifié'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth — POST /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-045",
+      "titre": "POST /debriefing/session/:sid — 403 offre sans debriefing",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur plan sans debriefing.",
+      "donnees": "{reponses:['x']} sur sid possédé.",
+      "etapes": [
+        "POST /api/reflexivite/debriefing/session/{sid}"
+      ],
+      "attendu": "403 ; {error:'Fonctionnalité non disponible dans votre offre'}.",
+      "technique": "Table de décision (gating feature)",
+      "tracabilite": "requireFeature('debriefing') — POST /api/reflexivite/debriefing/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-046",
+      "titre": "POST /debriefing/session/:sid/suggerer — amorce IA (contrat)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire de sid avec traces (questions_entretien/reponses), feature debriefing, KEY présente.",
+      "donnees": "sid possédé avec traces non vides.",
+      "etapes": [
+        "POST /api/reflexivite/debriefing/session/{sid}/suggerer"
+      ],
+      "attendu": "200 ; {reponses:[…], source} ; reponses tableau de 3 entrées au plus (slice(0,3)), chaînes non vides ; source ∈ {'ia','heuristique'}.",
+      "technique": "Test du contrat",
+      "tracabilite": "debriefing — POST /api/reflexivite/debriefing/session/:sid/suggerer"
+    },
+    {
+      "id": "TC-REFLEX-047",
+      "titre": "POST /debriefing/session/:sid/suggerer — repli heuristique (3 amorces)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire de sid ; IA indisponible (KEY absente ou réponse non parsable).",
+      "donnees": "sid possédé.",
+      "etapes": [
+        "POST /api/reflexivite/debriefing/session/{sid}/suggerer (sans clé IA)"
+      ],
+      "attendu": "200 ; source='heuristique' ; reponses = exactement 3 amorces par défaut non vides.",
+      "technique": "Partition d'équivalence (IA off) + test du contrat",
+      "tracabilite": "debriefing — POST /api/reflexivite/debriefing/session/:sid/suggerer (fallback)"
+    },
+    {
+      "id": "TC-REFLEX-048",
+      "titre": "POST /debriefing/session/:sid/suggerer — 404 non-propriétaire",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur A ; sid de B.",
+      "donnees": "sid de B.",
+      "etapes": [
+        "POST /api/reflexivite/debriefing/session/{sid_de_B}/suggerer cookie A"
+      ],
+      "attendu": "404 ; {error:'Entretien introuvable'}.",
+      "technique": "Test basé sur les rôles (propriété)",
+      "tracabilite": "ownsSession — POST /api/reflexivite/debriefing/session/:sid/suggerer"
+    },
+    {
+      "id": "TC-REFLEX-049",
+      "titre": "POST /debriefing/session/:sid/suggerer — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucun cookie.",
+      "donnees": "sid quelconque.",
+      "etapes": [
+        "POST .../suggerer sans cookie"
+      ],
+      "attendu": "401 ; {error:'Non authentifié'}.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth — POST /api/reflexivite/debriefing/session/:sid/suggerer"
+    },
+    {
+      "id": "TC-REFLEX-050",
+      "titre": "POST /debriefing/session/:sid/suggerer — 403 mauvais rôle / offre",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné connecté OU accompagnateur sans feature debriefing.",
+      "donnees": "sid quelconque.",
+      "etapes": [
+        "POST .../suggerer dans chaque condition"
+      ],
+      "attendu": "403 ; 'Accès refusé' (rôle) ou 'Fonctionnalité non disponible dans votre offre' (feature).",
+      "technique": "Table de décision (rôle x feature)",
+      "tracabilite": "requireRole/requireFeature('debriefing') — POST /api/reflexivite/debriefing/session/:sid/suggerer"
+    },
+    {
+      "id": "TC-REFLEX-051",
+      "titre": "Unitaire — sessionTraces agrège questions+notes par phase, '(aucune trace)' si vide",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Fonction sessionTraces accessible avec DB mockée.",
+      "donnees": "Cas A: session avec questions et notes sur phases 0 et 2 ; Cas B: session sans aucune trace.",
+      "etapes": [
+        "Appeler sessionTraces(sid) pour A et B"
+      ],
+      "attendu": "A: chaîne contenant les titres de phases présentes, lignes '• question → reponse' et 'Notes : …', phases sans contenu omises ; B: '(aucune trace)'.",
+      "technique": "Partition d'équivalence (avec/sans traces)",
+      "tracabilite": "debriefing — sessionTraces (reflexivite.ts)"
+    },
+    {
+      "id": "TC-REFLEX-052",
+      "titre": "GET /replay/session/:sid — nominale (moments construits depuis questions)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire de sid avec questions_entretien, feature replay_annote.",
+      "donnees": "sid possédé avec ≥1 question.",
+      "etapes": [
+        "GET /api/reflexivite/replay/session/{sid}"
+      ],
+      "attendu": "200 ; {moments:[{ref,phase,titre,question,reponse,annotation}], source, maj_le} ; un moment par question ; ref='q<id>' ; annotation='' si aucune sauvegarde ; source/maj_le null si pas de replay enregistré.",
+      "technique": "Test du contrat",
+      "tracabilite": "replay_annote — GET /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-053",
+      "titre": "GET /replay/session/:sid — fusion des annotations sauvegardées",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire ; un replay déjà enregistré avec annotation sur q<id>.",
+      "donnees": "sid avec replay persisté.",
+      "etapes": [
+        "GET /api/reflexivite/replay/session/{sid}"
+      ],
+      "attendu": "200 ; le moment correspondant porte l'annotation sauvée (jointure par ref) ; les autres restent '' ; source et maj_le non null.",
+      "technique": "Test du contrat (fusion base/sauvegarde)",
+      "tracabilite": "replay_annote — GET /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-054",
+      "titre": "GET /replay/session/:sid — 404 non-propriétaire",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur A ; sid de B.",
+      "donnees": "sid de B.",
+      "etapes": [
+        "GET /api/reflexivite/replay/session/{sid_de_B} cookie A"
+      ],
+      "attendu": "404 ; {error:'Entretien introuvable'}.",
+      "technique": "Test basé sur les rôles (propriété)",
+      "tracabilite": "ownsSession — GET /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-055",
+      "titre": "GET /replay/session/:sid — 401 / 403 (accès)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Sans cookie ; accompagné ; accompagnateur sans replay_annote.",
+      "donnees": "sid quelconque.",
+      "etapes": [
+        "GET sans cookie",
+        "GET cookie accompagné",
+        "GET accompagnateur sans feature"
+      ],
+      "attendu": "401 'Non authentifié' ; 403 'Accès refusé' ; 403 'Fonctionnalité non disponible dans votre offre'.",
+      "technique": "Table de décision (auth x rôle x feature)",
+      "tracabilite": "requireAuth/requireRole/requireFeature('replay_annote') — GET /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-056",
+      "titre": "POST /replay/session/:sid — enregistrement annotations + relecture",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire de sid, feature replay_annote.",
+      "donnees": "{moments:[{ref:'q1',annotation:'ici je questionne ouvert'}]}.",
+      "etapes": [
+        "POST /api/reflexivite/replay/session/{sid}",
+        "GET /api/reflexivite/replay/session/{sid}"
+      ],
+      "attendu": "200 {ok:true} ; GET renvoie l'annotation sur le moment ref='q1', source='manuel', maj_le récent.",
+      "technique": "Test du contrat + persistance/relecture",
+      "tracabilite": "replay_annote — POST /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-057",
+      "titre": "POST /replay/session/:sid — body sans moments (coerce en [])",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire de sid.",
+      "donnees": "{} puis {moments:'x'} (non tableau).",
+      "etapes": [
+        "POST /api/reflexivite/replay/session/{sid}",
+        "GET /api/reflexivite/replay/session/{sid}"
+      ],
+      "attendu": "200 {ok:true} ; moments persistés=[] ; GET renvoie annotations vides ; pas de 500.",
+      "technique": "Partition d'équivalence (entrée non-tableau)",
+      "tracabilite": "replay_annote — POST /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-058",
+      "titre": "POST /replay/session/:sid — coercition ref/annotation en chaîne",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur propriétaire de sid.",
+      "donnees": "{moments:[{ref:null,annotation:42},{}]}.",
+      "etapes": [
+        "POST puis GET /api/reflexivite/replay/session/{sid}"
+      ],
+      "attendu": "200 ; chaque entrée stockée {ref:String(ref ?? ''), annotation:String(annotation ?? '')} ; null/undefined -> '' ; pas de crash.",
+      "technique": "Partition d'équivalence (types mixtes)",
+      "tracabilite": "replay_annote — POST /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-059",
+      "titre": "POST /replay/session/:sid — upsert idempotent (ON CONFLICT session_id)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire de sid.",
+      "donnees": "Deux POST avec annotations différentes.",
+      "etapes": [
+        "POST moments A",
+        "POST moments B",
+        "GET /api/reflexivite/replay/session/{sid}"
+      ],
+      "attendu": "Le second remplace le premier ; GET reflète B uniquement.",
+      "technique": "Test du contrat (upsert)",
+      "tracabilite": "replay_annote — POST /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-060",
+      "titre": "POST /replay/session/:sid — 404 non-propriétaire",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur A ; sid de B.",
+      "donnees": "{moments:[{ref:'q1',annotation:'x'}]}.",
+      "etapes": [
+        "POST /api/reflexivite/replay/session/{sid_de_B} cookie A"
+      ],
+      "attendu": "404 ; {error:'Entretien introuvable'} ; aucune écriture.",
+      "technique": "Test basé sur les rôles (propriété)",
+      "tracabilite": "ownsSession — POST /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-061",
+      "titre": "POST /replay/session/:sid — 401 / 403 (accès)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Sans cookie ; accompagné ; accompagnateur sans replay_annote.",
+      "donnees": "{moments:[]}.",
+      "etapes": [
+        "POST sans cookie",
+        "POST cookie accompagné",
+        "POST accompagnateur sans feature"
+      ],
+      "attendu": "401 'Non authentifié' ; 403 'Accès refusé' ; 403 'Fonctionnalité non disponible dans votre offre'.",
+      "technique": "Table de décision (auth x rôle x feature)",
+      "tracabilite": "requireAuth/requireRole/requireFeature('replay_annote') — POST /api/reflexivite/replay/session/:sid"
+    },
+    {
+      "id": "TC-REFLEX-062",
+      "titre": "POST /replay/session/:sid/initialiser — amorce IA par moment (contrat)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire de sid avec ≥1 question, feature replay_annote, KEY présente.",
+      "donnees": "sid possédé avec moments.",
+      "etapes": [
+        "POST /api/reflexivite/replay/session/{sid}/initialiser"
+      ],
+      "attendu": "200 ; {moments:[…], source} ; une annotation non vide par moment ; source ∈ {'ia','heuristique'} ; moments conservent ref/phase/titre/question/reponse.",
+      "technique": "Test du contrat",
+      "tracabilite": "replay_annote — POST /api/reflexivite/replay/session/:sid/initialiser"
+    },
+    {
+      "id": "TC-REFLEX-063",
+      "titre": "POST /replay/session/:sid/initialiser — repli déterministe via OPEN_RE",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire ; IA indisponible ou non parsable ; moments avec questions ouvertes ET fermées.",
+      "donnees": "sid possédé ; questions mixtes.",
+      "etapes": [
+        "POST /api/reflexivite/replay/session/{sid}/initialiser (IA off)"
+      ],
+      "attendu": "200 ; source='heuristique' ; annotation des questions matchant OPEN_RE = 'Ici je pose une question ouverte qui laisse explorer.' ; sinon 'Ici ma question est plutôt fermée : je pourrais l’ouvrir davantage.'",
+      "technique": "Partition d'équivalence (OPEN_RE) + test du contrat (fallback)",
+      "tracabilite": "replay_annote — POST /api/reflexivite/replay/session/:sid/initialiser (OPEN_RE fallback)"
+    },
+    {
+      "id": "TC-REFLEX-064",
+      "titre": "POST /replay/session/:sid/initialiser — session sans moment (liste vide, heuristique)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire d'une session sans question_entretien.",
+      "donnees": "sid possédé, base.length===0.",
+      "etapes": [
+        "POST /api/reflexivite/replay/session/{sid}/initialiser"
+      ],
+      "attendu": "200 ; {moments:[], source:'heuristique'} ; aucun appel IA effectué.",
+      "technique": "Valeurs limites (0 moment)",
+      "tracabilite": "replay_annote — POST /api/reflexivite/replay/session/:sid/initialiser"
+    },
+    {
+      "id": "TC-REFLEX-065",
+      "titre": "POST /replay/session/:sid/initialiser — 404 non-propriétaire",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur A ; sid de B.",
+      "donnees": "sid de B.",
+      "etapes": [
+        "POST .../initialiser cookie A"
+      ],
+      "attendu": "404 ; {error:'Entretien introuvable'}.",
+      "technique": "Test basé sur les rôles (propriété)",
+      "tracabilite": "ownsSession — POST /api/reflexivite/replay/session/:sid/initialiser"
+    },
+    {
+      "id": "TC-REFLEX-066",
+      "titre": "POST /replay/session/:sid/initialiser — 401 / 403 (accès)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Sans cookie ; accompagné ; accompagnateur sans replay_annote.",
+      "donnees": "sid quelconque.",
+      "etapes": [
+        "POST .../initialiser sans cookie",
+        "cookie accompagné",
+        "accompagnateur sans feature"
+      ],
+      "attendu": "401 'Non authentifié' ; 403 'Accès refusé' ; 403 'Fonctionnalité non disponible dans votre offre'.",
+      "technique": "Table de décision (auth x rôle x feature)",
+      "tracabilite": "requireAuth/requireRole/requireFeature('replay_annote') — POST /api/reflexivite/replay/session/:sid/initialiser"
+    },
+    {
+      "id": "TC-REFLEX-067",
+      "titre": "Unitaire — momentsDeSession mappe questions en moments avec titre de phase",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Fonction momentsDeSession accessible avec DB mockée.",
+      "donnees": "questions_entretien {id:7,phase:'2',texte:'Raconte…',reponse:'…'} et une phase hors PHASES (phase:'9').",
+      "etapes": [
+        "Appeler momentsDeSession(sid)"
+      ],
+      "attendu": "Moment {ref:'q7',phase:2,titre:'Explorer l’expérience',question,reponse,annotation:''} ; pour phase inconnue titre='Phase <n+1>' ; reponse '' si null.",
+      "technique": "Partition d'équivalence (phase connue/inconnue)",
+      "tracabilite": "replay_annote — momentsDeSession (reflexivite.ts)"
+    },
+    {
+      "id": "TC-REFLEX-068",
+      "titre": "UI — Bilan de pratique : générer puis relire (accompagnateur)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur (Mohamed) avec feature bilan_pratique ; stack http://localhost:8080.",
+      "donnees": "Compte elafrit.mohamed@gmail.com / BoussoleDemo2026.",
+      "etapes": [
+        "Aller sur /bilan-pratique",
+        "Cliquer sur le bouton de génération du bilan",
+        "Attendre le rendu",
+        "Recharger la page"
+      ],
+      "attendu": "La page affiche forces, axes, évolution, synthèse, conseils et la source (IA/heuristique) ; après rechargement le bilan persiste (relu via GET /bilan).",
+      "technique": "Test bout-en-bout basé sur les rôles",
+      "tracabilite": "bilan_pratique — page BilanPratique.tsx (/bilan-pratique)"
+    },
+    {
+      "id": "TC-REFLEX-069",
+      "titre": "UI — Coach de posture : analyser une question dans l'entretien",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur avec coach_posture ; un entretien ouvert affichant le composant CoachPosture.",
+      "donnees": "Question saisie : 'Est-ce que tu as fini ?'.",
+      "etapes": [
+        "Ouvrir l'entretien (page Entretien)",
+        "Saisir une question dans le coach de posture",
+        "Lancer l'analyse"
+      ],
+      "attendu": "Le composant affiche le type (ouverte/fermée/inductive), la remarque et, le cas échéant, une reformulation suggérée.",
+      "technique": "Test bout-en-bout (test du contrat UI)",
+      "tracabilite": "coach_posture — composant CoachPosture.tsx / POST /coach/analyser"
+    },
+    {
+      "id": "TC-REFLEX-070",
+      "titre": "UI — Débriefing à chaud : suggérer (IA) puis enregistrer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire d'un entretien terminé, feature debriefing.",
+      "donnees": "Modale DebriefingModal ouverte sur une session possédée.",
+      "etapes": [
+        "Ouvrir le débriefing de l'entretien",
+        "Cliquer 'Suggérer' (amorce IA)",
+        "Modifier les 3 réponses",
+        "Enregistrer",
+        "Rouvrir la modale"
+      ],
+      "attendu": "Les 3 amorces se remplissent ; après enregistrement et réouverture, les réponses saisies sont relues (persistance).",
+      "technique": "Test bout-en-bout + persistance",
+      "tracabilite": "debriefing — composant DebriefingModal.tsx / GET+POST+suggerer"
+    },
+    {
+      "id": "TC-REFLEX-071",
+      "titre": "UI — Replay annoté : initialiser (IA), annoter, enregistrer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire d'un entretien avec questions, feature replay_annote.",
+      "donnees": "Modale ReplayModal ouverte sur une session possédée.",
+      "etapes": [
+        "Ouvrir le replay annoté",
+        "Cliquer 'Initialiser' (amorces IA par moment)",
+        "Modifier une annotation",
+        "Enregistrer",
+        "Rouvrir le replay"
+      ],
+      "attendu": "Chaque moment reçoit une amorce d'annotation ; après enregistrement et réouverture, les annotations modifiées sont relues (fusion par ref).",
+      "technique": "Test bout-en-bout + persistance",
+      "tracabilite": "replay_annote — composant ReplayModal.tsx / GET+POST+initialiser"
+    },
+    {
+      "id": "TC-REFLEX-072",
+      "titre": "UI — Accès refusé côté accompagné aux fonctions de réflexivité",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné (Amine).",
+      "donnees": "Compte afrit_mohamed@yahoo.fr / BoussoleDemo2026.",
+      "etapes": [
+        "Tenter d'accéder à /bilan-pratique"
+      ],
+      "attendu": "La route protégée (Protected role='accompagnateur') redirige/refuse l'accès ; la page bilan n'est pas affichée.",
+      "technique": "Test basé sur les rôles (garde de route)",
+      "tracabilite": "bilan_pratique — App.tsx Protected role='accompagnateur' (/bilan-pratique)"
+    }
+  ]
+}

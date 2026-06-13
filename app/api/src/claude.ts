@@ -23,7 +23,7 @@ const SYSTEM =
   "de solution. Quand les 6 thèmes sont couverts, mets \"termine\" à true et fournis un " +
   "\"recapitulatif\" clair et structuré, à valider par la personne."
 
-const FALLBACK_STEPS: { question: string; propositions: string[] }[] = [
+export const FALLBACK_STEPS: { question: string; propositions: string[] }[] = [
   { question: 'Dans quelle entreprise et sur quel poste se déroule ton alternance ?', propositions: [] },
   { question: 'Quel est le sujet (ou le thème pressenti) de ton mémoire ?', propositions: [] },
   { question: 'Quelle problématique cherches-tu à traiter ?', propositions: [] },
@@ -38,7 +38,7 @@ const FALLBACK_STEPS: { question: string; propositions: string[] }[] = [
   },
 ]
 
-function fallbackNext(history: QA[]): QuestionnaireStep {
+export function fallbackNext(history: QA[]): QuestionnaireStep {
   if (history.length < FALLBACK_STEPS.length) {
     return { ...FALLBACK_STEPS[history.length], termine: false, recapitulatif: null }
   }
@@ -48,7 +48,7 @@ function fallbackNext(history: QA[]): QuestionnaireStep {
   return { question: '', propositions: [], termine: true, recapitulatif: recap }
 }
 
-function extractJson(text: string): string {
+export function extractJson(text: string): string {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   return start >= 0 && end > start ? text.slice(start, end + 1) : text

@@ -1,0 +1,1426 @@
+{
+  "domaine": "ui_acc",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "role": "anonyme",
+      "feature": "—",
+      "summary": "Connexion accompagnateur (cookie httpOnly)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "role": "tous",
+      "feature": "—",
+      "summary": "Profil courant (rôle) après refresh()"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me/features",
+      "role": "tous",
+      "feature": "—",
+      "summary": "Liste des features activées (gating front)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/entretien/dashboard",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Cartes accompagnés du tableau de bord"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tags",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Liste des tags pour le filtre"
+    },
+    {
+      "method": "POST",
+      "path": "/api/tags/dossier/:dossierId",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Ajouter un tag à un dossier"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/tags/dossier/:dossierId/:tagId",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Retirer un tag d'un dossier"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pilotage/signaux",
+      "role": "accompagnateur",
+      "feature": "signaux_faibles",
+      "summary": "Voyants signaux faibles (vert/orange/rouge)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pilotage/impact",
+      "role": "accompagnateur",
+      "feature": "tableau_impact",
+      "summary": "Tableau d'impact (KPI agrégés)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pilotage/digest",
+      "role": "accompagnateur",
+      "feature": "digest_email",
+      "summary": "Aperçu du digest hebdomadaire (HTML)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pilotage/digest/envoyer",
+      "role": "accompagnateur",
+      "feature": "digest_email",
+      "summary": "Envoi du digest par email"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dossiers/:id",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Détail du dossier (timeline, sessions, CR, rdvs, actions)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dossiers/:id/cloturer",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Clôturer la démarche (synthèse finale)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dossiers/:id/rouvrir",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Rouvrir un dossier clôturé"
+    },
+    {
+      "method": "POST",
+      "path": "/api/actions",
+      "role": "accompagnateur",
+      "feature": "plan_action",
+      "summary": "Ajouter une action au plan"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/actions/:id",
+      "role": "accompagnateur",
+      "feature": "plan_action",
+      "summary": "Changer le statut d'une action"
+    },
+    {
+      "method": "POST",
+      "path": "/api/actions/reorder",
+      "role": "accompagnateur",
+      "feature": "plan_action",
+      "summary": "Réordonner les actions (drag)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/sessions",
+      "role": "accompagnateur",
+      "feature": "entretien",
+      "summary": "Démarrer / reprendre une session d'entretien"
+    },
+    {
+      "method": "GET",
+      "path": "/api/entretien/sessions/:id",
+      "role": "accompagnateur",
+      "feature": "entretien",
+      "summary": "Charger session (réponses, questions, phase)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/entretien/phases",
+      "role": "accompagnateur",
+      "feature": "entretien",
+      "summary": "Les 6 phases du guide d'entretien"
+    },
+    {
+      "method": "GET",
+      "path": "/api/entretien/dossiers",
+      "role": "accompagnateur",
+      "feature": "entretien",
+      "summary": "Liste des accompagnés pour démarrer un entretien"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/sessions/:id/reponses",
+      "role": "accompagnateur",
+      "feature": "entretien",
+      "summary": "Sauver les notes générales d'une phase"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/sessions/:id/questions",
+      "role": "accompagnateur",
+      "feature": "entretien",
+      "summary": "Ajouter une question posée"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/entretien/sessions/:id/questions/:qid",
+      "role": "accompagnateur",
+      "feature": "entretien",
+      "summary": "Modifier texte/réponse d'une question"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/entretien/sessions/:id/questions/:qid",
+      "role": "accompagnateur",
+      "feature": "entretien",
+      "summary": "Supprimer une question posée"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/suggestions",
+      "role": "accompagnateur",
+      "feature": "copilote",
+      "summary": "Co-pilote IA : suggestions de questions/reformulation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entretien/sessions/:id/cloturer",
+      "role": "accompagnateur",
+      "feature": "entretien",
+      "summary": "Clôturer l'entretien (avant génération CR)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/emergence/dossier/:id/banque",
+      "role": "accompagnateur",
+      "feature": "banque_questions",
+      "summary": "Banque de questions personnalisée (lecture)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/emergence/dossier/:id/banque",
+      "role": "accompagnateur",
+      "feature": "banque_questions",
+      "summary": "Générer la banque de questions adaptée"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/session/:sid",
+      "role": "tous (proprio)",
+      "feature": "comptes_rendus",
+      "summary": "CR courant + versions d'une session"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cr/generer",
+      "role": "accompagnateur",
+      "feature": "comptes_rendus",
+      "summary": "Générer le CR par IA (nouvelle version)"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/cr/version/:id",
+      "role": "accompagnateur",
+      "feature": "comptes_rendus",
+      "summary": "Éditer le contenu HTML du CR"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cr/version/:id/publier",
+      "role": "accompagnateur",
+      "feature": "comptes_rendus",
+      "summary": "Publier le CR à l'accompagné"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/version/:id",
+      "role": "accompagnateur",
+      "feature": "comptes_rendus",
+      "summary": "Lire une version archivée du CR"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cr/session/:sid/messages",
+      "role": "tous (proprio)",
+      "feature": "comptes_rendus",
+      "summary": "Discussion liée au CR"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cr/session/:sid/messages",
+      "role": "tous (proprio)",
+      "feature": "comptes_rendus",
+      "summary": "Envoyer un message dans la discussion CR"
+    },
+    {
+      "method": "GET",
+      "path": "/api/synthese/dossier/:id",
+      "role": "accompagnateur",
+      "feature": "synthese",
+      "summary": "Document synthèse + versions"
+    },
+    {
+      "method": "POST",
+      "path": "/api/synthese/generer",
+      "role": "accompagnateur",
+      "feature": "synthese",
+      "summary": "Générer la synthèse du parcours (IA)"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/synthese/version/:id",
+      "role": "accompagnateur",
+      "feature": "synthese",
+      "summary": "Éditer la synthèse"
+    },
+    {
+      "method": "POST",
+      "path": "/api/synthese/version/:id/publier",
+      "role": "accompagnateur",
+      "feature": "synthese",
+      "summary": "Publier la synthèse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/miroir/session/:sid",
+      "role": "accompagnateur",
+      "feature": "miroir",
+      "summary": "Lire l'analyse de posture (miroir réflexif)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/miroir/session/:sid",
+      "role": "accompagnateur",
+      "feature": "miroir",
+      "summary": "Générer l'analyse de posture (IA + repli)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/miroir/session/:sid/appliquer",
+      "role": "accompagnateur",
+      "feature": "miroir",
+      "summary": "Appliquer les scores au brouillon de grille"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reflexivite/debriefing/session/:sid",
+      "role": "accompagnateur",
+      "feature": "debriefing",
+      "summary": "Questions + débriefing existant"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/debriefing/session/:sid",
+      "role": "accompagnateur",
+      "feature": "debriefing",
+      "summary": "Enregistrer le débriefing"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/debriefing/session/:sid/suggerer",
+      "role": "accompagnateur",
+      "feature": "debriefing",
+      "summary": "Amorcer le débriefing par l'IA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reflexivite/replay/session/:sid",
+      "role": "accompagnateur",
+      "feature": "replay_annote",
+      "summary": "Moments du replay annoté"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/replay/session/:sid",
+      "role": "accompagnateur",
+      "feature": "replay_annote",
+      "summary": "Enregistrer les annotations du replay"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/replay/session/:sid/initialiser",
+      "role": "accompagnateur",
+      "feature": "replay_annote",
+      "summary": "Amorcer l'auto-confrontation (IA)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reflexivite/bilan",
+      "role": "accompagnateur",
+      "feature": "bilan_pratique",
+      "summary": "Bilan de pratique global + base de calcul"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reflexivite/bilan",
+      "role": "accompagnateur",
+      "feature": "bilan_pratique",
+      "summary": "Générer/régénérer le bilan (IA + repli heuristique)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/collab/ressources",
+      "role": "accompagnateur",
+      "feature": "mutualisation",
+      "summary": "Bibliothèque partagée de ressources"
+    },
+    {
+      "method": "POST",
+      "path": "/api/collab/ressources",
+      "role": "accompagnateur",
+      "feature": "mutualisation",
+      "summary": "Partager une ressource"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/collab/ressources/:id",
+      "role": "accompagnateur",
+      "feature": "mutualisation",
+      "summary": "Basculer public/interne (lien token)"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/collab/ressources/:id",
+      "role": "accompagnateur",
+      "feature": "mutualisation",
+      "summary": "Supprimer sa ressource"
+    },
+    {
+      "method": "GET",
+      "path": "/api/emergence/dossier/:id/fil-rouge",
+      "role": "accompagnateur",
+      "feature": "fil_rouge",
+      "summary": "Fil rouge du mémoire (lecture)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/emergence/dossier/:id/fil-rouge",
+      "role": "accompagnateur",
+      "feature": "fil_rouge",
+      "summary": "Faire émerger le fil rouge (IA)"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/emergence/dossier/:id/fil-rouge/partage",
+      "role": "accompagnateur",
+      "feature": "fil_rouge",
+      "summary": "Partager / retirer le fil rouge"
+    },
+    {
+      "method": "GET",
+      "path": "/api/viz/nuage/dossier/:id",
+      "role": "tous (proprio)",
+      "feature": "nuage_themes",
+      "summary": "Nuage de thèmes (lecture)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/viz/nuage/dossier/:id",
+      "role": "tous (proprio)",
+      "feature": "nuage_themes",
+      "summary": "Générer le nuage de thèmes (IA)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/viz/emotions/dossier/:id",
+      "role": "tous (proprio)",
+      "feature": "roue_emotions",
+      "summary": "Roue des émotions (agrégat + historique)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/confort/visio/rdv/:id",
+      "role": "tous (proprio rdv)",
+      "feature": "visio",
+      "summary": "URL de la salle de visioconférence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/confort/export/dossier/:id",
+      "role": "accompagnateur",
+      "feature": "export_pdf",
+      "summary": "Données d'export PDF complet"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ethique/attestation/dossier/:id",
+      "role": "tous (proprio)",
+      "feature": "attestation",
+      "summary": "Attestation de fin (dossier clôturé)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rdv/:id/ics",
+      "role": "tous (proprio)",
+      "feature": "rdv",
+      "summary": "Fichier ICS d'un rendez-vous"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-UI-100",
+      "titre": "Connexion accompagnateur et redirection vers l'espace",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Compte accompagnateur seedé elafrit.mohamed@gmail.com / BoussoleDemo2026. Stack Docker http://localhost:8080 démarrée.",
+      "donnees": "email=elafrit.mohamed@gmail.com, mot de passe=BoussoleDemo2026",
+      "etapes": [
+        "Ouvrir /connexion",
+        "Saisir l'email et le mot de passe",
+        "Cliquer « Se connecter »",
+        "Observer la redirection et l'en-tête"
+      ],
+      "attendu": "POST /api/auth/login renvoie 200 ; redirection vers /espace ; le menu affiche l'utilisateur connecté ; un cookie httpOnly boussole_token est posé. /api/auth/me retourne role=accompagnateur.",
+      "technique": "test du contrat ; test basé sur les rôles",
+      "tracabilite": "(login) POST /api/auth/login + GET /api/auth/me — page Login.tsx, AuthContext"
+    },
+    {
+      "id": "TC-UI-101",
+      "titre": "Connexion refusée avec mauvais mot de passe",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Compte accompagnateur existant.",
+      "donnees": "email=elafrit.mohamed@gmail.com, mot de passe=Faux123!",
+      "etapes": [
+        "Ouvrir /connexion",
+        "Saisir un mot de passe erroné",
+        "Cliquer « Se connecter »"
+      ],
+      "attendu": "POST /api/auth/login renvoie 401 ; un message d'erreur « Identifiants incorrects » s'affiche (form-error) ; aucune redirection.",
+      "technique": "partition d'équivalence (identifiants invalides)",
+      "tracabilite": "(login) POST /api/auth/login — page Login.tsx"
+    },
+    {
+      "id": "TC-UI-102",
+      "titre": "Accès au tableau de bord interdit à un anonyme",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session active (déconnecté).",
+      "donnees": "URL /tableau-de-bord",
+      "etapes": [
+        "Sans être connecté, naviguer vers /tableau-de-bord"
+      ],
+      "attendu": "Le garde Protected redirige vers /connexion (Navigate replace) ; le tableau de bord n'est pas rendu.",
+      "technique": "test basé sur les rôles ; test du contrat (garde de route)",
+      "tracabilite": "(—) Protected.tsx — route /tableau-de-bord (role=accompagnateur)"
+    },
+    {
+      "id": "TC-UI-103",
+      "titre": "Accès au tableau de bord interdit à un accompagné (mauvais rôle)",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné (afrit_mohamed@yahoo.fr / BoussoleDemo2026).",
+      "donnees": "URL /tableau-de-bord",
+      "etapes": [
+        "Se connecter en accompagné",
+        "Naviguer vers /tableau-de-bord"
+      ],
+      "attendu": "Protected détecte role ≠ accompagnateur et redirige vers /espace ; le tableau de bord n'est pas affiché.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "(—) Protected.tsx role=accompagnateur — route /tableau-de-bord"
+    },
+    {
+      "id": "TC-UI-104",
+      "titre": "Tableau de bord : affichage des cartes d'accompagnés et statistiques",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur Mohamed connecté, possède des dossiers seedés.",
+      "donnees": "—",
+      "etapes": [
+        "Aller sur /tableau-de-bord",
+        "Observer les cartes générées"
+      ],
+      "attendu": "GET /api/entretien/dashboard 200 ; une carte par accompagné avec prénom/email, Questionnaire ✓/—, nb entretiens, nb comptes rendus, actions en cours (gras) ; bouton « Ouvrir le dossier » présent.",
+      "technique": "test du contrat (forme de réponse) ; partition d'équivalence",
+      "tracabilite": "(—) GET /api/entretien/dashboard — Dashboard.tsx"
+    },
+    {
+      "id": "TC-UI-105",
+      "titre": "Tableau de bord : voyant signaux faibles affiché selon le niveau",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sans plan (feature signaux_faibles active) avec au moins un dossier.",
+      "donnees": "—",
+      "etapes": [
+        "Aller sur /tableau-de-bord",
+        "Observer les pastilles colorées sur les cartes",
+        "Survoler une pastille orange/rouge"
+      ],
+      "attendu": "GET /api/pilotage/signaux 200 ; une pastille colorée (vert/orange/rouge) précède le nom ; aria-label et title listent les raisons ; pour orange/rouge la 1re raison s'affiche sous le titre.",
+      "technique": "table de décision (niveau→couleur/raison) ; test du contrat",
+      "tracabilite": "(signaux_faibles) GET /api/pilotage/signaux — Dashboard.tsx"
+    },
+    {
+      "id": "TC-UI-106",
+      "titre": "Voyant signaux masqué quand la feature est absente de l'offre",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sur un plan SANS signaux_faibles (ex. Découverte).",
+      "donnees": "—",
+      "etapes": [
+        "Aller sur /tableau-de-bord avec un plan limité",
+        "Observer les cartes"
+      ],
+      "attendu": "Aucun appel à /api/pilotage/signaux (signauxActifs=false) ; aucune pastille de signal n'est rendue ; le reste du tableau de bord fonctionne.",
+      "technique": "test du contrat (gating front via useFeature) ; test basé sur l'offre",
+      "tracabilite": "(signaux_faibles) GET /api/pilotage/signaux — Dashboard.tsx, FeaturesContext"
+    },
+    {
+      "id": "TC-UI-107",
+      "titre": "Tableau d'impact : tuiles KPI affichées",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sans plan (tableau_impact actif).",
+      "donnees": "—",
+      "etapes": [
+        "Aller sur /tableau-de-bord",
+        "Observer la section « 📊 Tableau d'impact »"
+      ],
+      "attendu": "GET /api/pilotage/impact 200 ; tuiles Parcours actifs, Progression moyenne %, Actions réalisées %, Entretiens menés, CR publiés, Évolution météo ; compteurs 🟢🟠🔴 et nb clôturés/synthèses.",
+      "technique": "test du contrat (champs typés) ; valeurs limites (0%, 100%, météo null→'—')",
+      "tracabilite": "(tableau_impact) GET /api/pilotage/impact — PilotageBoard.tsx"
+    },
+    {
+      "id": "TC-UI-108",
+      "titre": "Digest hebdomadaire : aperçu HTML et envoi par email",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sans plan (digest_email actif).",
+      "donnees": "—",
+      "etapes": [
+        "Aller sur /tableau-de-bord",
+        "Cliquer « Aperçu » dans la section Digest",
+        "Cliquer « M'envoyer le digest »"
+      ],
+      "attendu": "GET /api/pilotage/digest 200 (resume.alertes affiché) ; l'aperçu rend le HTML du digest ; POST /api/pilotage/digest/envoyer 200 → message « Digest envoyé à <email> ✓ ».",
+      "technique": "test du contrat ; test basé sur l'état (toggle aperçu)",
+      "tracabilite": "(digest_email) GET /api/pilotage/digest + POST /api/pilotage/digest/envoyer — PilotageBoard.tsx"
+    },
+    {
+      "id": "TC-UI-109",
+      "titre": "Section Pilotage entièrement masquée sans impact ni digest",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur sur un plan sans tableau_impact ni digest_email.",
+      "donnees": "—",
+      "etapes": [
+        "Aller sur /tableau-de-bord avec ce plan"
+      ],
+      "attendu": "PilotageBoard retourne null : aucune section impact/digest n'est rendue ; aucun appel /api/pilotage/impact ni /digest.",
+      "technique": "test du contrat (gating combiné) ; table de décision (2 features → rendu)",
+      "tracabilite": "(tableau_impact, digest_email) — PilotageBoard.tsx"
+    },
+    {
+      "id": "TC-UI-110",
+      "titre": "Filtrer les accompagnés par tag",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Au moins un dossier possède un tag.",
+      "donnees": "Tag existant à sélectionner",
+      "etapes": [
+        "Aller sur /tableau-de-bord",
+        "Choisir un tag dans le menu « Filtrer par tag »",
+        "Revenir à « Tous »"
+      ],
+      "attendu": "GET /api/tags 200 ; seules les cartes portant ce tag restent affichées ; « Tous » réaffiche l'ensemble ; si aucune carte, message « Aucun accompagné avec ce tag ».",
+      "technique": "partition d'équivalence (filtre actif / Tous) ; test basé sur l'état",
+      "tracabilite": "(—) GET /api/tags — Dashboard.tsx (filtre client)"
+    },
+    {
+      "id": "TC-UI-111",
+      "titre": "Ajouter puis retirer un tag sur une carte d'accompagné",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur connecté avec au moins un dossier.",
+      "donnees": "Nouveau tag : « priorité »",
+      "etapes": [
+        "Sur une carte, saisir « priorité » dans le champ et valider (Entrée)",
+        "Vérifier l'apparition du chip",
+        "Cliquer « × » du chip pour le retirer"
+      ],
+      "attendu": "POST /api/tags/dossier/:id 200 → le chip apparaît après rechargement ; DELETE /api/tags/dossier/:id/:tagId 200 → le chip disparaît. Champ vide n'envoie rien (addTag retourne tôt).",
+      "technique": "valeurs limites (libellé vide ignoré) ; test du contrat",
+      "tracabilite": "(—) POST/DELETE /api/tags/dossier — Dashboard.tsx"
+    },
+    {
+      "id": "TC-UI-112",
+      "titre": "Liens Bilan de pratique et Mutualisation visibles selon l'offre",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "1) Accompagnateur sans plan ; 2) Accompagnateur sur plan sans bilan_pratique ni mutualisation.",
+      "donnees": "—",
+      "etapes": [
+        "Cas 1 : aller sur /tableau-de-bord (sans plan)",
+        "Cas 2 : aller sur /tableau-de-bord (plan limité)"
+      ],
+      "attendu": "Cas 1 : les liens « 🪞 Bilan de ma pratique » et « 🤝 Mutualisation » sont présents. Cas 2 : ils sont absents (useFeature false).",
+      "technique": "table de décision (feature → lien) ; test basé sur l'offre",
+      "tracabilite": "(bilan_pratique, mutualisation) — Dashboard.tsx en-tête"
+    },
+    {
+      "id": "TC-UI-113",
+      "titre": "Ouvrir un dossier depuis le tableau de bord",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur connecté, dossier existant.",
+      "donnees": "—",
+      "etapes": [
+        "Sur une carte, cliquer « Ouvrir le dossier »",
+        "Observer la page /dossier/:id"
+      ],
+      "attendu": "Navigation vers /dossier/:id ; GET /api/dossiers/:id 200 ; titre = prénom/email + badge « En cours »/« Clôturé » ; boussole du parcours, timeline (questionnaire + entretiens), sections fil rouge/nuage/météo/roue/journal/plan d'action.",
+      "technique": "test du contrat (composition de la page) ; test basé sur les rôles",
+      "tracabilite": "(—) GET /api/dossiers/:id — Dossier.tsx"
+    },
+    {
+      "id": "TC-UI-114",
+      "titre": "Dossier d'un autre accompagnateur introuvable (non-propriétaire)",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur Camille ; ID d'un dossier appartenant à Mohamed.",
+      "donnees": "URL /dossier/<id_de_Mohamed>",
+      "etapes": [
+        "Se connecter en Camille (camille.laurent@boussole.demo)",
+        "Naviguer vers /dossier/<id_de_Mohamed>"
+      ],
+      "attendu": "GET /api/dossiers/:id renvoie 404 (ressource d'un autre accompagnateur) ; la page reste en « Chargement… » / n'affiche pas le contenu du dossier d'autrui.",
+      "technique": "test basé sur les rôles (propriété de la ressource)",
+      "tracabilite": "(—) GET /api/dossiers/:id — Dossier.tsx"
+    },
+    {
+      "id": "TC-UI-115",
+      "titre": "Démarrer un nouvel entretien guidé depuis le dossier",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Dossier en cours sans entretien en cours.",
+      "donnees": "—",
+      "etapes": [
+        "Sur /dossier/:id, cliquer « Nouvel entretien »",
+        "Observer l'écran d'entretien (phase 1/6)"
+      ],
+      "attendu": "Navigation /entretien?dossier=:id ; POST /api/entretien/sessions 200 (sessionId) ; GET /api/entretien/sessions/:id, /phases, /dossiers 200 ; affichage Phase 1/6, vigilance, questions à poser.",
+      "technique": "test du contrat ; partition d'équivalence (nouvel entretien vs reprise)",
+      "tracabilite": "(entretien) POST /api/entretien/sessions — Entretien.tsx, Dossier.tsx"
+    },
+    {
+      "id": "TC-UI-116",
+      "titre": "Reprendre un entretien en cours et naviguer entre phases",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossier avec une session en_cours (phase_atteinte > 0).",
+      "donnees": "—",
+      "etapes": [
+        "Sur /dossier/:id, cliquer « Reprendre l'entretien en cours »",
+        "Vérifier la phase ouverte et les notes pré-remplies",
+        "Cliquer « Suivant → » puis « ← Précédent »"
+      ],
+      "attendu": "La session reprend à phase_atteinte ; notes et questions par phase restaurées ; le changement de phase déclenche POST /reponses (saveCurrent) ; le bouton « Précédent » est désactivé en phase 1.",
+      "technique": "valeurs limites (phase 0 → Précédent désactivé) ; test basé sur l'état",
+      "tracabilite": "(entretien) GET /api/entretien/sessions/:id + POST /reponses — Entretien.tsx"
+    },
+    {
+      "id": "TC-UI-117",
+      "titre": "Ajouter, modifier et supprimer une question posée pendant l'entretien",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Session d'entretien ouverte.",
+      "donnees": "Question : « Qu'as-tu ressenti à ce moment-là ? »",
+      "etapes": [
+        "Saisir la question et cliquer « ＋ Ajouter »",
+        "Cliquer ✎ pour éditer le texte, modifier, valider ✓",
+        "Saisir une réponse dans la zone de notes (blur)",
+        "Cliquer × pour supprimer la question"
+      ],
+      "attendu": "POST /questions 200 (la question apparaît) ; PATCH /questions/:qid {texte} 200 ; PATCH /questions/:qid {reponse} 200 au blur ; DELETE /questions/:qid 200 (retrait). Texte vide à l'édition garde l'éditeur ouvert (saveQTexte retourne tôt).",
+      "technique": "valeurs limites (texte vide) ; test du contrat (CRUD)",
+      "tracabilite": "(entretien) POST/PATCH/DELETE /api/entretien/sessions/:id/questions — Entretien.tsx"
+    },
+    {
+      "id": "TC-UI-118",
+      "titre": "Co-pilote IA : demander des suggestions de questions (contrat)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Session ouverte, feature copilote active, notes saisies dans la phase.",
+      "donnees": "Notes phase : un paragraphe sur la difficulté de l'étudiant",
+      "etapes": [
+        "Saisir des notes dans la zone de phase",
+        "Cliquer « ✨ Suggestions de l'IA »",
+        "Observer la réponse (typewriter)"
+      ],
+      "attendu": "POST /api/entretien/suggestions 200 ; objet { questions: string[], reformulation: string|null, a_surveiller: string|null } ; questions non vide et typées ; affichage de l'ancrage théorique de la phase ; chaque suggestion offre ＋ ajouter / ✎ modifier. Le texte exact n'est pas figé.",
+      "technique": "test du contrat (champs présents/typés, non-vacuité) ; ne pas figer le texte IA",
+      "tracabilite": "(copilote) POST /api/entretien/suggestions — Entretien.tsx"
+    },
+    {
+      "id": "TC-UI-119",
+      "titre": "Co-pilote indisponible sur une offre sans la feature",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sur un plan sans copilote.",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir un entretien",
+        "Cliquer « ✨ Suggestions de l'IA »"
+      ],
+      "attendu": "POST /api/entretien/suggestions renvoie 403 (requireFeature copilote) ; aucune suggestion n'est affichée ; l'app reste stable (busy retombe à false).",
+      "technique": "test basé sur l'offre (requireFeature) ; gestion d'erreur",
+      "tracabilite": "(copilote) POST /api/entretien/suggestions — Entretien.tsx"
+    },
+    {
+      "id": "TC-UI-120",
+      "titre": "Banque de questions personnalisée : génération et insertion (contrat)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Session ouverte, feature banque_questions active.",
+      "donnees": "—",
+      "etapes": [
+        "Dans une phase, cliquer « ✨ Adapter les questions à cet étudiant »",
+        "Cliquer une question proposée (perso) pour l'ajouter",
+        "Cliquer ✎ pour la modifier avant ajout"
+      ],
+      "attendu": "POST /api/emergence/dossier/:id/banque 200 ; objet banque (Record<phase, string[]>) non vide pour au moins une phase ; clic ＋ ajoute la question (POST /questions) ; ✎ recopie dans le champ de saisie. GET banque relue au chargement de session.",
+      "technique": "test du contrat (structure, non-vacuité) ; test du repli à figer côté API",
+      "tracabilite": "(banque_questions) GET/POST /api/emergence/dossier/:id/banque — Entretien.tsx"
+    },
+    {
+      "id": "TC-UI-121",
+      "titre": "Pause et reprise : « Reprendre plus tard » sauvegarde la phase",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Session ouverte avec des notes saisies.",
+      "donnees": "Notes en cours dans la phase",
+      "etapes": [
+        "Saisir des notes",
+        "Cliquer « 💾 Reprendre plus tard »",
+        "Rouvrir l'entretien et vérifier les notes"
+      ],
+      "attendu": "POST /reponses (saveCurrent) effectué ; navigation retour vers /dossier/:id ; à la réouverture, les notes de la phase sont restaurées.",
+      "technique": "test basé sur l'état (persistance/relecture)",
+      "tracabilite": "(entretien) POST /api/entretien/sessions/:id/reponses — Entretien.tsx"
+    },
+    {
+      "id": "TC-UI-122",
+      "titre": "Clôturer l'entretien et générer le compte rendu (contrat IA)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Session ouverte avec questions/réponses saisies, feature comptes_rendus active.",
+      "donnees": "—",
+      "etapes": [
+        "Cliquer « ✓ Clôturer & générer le CR »",
+        "Sur l'écran « Entretien clôturé », cliquer « 📄 Ouvrir le compte rendu »",
+        "Cliquer « ✨ Générer le compte rendu (IA) »"
+      ],
+      "attendu": "POST /entretien/sessions/:id/cloturer 200 ; écran de clôture affiché ; POST /api/cr/generer 200 puis GET /api/cr/session/:sid renvoie cr avec contenu_html non vide, version=1, publie=0, badge « • Brouillon ». Texte non figé.",
+      "technique": "test du contrat (génération + relecture) ; ne pas figer le texte IA",
+      "tracabilite": "(comptes_rendus) POST /api/entretien/.../cloturer + POST /api/cr/generer — Entretien.tsx, CompteRenduModal.tsx"
+    },
+    {
+      "id": "TC-UI-123",
+      "titre": "Éditer, régénérer puis publier le compte rendu",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Un CR brouillon existe sur une session du dossier.",
+      "donnees": "Édition : ajout d'un paragraphe dans l'éditeur riche",
+      "etapes": [
+        "Ouvrir le CR depuis la timeline du dossier (📄 Compte rendu)",
+        "Cliquer « ✎ Éditer », modifier, « 💾 Enregistrer »",
+        "Cliquer « ↻ Régénérer (IA) » et confirmer",
+        "Cliquer « 📣 Publier »"
+      ],
+      "attendu": "PATCH /api/cr/version/:id 200 (source devient 'édité') ; régénération POST /api/cr/generer crée une nouvelle version (historique > 1, sélecteur visible) ; POST /api/cr/version/:id/publier 200 → badge « ✓ Publié », message de confirmation.",
+      "technique": "test du contrat (versionnement) ; test basé sur l'état (brouillon→publié)",
+      "tracabilite": "(comptes_rendus) PATCH /api/cr/version/:id + POST .../publier — CompteRenduModal.tsx"
+    },
+    {
+      "id": "TC-UI-124",
+      "titre": "Historique du CR : consulter une version archivée en lecture seule",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Un CR ayant au moins 2 versions.",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir le CR",
+        "Sélectionner une ancienne version dans « Historique »"
+      ],
+      "attendu": "GET /api/cr/version/:id 200 ; le contenu de la version archivée s'affiche avec la mention « (version archivée, lecture seule) » ; pas de boutons Éditer/Publier en mode historique.",
+      "technique": "test basé sur l'état (mode historique) ; test du contrat",
+      "tracabilite": "(comptes_rendus) GET /api/cr/version/:id — CompteRenduModal.tsx"
+    },
+    {
+      "id": "TC-UI-125",
+      "titre": "Discussion CR : échanger un message avec l'accompagné",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "CR publié sur une session.",
+      "donnees": "Message : « As-tu pu avancer sur l'action n°1 ? »",
+      "etapes": [
+        "Ouvrir le CR publié",
+        "Saisir un message dans « 💬 Échanges » et « Envoyer »"
+      ],
+      "attendu": "POST /api/cr/session/:sid/messages 200 ; le message apparaît avec is_me=true ; GET /messages 200 recharge la liste ; auto-scroll vers le dernier message.",
+      "technique": "test du contrat ; partition d'équivalence (message vide ignoré)",
+      "tracabilite": "(comptes_rendus) GET/POST /api/cr/session/:sid/messages — CompteRenduModal.tsx"
+    },
+    {
+      "id": "TC-UI-126",
+      "titre": "Miroir réflexif : analyser ma posture sur un entretien (contrat IA + repli)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Entretien existant avec questions/notes, feature miroir active.",
+      "donnees": "—",
+      "etapes": [
+        "Sur la timeline, cliquer « 🪞 Analyser ma posture »",
+        "Dans le modal, cliquer « ✨ Analyser ma posture »"
+      ],
+      "attendu": "POST /api/miroir/session/:sid 200 ; objet { forces[], glissements[], synthese, scores[], note, source } ; badge « Analyse IA » ou « Analyse (repli) » selon source ; note/100 et zone (Émergent…Expert) affichées si présentes. GET /api/miroir/session/:sid relit. Texte non figé.",
+      "technique": "test du contrat (champs typés, gating) ; cas de repli déterministe (source='repli')",
+      "tracabilite": "(miroir) GET/POST /api/miroir/session/:sid — MiroirReflexifModal.tsx"
+    },
+    {
+      "id": "TC-UI-127",
+      "titre": "Miroir : appliquer les scores proposés au brouillon de la grille",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Une analyse miroir avec des scores existe.",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir le miroir d'un entretien analysé",
+        "Cliquer « ↳ Appliquer ces scores à ma grille »"
+      ],
+      "attendu": "POST /api/miroir/session/:sid/appliquer 200 → { appliques: N } ; message « ✓ N indicateur(s) appliqué(s) au brouillon… » ; les scores se retrouvent en brouillon dans « Mon auto-évaluation ».",
+      "technique": "test du contrat ; persistance/relecture (vérif côté auto-évaluation)",
+      "tracabilite": "(miroir) POST /api/miroir/session/:sid/appliquer — MiroirReflexifModal.tsx"
+    },
+    {
+      "id": "TC-UI-128",
+      "titre": "Bouton Miroir absent sur une offre sans la feature",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur sur un plan sans miroir.",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir un dossier",
+        "Observer les boutons sous chaque entretien"
+      ],
+      "attendu": "Le bouton « 🪞 Analyser ma posture » n'est pas rendu (miroirActif false) ; idem si l'API était appelée elle renverrait 403.",
+      "technique": "test basé sur l'offre (useFeature + requireFeature)",
+      "tracabilite": "(miroir) — Dossier.tsx, MiroirReflexifModal.tsx"
+    },
+    {
+      "id": "TC-UI-129",
+      "titre": "Débriefing à chaud : amorcer par l'IA puis enregistrer (contrat)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Entretien existant, feature debriefing active.",
+      "donnees": "Réponses ajustées sur les 3 questions",
+      "etapes": [
+        "Cliquer « 💬 Débriefing » sous un entretien",
+        "Cliquer « ✨ Amorcer par l'IA »",
+        "Ajuster une réponse et cliquer « Enregistrer »"
+      ],
+      "attendu": "GET /reflexivite/debriefing/session/:sid 200 (questions[]) ; POST .../suggerer 200 { reponses[], source } remplit uniquement les champs vides ; POST .../session/:sid 200 → « Débriefing enregistré ✓ » ; relecture restaure les réponses.",
+      "technique": "test du contrat (amorçage non destructif) ; persistance/relecture",
+      "tracabilite": "(debriefing) GET/POST /api/reflexivite/debriefing/session/:sid(+/suggerer) — DebriefingModal.tsx"
+    },
+    {
+      "id": "TC-UI-130",
+      "titre": "Replay annoté : initialiser l'auto-confrontation et enregistrer (contrat)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Entretien comportant des questions enregistrées, feature replay_annote active.",
+      "donnees": "Annotations ajustées sur 1-2 moments",
+      "etapes": [
+        "Cliquer « 🎬 Replay annoté » sous un entretien",
+        "Cliquer « ✨ Initialiser l'auto-confrontation (IA) »",
+        "Ajuster une annotation et « Enregistrer »"
+      ],
+      "attendu": "GET /reflexivite/replay/session/:sid 200 (moments[]) ; POST .../initialiser 200 amorce les annotations vides sans écraser les saisies ; POST .../session/:sid 200 → « Annotations enregistrées ✓ ». Si aucune question : message « rien à rejouer » et pas de boutons.",
+      "technique": "test du contrat ; valeurs limites (0 moment) ; persistance/relecture",
+      "tracabilite": "(replay_annote) GET/POST /api/reflexivite/replay/session/:sid(+/initialiser) — ReplayModal.tsx"
+    },
+    {
+      "id": "TC-UI-131",
+      "titre": "Synthèse du parcours : générer, éditer et publier (contrat IA)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Dossier avec entretiens, feature synthese active.",
+      "donnees": "—",
+      "etapes": [
+        "Sur /dossier/:id, cliquer « 📋 Synthèse du parcours »",
+        "Cliquer « ✨ Générer la synthèse (IA) »",
+        "Éditer puis « 💾 Enregistrer », puis « 📣 Publier »"
+      ],
+      "attendu": "POST /api/synthese/generer 200 ; GET /api/synthese/dossier/:id renvoie doc avec contenu_html non vide ; PATCH /api/synthese/version/:id 200 ; POST .../publier 200 → badge « ✓ Publiée » ; la boussole du parcours passe synthese_publiee=true.",
+      "technique": "test du contrat (génération+versionnement) ; ne pas figer le texte IA",
+      "tracabilite": "(synthese) POST /api/synthese/generer, PATCH /version/:id, POST /version/:id/publier — SyntheseModal.tsx"
+    },
+    {
+      "id": "TC-UI-132",
+      "titre": "Fil rouge du mémoire : faire émerger et partager (contrat IA)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossier ouvert, feature fil_rouge active.",
+      "donnees": "—",
+      "etapes": [
+        "Sur /dossier/:id, cliquer « ✨ Faire émerger le fil rouge »",
+        "Cliquer « 📣 Partager avec l'accompagné »",
+        "Cliquer à nouveau pour retirer le partage"
+      ],
+      "attendu": "POST /api/emergence/dossier/:id/fil-rouge 200 { fil, axes[], explication, partage } ; PATCH .../partage {partage:1} 200 puis {partage:0} 200 ; le libellé du bouton bascule (Partager ↔ retirer). GET relit l'état. Texte non figé.",
+      "technique": "test du contrat ; test basé sur l'état (partage on/off)",
+      "tracabilite": "(fil_rouge) GET/POST /api/emergence/dossier/:id/fil-rouge + PATCH /partage — FilRougeCard.tsx"
+    },
+    {
+      "id": "TC-UI-133",
+      "titre": "Nuage de thèmes : génération et rendu pondéré (contrat IA)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Dossier avec matière (questionnaire/CR/notes), feature nuage_themes active.",
+      "donnees": "—",
+      "etapes": [
+        "Sur /dossier/:id, cliquer « ✨ Générer le nuage » (section Nuage de thèmes)"
+      ],
+      "attendu": "POST /api/viz/nuage/dossier/:id 200 { themes: [{mot, poids}] } non vide ; chaque mot rendu avec une taille proportionnelle au poids ; GET au chargement relit. Texte non figé.",
+      "technique": "test du contrat (structure, mapping poids→style) ; ne pas figer le texte IA",
+      "tracabilite": "(nuage_themes) GET/POST /api/viz/nuage/dossier/:id — NuageThemes.tsx"
+    },
+    {
+      "id": "TC-UI-134",
+      "titre": "Roue des émotions (vue accompagnateur) : climat agrégé en lecture seule",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Feature roue_emotions active ; l'accompagné a saisi des émotions (ou non).",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir /dossier/:id",
+        "Observer la section « 🎡 Roue des émotions (climat de l'accompagné) »"
+      ],
+      "attendu": "GET /api/viz/emotions/dossier/:id 200 ; côté accompagnateur (readOnly) : pas de sélecteur d'émotions, affichage de l'agrégat trié et des 6 derniers relevés ; si aucun relevé, message « L'accompagné n'a pas encore utilisé la roue ».",
+      "technique": "test basé sur les rôles (lecture seule) ; valeurs limites (0 entrée)",
+      "tracabilite": "(roue_emotions) GET /api/viz/emotions/dossier/:id — RoueEmotions.tsx"
+    },
+    {
+      "id": "TC-UI-135",
+      "titre": "Plan d'action : ajouter, changer le statut et réordonner",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossier en cours (non clôturé).",
+      "donnees": "Action : « Préparer le plan de mémoire »",
+      "etapes": [
+        "Saisir une action et cliquer « Ajouter »",
+        "Changer son statut (à faire→en cours→fait)",
+        "Glisser la poignée ⠿ pour réordonner"
+      ],
+      "attendu": "POST /api/actions 200 (action ajoutée) ; PATCH /api/actions/:id {statut} 200 ; POST /api/actions/reorder 200 conserve le nouvel ordre après rechargement. Libellé vide n'envoie rien.",
+      "technique": "test du contrat (CRUD + tri) ; valeurs limites (libellé vide)",
+      "tracabilite": "(plan_action) POST /api/actions, PATCH /api/actions/:id, POST /api/actions/reorder — Dossier.tsx, ActionList"
+    },
+    {
+      "id": "TC-UI-136",
+      "titre": "Formulaire d'action masqué quand le dossier est clôturé",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Dossier clôturé.",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir un dossier clôturé",
+        "Observer la section Plan d'action"
+      ],
+      "attendu": "Le formulaire d'ajout d'action n'est pas rendu (cloture=true) ; la liste reste consultable ; la section Clôture affiche la synthèse finale et le bouton « Rouvrir le dossier ».",
+      "technique": "table de décision (statut→UI) ; test basé sur l'état",
+      "tracabilite": "(plan_action) — Dossier.tsx (cloture)"
+    },
+    {
+      "id": "TC-UI-137",
+      "titre": "Clôturer puis rouvrir une démarche",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Dossier en cours.",
+      "donnees": "Synthèse finale : « Parcours mené à son terme, objectifs atteints. »",
+      "etapes": [
+        "Saisir la synthèse finale dans la section Clôture",
+        "Cliquer « Clôturer la démarche »",
+        "Cliquer « Rouvrir le dossier »"
+      ],
+      "attendu": "POST /api/dossiers/:id/cloturer 200 → badge « Clôturé », synthèse affichée en <pre>, boutons Export/Attestation conditionnels apparaissent ; POST /api/dossiers/:id/rouvrir 200 → badge « En cours », formulaire d'action réactivé.",
+      "technique": "test basé sur l'état (en cours↔clôturé) ; test du contrat",
+      "tracabilite": "(—) POST /api/dossiers/:id/cloturer + /rouvrir — Dossier.tsx"
+    },
+    {
+      "id": "TC-UI-138",
+      "titre": "Bilan de pratique : générer la synthèse réflexive globale (contrat IA + repli)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur connecté, feature bilan_pratique active, au moins quelques données (auto-évaluations / miroirs).",
+      "donnees": "—",
+      "etapes": [
+        "Aller sur /bilan-pratique",
+        "Cliquer « ✨ Générer mon bilan »",
+        "Observer le bilan et la ligne « Basé sur … »"
+      ],
+      "attendu": "GET /api/reflexivite/bilan 200 { bilan, base } ; POST /api/reflexivite/bilan 200 → { forces[], axes[], evolution, synthese, conseils[], source } ; affichage des appuis/axes/évolution/prochains pas ; ligne « Basé sur N parcours · … ». Si source='heuristique', mention « Bilan généré sans IA ». Texte non figé.",
+      "technique": "test du contrat (champs typés, non-vacuité) ; cas de repli heuristique (source='heuristique')",
+      "tracabilite": "(bilan_pratique) GET/POST /api/reflexivite/bilan — BilanPratique.tsx"
+    },
+    {
+      "id": "TC-UI-139",
+      "titre": "Accès /bilan-pratique refusé sans la feature (offre)",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur sur un plan sans bilan_pratique.",
+      "donnees": "URL /bilan-pratique",
+      "etapes": [
+        "Naviguer directement vers /bilan-pratique",
+        "Observer le chargement du bilan"
+      ],
+      "attendu": "La route est accessible (role=accompagnateur) mais GET /api/reflexivite/bilan renvoie 403 (requireFeature) ; le bilan reste vide (catch silencieux) ; aucune donnée affichée. Côté tableau de bord, le lien d'entrée est d'ailleurs masqué.",
+      "technique": "test basé sur l'offre (requireFeature) ; gestion d'erreur",
+      "tracabilite": "(bilan_pratique) GET /api/reflexivite/bilan — BilanPratique.tsx"
+    },
+    {
+      "id": "TC-UI-140",
+      "titre": "Mutualisation : partager une ressource et la voir dans la bibliothèque",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur connecté, feature mutualisation active.",
+      "donnees": "titre=« Question ouverte d'entrée », type=question, contenu=« Comment vas-tu aborder… »",
+      "etapes": [
+        "Aller sur /mutualisation",
+        "Remplir le formulaire « Partager une ressource » et cliquer « Partager »"
+      ],
+      "attendu": "POST /api/collab/ressources 200 → message « Ressource partagée ✓ » ; GET /api/collab/ressources recharge ; la ressource apparaît avec « par moi » et son type (❓/🧭/💡) ; compteur de bibliothèque incrémenté.",
+      "technique": "test du contrat ; partition d'équivalence (types astuce/question/methode)",
+      "tracabilite": "(mutualisation) GET/POST /api/collab/ressources — Mutualisation.tsx"
+    },
+    {
+      "id": "TC-UI-141",
+      "titre": "Mutualisation : champs requis (titre/contenu) bloquent la soumission",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Page /mutualisation ouverte.",
+      "donnees": "Titre vide, contenu vide",
+      "etapes": [
+        "Laisser le titre et le contenu vides",
+        "Cliquer « Partager »"
+      ],
+      "attendu": "Les champs HTML required empêchent l'envoi (contrôle natif) ; si contourné, POST /api/collab/ressources renvoie 400 (validation serveur) et le message d'erreur s'affiche.",
+      "technique": "valeurs limites (champs vides) ; partition d'équivalence (valide/invalide)",
+      "tracabilite": "(mutualisation) POST /api/collab/ressources — Mutualisation.tsx"
+    },
+    {
+      "id": "TC-UI-142",
+      "titre": "Mutualisation : rendre une ressource publique et copier le lien",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Une ressource « mienne » existe (interne).",
+      "donnees": "—",
+      "etapes": [
+        "Cliquer « 🌐 Rendre public » sur sa ressource",
+        "Cliquer « 🔗 Copier le lien »",
+        "Ouvrir le lien /ressource/:token dans un onglet anonyme"
+      ],
+      "attendu": "PATCH /api/collab/ressources/:id {public:true} 200 renvoie un token ; le lien public /ressource/:token est copié (message) ; la ressource porte « 🌐 public » ; le lien est consultable sans authentification.",
+      "technique": "test du contrat (génération token) ; test basé sur l'état (interne↔public)",
+      "tracabilite": "(mutualisation) PATCH /api/collab/ressources/:id — Mutualisation.tsx, RessourcePublique"
+    },
+    {
+      "id": "TC-UI-143",
+      "titre": "Mutualisation : supprimer uniquement ses propres ressources",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Bibliothèque contenant une ressource d'un autre accompagnateur et une ressource « mienne ».",
+      "donnees": "—",
+      "etapes": [
+        "Observer une ressource d'autrui",
+        "Supprimer une ressource « mienne » (confirmation)"
+      ],
+      "attendu": "Les boutons (public/supprimer) n'apparaissent que sur les ressources où mienne=true ; DELETE /api/collab/ressources/:id 200 sur la sienne (après confirm) la retire ; une suppression sur la ressource d'autrui serait refusée côté API (404/403).",
+      "technique": "test basé sur les rôles (propriété) ; test du contrat",
+      "tracabilite": "(mutualisation) DELETE /api/collab/ressources/:id — Mutualisation.tsx"
+    },
+    {
+      "id": "TC-UI-144",
+      "titre": "Accès /mutualisation refusé à un accompagné (mauvais rôle)",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "URL /mutualisation",
+      "etapes": [
+        "Naviguer vers /mutualisation en accompagné"
+      ],
+      "attendu": "Protected role=accompagnateur redirige vers /espace ; la page n'est pas rendue. Côté API, /api/collab/ressources renverrait 403.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "(mutualisation) — Protected.tsx, route /mutualisation"
+    },
+    {
+      "id": "TC-UI-145",
+      "titre": "Export PDF complet du dossier (contrat + impression)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossier avec questionnaire/CR/synthèse/actions ; feature export_pdf active.",
+      "donnees": "—",
+      "etapes": [
+        "Sur /dossier/:id, cliquer « 📄 Export PDF complet »",
+        "Vérifier les sections assemblées",
+        "Cliquer « 🖨️ Imprimer / enregistrer en PDF »"
+      ],
+      "attendu": "GET /api/confort/export/dossier/:id 200 ; le document assemble en-tête (accompagné, statut), questionnaire, synthèse, comptes rendus (n), plan d'action, bilan/grille si note ; bouton d'impression actif quand data chargée ; window.print() ouvre la boîte d'impression.",
+      "technique": "test du contrat (sections conditionnelles) ; test basé sur l'offre",
+      "tracabilite": "(export_pdf) GET /api/confort/export/dossier/:id — ExportDossierModal.tsx, Dossier.tsx"
+    },
+    {
+      "id": "TC-UI-146",
+      "titre": "Export PDF indisponible sans la feature (bouton masqué / 403)",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur sur un plan sans export_pdf.",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir un dossier",
+        "Chercher le bouton « 📄 Export PDF complet »"
+      ],
+      "attendu": "Le bouton n'est pas rendu (exportActif false) ; un appel direct GET /api/confort/export/dossier/:id renverrait 403 (requireFeature export_pdf).",
+      "technique": "test basé sur l'offre (useFeature + requireFeature)",
+      "tracabilite": "(export_pdf) — Dossier.tsx, ExportDossierModal.tsx"
+    },
+    {
+      "id": "TC-UI-147",
+      "titre": "Attestation de fin : délivrée uniquement sur un dossier clôturé",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Dossier clôturé ; feature attestation active.",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir un dossier clôturé",
+        "Cliquer « 📜 Délivrer l'attestation »",
+        "Vérifier le contenu puis « 🖨️ Imprimer / enregistrer en PDF »"
+      ],
+      "attendu": "GET /api/ethique/attestation/dossier/:id 200 { accompagne, accompagnateur, debut, fin, nb_entretiens, nb_comptes_rendus } ; le document affiche le nom de l'accompagné, la période formatée jj/mm/aaaa, les compteurs et la signature ; impression possible.",
+      "technique": "test du contrat (champs présents, formatage date) ; table de décision (statut→bouton)",
+      "tracabilite": "(attestation) GET /api/ethique/attestation/dossier/:id — AttestationModal.tsx, Dossier.tsx"
+    },
+    {
+      "id": "TC-UI-148",
+      "titre": "Bouton Attestation absent tant que le dossier n'est pas clôturé",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Dossier en cours ; feature attestation active.",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir un dossier EN COURS",
+        "Chercher le bouton « 📜 Délivrer l'attestation »"
+      ],
+      "attendu": "Le bouton n'apparaît pas (condition attestationActif && cloture) ; il n'apparaît qu'après clôture. L'API attestation refuserait/serait incohérente sur un dossier non clôturé.",
+      "technique": "table de décision (cloture × feature → bouton) ; valeurs limites",
+      "tracabilite": "(attestation) — Dossier.tsx (cloture)"
+    },
+    {
+      "id": "TC-UI-149",
+      "titre": "Visio : rejoindre la salle depuis un rendez-vous du dossier",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossier avec au moins un rdv ; feature visio active.",
+      "donnees": "—",
+      "etapes": [
+        "Sur /dossier/:id, dans la section Rendez-vous, cliquer « 🎥 Visio »"
+      ],
+      "attendu": "GET /api/confort/visio/rdv/:id 200 { url } ; un nouvel onglet s'ouvre sur l'URL de la salle (window.open noopener). En l'absence de feature, le bouton n'est pas rendu (VisioButton retourne null).",
+      "technique": "test du contrat ; test basé sur l'offre",
+      "tracabilite": "(visio) GET /api/confort/visio/rdv/:id — VisioButton.tsx, Dossier.tsx"
+    },
+    {
+      "id": "TC-UI-150",
+      "titre": "Rendez-vous : télécharger le fichier ICS pour l'agenda",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Dossier avec un rdv.",
+      "donnees": "—",
+      "etapes": [
+        "Sur /dossier/:id, cliquer l'icône 📅 d'un rendez-vous"
+      ],
+      "attendu": "GET /api/rdv/:id/ics 200 ; un fichier .ics est servi (Content-Type text/calendar) avec le créneau du rendez-vous ; l'aria-label décrit la date.",
+      "technique": "test du contrat (téléchargement ICS)",
+      "tracabilite": "(rdv) GET /api/rdv/:id/ics — Dossier.tsx (rdv-ics)"
+    },
+    {
+      "id": "TC-UI-151",
+      "titre": "Boussole du parcours : progression reflétant l'état du dossier",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Dossier avec questionnaire complété, ≥1 entretien, ≥1 CR publié, synthèse publiée.",
+      "donnees": "—",
+      "etapes": [
+        "Ouvrir /dossier/:id",
+        "Observer la BoussoleParcours en haut"
+      ],
+      "attendu": "La boussole reçoit phaseMax (max phases atteintes), questionnaire=true, nb entretiens, crPublies (somme des CR publiés), synthesePubliee, cloture ; l'avancement visuel correspond à ces valeurs dérivées des sessions.",
+      "technique": "test du contrat (calcul d'agrégats front) ; valeurs limites (0 entretien → phaseMax=-1)",
+      "tracabilite": "(boussole) GET /api/dossiers/:id — Dossier.tsx, BoussoleParcours"
+    },
+    {
+      "id": "TC-UI-152",
+      "titre": "Consulter le détail du questionnaire et d'un entretien depuis la timeline",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Dossier dont le questionnaire est complété et comportant ≥1 entretien.",
+      "donnees": "—",
+      "etapes": [
+        "Sur /dossier/:id, cliquer « 🔎 Questions & réponses » du questionnaire",
+        "Cliquer « 🔎 Questions & réponses » d'un entretien"
+      ],
+      "attendu": "Le modal questionnaire affiche récap/contenu/date de complétion ; le modal entretien charge les questions/réponses de la session. Si le questionnaire n'est pas complété, le bloc affiche « Pas encore complété par l'accompagné ».",
+      "technique": "test du contrat ; table de décision (complété / non complété)",
+      "tracabilite": "(questionnaire) — Dossier.tsx, QuestionnaireDetailModal, EntretienDetailModal"
+    },
+    {
+      "id": "TC-UI-153",
+      "titre": "Session expirée pendant la navigation accompagnateur",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur connecté puis cookie/JWT invalidé (expiré ou supprimé).",
+      "donnees": "—",
+      "etapes": [
+        "Être sur /tableau-de-bord",
+        "Invalider la session (supprimer le cookie)",
+        "Déclencher une action appelant l'API (recharger, ouvrir un dossier)"
+      ],
+      "attendu": "Les appels protégés renvoient 401 (Non authentifié / Session invalide) ; l'app gère l'erreur sans planter ; la navigation vers une route Protected redirige vers /connexion.",
+      "technique": "test basé sur les rôles (authentification) ; gestion d'erreur",
+      "tracabilite": "(—) requireAuth (401) — Protected.tsx, AuthContext"
+    },
+    {
+      "id": "TC-UI-154",
+      "titre": "Repli déterministe du bilan de pratique sans IA (unitaire)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Provider IA indisponible ou clé absente côté API (reflexivite.ts) ; données d'accompagnement présentes.",
+      "donnees": "Auto-évaluations/miroirs/indicateurs renseignés",
+      "etapes": [
+        "Appeler la fonction de génération de bilan en forçant l'absence d'IA",
+        "Inspecter l'objet retourné"
+      ],
+      "attendu": "La fonction de repli renvoie un bilan complet et déterministe avec source='heuristique' : forces[], axes[], synthese non vide, conseils[] ; les agrégats (nbDossiers, nbEntretiens, miroirs, indicateurs) sont cohérents avec les données. Aucun appel réseau IA.",
+      "technique": "test du contrat (repli déterministe) ; partition d'équivalence (avec/sans données)",
+      "tracabilite": "(bilan_pratique) POST /api/reflexivite/bilan (branche repli) — reflexivite.ts"
+    },
+    {
+      "id": "TC-UI-155",
+      "titre": "Repli déterministe de l'analyse miroir sans IA (unitaire)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Provider IA indisponible côté API (miroir.ts) ; entretien avec questions/notes.",
+      "donnees": "Une session d'entretien renseignée",
+      "etapes": [
+        "Déclencher la génération du miroir en forçant l'absence d'IA",
+        "Inspecter l'objet analyse retourné"
+      ],
+      "attendu": "L'analyse de repli est cohérente : source='repli', forces[]/glissements[] structurés (principe/observation), synthese non vide, scores[] avec indicateurs valides et note ∈ [0,100] ou null. Persistée et relisible via GET /miroir/session/:sid.",
+      "technique": "test du contrat (repli déterministe, bornes) ; valeurs limites (note 0..100)",
+      "tracabilite": "(miroir) POST /api/miroir/session/:sid (branche repli) — miroir.ts"
+    },
+    {
+      "id": "TC-UI-156",
+      "titre": "sanitizeKeys filtre les clés de features inconnues (unitaire)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "—",
+      "donnees": "['miroir','inconnue','miroir', 42, null, 'export_pdf']",
+      "etapes": [
+        "Appeler sanitizeKeys avec l'entrée mixte (valides, doublons, invalides, non-tableau)"
+      ],
+      "attendu": "Renvoie un tableau dédupliqué ne contenant que les clés valides ('miroir','export_pdf') ; une entrée non-tableau renvoie [] ; sert de base au gating front/serveur du domaine accompagnateur.",
+      "technique": "partition d'équivalence (valide/invalide) ; valeurs limites (vide, non-tableau, doublons)",
+      "tracabilite": "(—) sanitizeKeys — features.ts"
+    },
+    {
+      "id": "TC-UI-157",
+      "titre": "parseTags décode la chaîne tags du tableau de bord (unitaire)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "—",
+      "donnees": "'12|priorité,7|à relancer,3|tag|avec|pipe' et null",
+      "etapes": [
+        "Appeler parseTags avec une chaîne id|nom séparée par des virgules",
+        "Appeler parseTags(null)"
+      ],
+      "attendu": "Renvoie [{id:12,nom:'priorité'},{id:7,nom:'à relancer'},{id:3,nom:'tag|avec|pipe'}] (le nom conserve les pipes via rest.join) ; parseTags(null) renvoie [].",
+      "technique": "valeurs limites (null, nom contenant le séparateur) ; partition d'équivalence",
+      "tracabilite": "(—) parseTags — Dashboard.tsx"
+    },
+    {
+      "id": "TC-UI-158",
+      "titre": "userFeatures : aucun plan = accès à toutes les fonctionnalités (unitaire)",
+      "niveau": "unitaire",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Utilisateur accompagnateur sans plan_id (cas par défaut des comptes démo).",
+      "donnees": "userId d'un accompagnateur sans plan",
+      "etapes": [
+        "Appeler userFeatures(userId) pour un compte sans plan",
+        "Appeler userFeatures(userId) pour un compte sur plan « Découverte »"
+      ],
+      "attendu": "Sans plan : renvoie l'ensemble ALL_FEATURE_KEYS (tout activé), ce qui explique pourquoi les comptes démo voient miroir/bilan/mutualisation/export. Sur un plan : renvoie seulement les clés de features du plan ; les middlewares requireFeature en découlent (200 vs 403).",
+      "technique": "test basé sur l'offre ; table de décision (plan présent/absent)",
+      "tracabilite": "(—) userFeatures + requireFeature — features.ts"
+    }
+  ]
+}

@@ -1,0 +1,840 @@
+{
+  "domaine": "confort",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/confort/visio/rdv/:id",
+      "feature": "visio",
+      "role": "accompagne|accompagnateur",
+      "summary": "Renvoie la salle Jitsi déterministe { salle, url } pour un RDV dont l'utilisateur est l'accompagné ou l'accompagnateur. requireAuth + requireFeature('visio'). 404 si RDV inexistant ou non-participant."
+    },
+    {
+      "method": "GET",
+      "path": "/api/confort/push/cle",
+      "feature": "pwa_push",
+      "role": "authentifié",
+      "summary": "Renvoie la clé publique VAPID { cle } pour s'abonner aux notifications push. requireAuth + requireFeature('pwa_push')."
+    },
+    {
+      "method": "POST",
+      "path": "/api/confort/push/abonnement",
+      "feature": "pwa_push",
+      "role": "authentifié",
+      "summary": "Enregistre/met à jour (upsert sur endpoint) l'abonnement push de l'appareil. 400 si endpoint/p256dh/auth manquants, 201 { ok:true }."
+    },
+    {
+      "method": "POST",
+      "path": "/api/confort/push/test",
+      "feature": "pwa_push",
+      "role": "authentifié",
+      "summary": "Envoie une notification de test à tous les appareils abonnés de l'utilisateur (best-effort, purge des abonnements morts). 200 { ok:true }."
+    },
+    {
+      "method": "GET",
+      "path": "/api/confort/export/dossier/:id",
+      "feature": "export_pdf",
+      "role": "accompagnateur",
+      "summary": "Assemble la vue imprimable complète d'un dossier (dossier, questionnaire, CR publiés, synthèse publiée, plan d'action, grille validée). requireAuth + requireRole('accompagnateur') + requireFeature('export_pdf'). 404 si dossier inexistant ou non-propriétaire."
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-CONFORT-001",
+      "titre": "Visio RDV - nominal accompagnateur : salle + url Jitsi",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Test du contrat",
+      "preconditions": "Connecté en accompagnateur (sans plan = toutes features). Un RDV existe dont je suis l'accompagnateur (via creneaux.accompagnateur_id).",
+      "donnees": "GET /api/confort/visio/rdv/{rdvId} (rdvId d'un RDV m'appartenant)",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "Récupérer un rdvId rattaché à un de mes créneaux",
+        "Appeler GET /api/confort/visio/rdv/{rdvId}"
+      ],
+      "attendu": "200 ; corps JSON { salle, url } ; salle de forme 'Boussole-<id>-<hash10>' ; url = 'https://meet.jit.si/' + salle ; champs string non vides.",
+      "tracabilite": "visio | GET /api/confort/visio/rdv/:id"
+    },
+    {
+      "id": "TC-CONFORT-002",
+      "titre": "Visio RDV - nominal accompagné : accès à sa propre visio",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Connecté en accompagné (Amine, afrit_mohamed@yahoo.fr, sans plan). Un RDV existe dont rdv.accompagne_id = mon id.",
+      "donnees": "GET /api/confort/visio/rdv/{rdvId}",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "Récupérer un rdvId où je suis l'accompagné",
+        "Appeler GET /api/confort/visio/rdv/{rdvId}"
+      ],
+      "attendu": "200 ; { salle, url } identiques à ce que verrait l'accompagnateur du même RDV (salle partagée).",
+      "tracabilite": "visio | GET /api/confort/visio/rdv/:id"
+    },
+    {
+      "id": "TC-CONFORT-003",
+      "titre": "Visio RDV - URL déterministe (stabilité du hash)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "Test du contrat",
+      "preconditions": "Connecté, RDV m'appartenant.",
+      "donnees": "2 appels successifs GET /api/confort/visio/rdv/{rdvId}",
+      "etapes": [
+        "Appeler l'endpoint une première fois et noter salle/url",
+        "Rappeler l'endpoint pour le même rdvId"
+      ],
+      "attendu": "200 aux deux appels ; salle et url strictement identiques entre les deux appels (URL stable par RDV, dérivée de sha256(id:JWT_SECRET)).",
+      "tracabilite": "visio | GET /api/confort/visio/rdv/:id"
+    },
+    {
+      "id": "TC-CONFORT-004",
+      "titre": "Visio RDV - salles distinctes pour deux RDV différents",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "Partition d'équivalence",
+      "preconditions": "Deux RDV distincts (id A != id B) m'appartenant.",
+      "donnees": "GET sur rdv A puis rdv B",
+      "etapes": [
+        "Récupérer la salle du RDV A",
+        "Récupérer la salle du RDV B"
+      ],
+      "attendu": "200 sur les deux ; salle(A) != salle(B) ; chaque salle contient son propre id de RDV (pas de collision).",
+      "tracabilite": "visio | GET /api/confort/visio/rdv/:id"
+    },
+    {
+      "id": "TC-CONFORT-005",
+      "titre": "Visio RDV - 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Aucun cookie de session (anonyme).",
+      "donnees": "GET /api/confort/visio/rdv/1 sans cookie",
+      "etapes": [
+        "Sans authentification, appeler GET /api/confort/visio/rdv/1"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' } ; aucune donnée de salle renvoyée.",
+      "tracabilite": "visio | GET /api/confort/visio/rdv/:id (requireAuth)"
+    },
+    {
+      "id": "TC-CONFORT-006",
+      "titre": "Visio RDV - 403 feature 'visio' absente du plan",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Compte affecté par l'admin à un plan SANS 'visio' (ex. plan Découverte ou Essentiel, qui n'incluent pas visio).",
+      "donnees": "GET /api/confort/visio/rdv/{rdvId} (RDV m'appartenant)",
+      "etapes": [
+        "Affecter au compte un plan dépourvu de 'visio' (PUT admin du plan)",
+        "S'authentifier avec ce compte",
+        "Appeler GET /api/confort/visio/rdv/{rdvId}"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' } ; le contrôle requireFeature s'applique AVANT toute lecture du RDV.",
+      "tracabilite": "visio | requireFeature('visio')"
+    },
+    {
+      "id": "TC-CONFORT-007",
+      "titre": "Visio RDV - 404 RDV d'un autre utilisateur (non-participant)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Connecté en accompagnateur Camille (camille.laurent). Il existe un RDV qui n'implique ni Camille comme accompagnateur ni comme accompagné (RDV de Mohamed/Amine).",
+      "donnees": "GET /api/confort/visio/rdv/{rdvIdAutrui}",
+      "etapes": [
+        "S'authentifier en Camille",
+        "Identifier un rdvId rattaché à un autre accompagnateur et un autre accompagné",
+        "Appeler GET /api/confort/visio/rdv/{rdvIdAutrui}"
+      ],
+      "attendu": "404 ; { error: 'Rendez-vous introuvable' } (le RDV existe mais l'utilisateur n'en est ni accompagné ni accompagnateur).",
+      "tracabilite": "visio | GET /api/confort/visio/rdv/:id (contrôle appartenance)"
+    },
+    {
+      "id": "TC-CONFORT-008",
+      "titre": "Visio RDV - 404 RDV inexistant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "Valeurs limites",
+      "preconditions": "Connecté (feature visio disponible).",
+      "donnees": "GET /api/confort/visio/rdv/99999999 (id inexistant)",
+      "etapes": [
+        "Appeler GET /api/confort/visio/rdv/99999999"
+      ],
+      "attendu": "404 ; { error: 'Rendez-vous introuvable' }.",
+      "tracabilite": "visio | GET /api/confort/visio/rdv/:id"
+    },
+    {
+      "id": "TC-CONFORT-009",
+      "titre": "Visio RDV - id non numérique (NaN) traité comme introuvable",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "Partition d'équivalence (entrée invalide)",
+      "preconditions": "Connecté, feature visio disponible.",
+      "donnees": "GET /api/confort/visio/rdv/abc",
+      "etapes": [
+        "Appeler GET /api/confort/visio/rdv/abc"
+      ],
+      "attendu": "404 ; { error: 'Rendez-vous introuvable' } (Number('abc')=NaN, aucune ligne trouvée). Pas d'erreur 500.",
+      "tracabilite": "visio | GET /api/confort/visio/rdv/:id"
+    },
+    {
+      "id": "TC-CONFORT-010",
+      "titre": "Visio RDV - unitaire calcul déterministe salle/hash",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "Test du contrat (fonction pure)",
+      "preconditions": "Connaître JWT_SECRET effectif de l'environnement de test.",
+      "donnees": "rdv.id connu (ex. 1) ; calcul attendu sha256('1:'+JWT_SECRET).hex.slice(0,10)",
+      "etapes": [
+        "Calculer indépendamment hash = sha256(`${id}:${JWT_SECRET}`).slice(0,10)",
+        "Comparer salle attendue 'Boussole-1-<hash>' à la valeur renvoyée par l'API"
+      ],
+      "attendu": "La salle renvoyée par l'API égale exactement 'Boussole-<id>-<hash>' calculé hors application (hash de 10 caractères hex). Confirme le déterminisme du repli sans appel externe.",
+      "tracabilite": "visio | génération salle (crypto.createHash)"
+    },
+    {
+      "id": "TC-CONFORT-011",
+      "titre": "Push clé - nominal : renvoie la clé publique VAPID",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Test du contrat",
+      "preconditions": "Connecté (feature pwa_push disponible).",
+      "donnees": "GET /api/confort/push/cle",
+      "etapes": [
+        "S'authentifier",
+        "Appeler GET /api/confort/push/cle"
+      ],
+      "attendu": "200 ; { cle: <string> } ; cle non vide (chaîne base64url VAPID). Si VAPID_PUBLIC_KEY défini en env, c'est cette valeur ; sinon clé éphémère générée au démarrage.",
+      "tracabilite": "pwa_push | GET /api/confort/push/cle"
+    },
+    {
+      "id": "TC-CONFORT-012",
+      "titre": "Push clé - 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Anonyme.",
+      "donnees": "GET /api/confort/push/cle sans cookie",
+      "etapes": [
+        "Appeler GET /api/confort/push/cle sans session"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "pwa_push | requireAuth"
+    },
+    {
+      "id": "TC-CONFORT-013",
+      "titre": "Push clé - 403 feature 'pwa_push' absente du plan",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Table de décision (rôle x feature)",
+      "preconditions": "Compte affecté à un plan sans 'pwa_push' (Découverte/Essentiel).",
+      "donnees": "GET /api/confort/push/cle",
+      "etapes": [
+        "Affecter un plan sans pwa_push",
+        "S'authentifier",
+        "Appeler GET /api/confort/push/cle"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' }.",
+      "tracabilite": "pwa_push | requireFeature('pwa_push')"
+    },
+    {
+      "id": "TC-CONFORT-014",
+      "titre": "Push abonnement - nominal : création (201)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Test du contrat",
+      "preconditions": "Connecté (pwa_push disponible). Aucun abonnement existant pour cet endpoint.",
+      "donnees": "POST /api/confort/push/abonnement body { subscription: { endpoint:'https://push.example/ep1', keys:{ p256dh:'BPp...', auth:'a1b2' } } }",
+      "etapes": [
+        "Construire un objet subscription valide",
+        "POST /api/confort/push/abonnement avec ce corps"
+      ],
+      "attendu": "201 ; { ok: true } ; une ligne push_subscriptions créée (user_id = moi, endpoint, p256dh, auth).",
+      "tracabilite": "pwa_push | POST /api/confort/push/abonnement"
+    },
+    {
+      "id": "TC-CONFORT-015",
+      "titre": "Push abonnement - accepte le format plat (sans clé 'subscription')",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "Partition d'équivalence (deux formats équivalents)",
+      "preconditions": "Connecté, pwa_push disponible.",
+      "donnees": "POST body directement { endpoint:'https://push.example/ep2', keys:{ p256dh:'BPp...', auth:'xy' } } (sans enveloppe 'subscription')",
+      "etapes": [
+        "POST /api/confort/push/abonnement avec le corps plat"
+      ],
+      "attendu": "201 ; { ok: true } (le code lit req.body.subscription || req.body).",
+      "tracabilite": "pwa_push | POST /api/confort/push/abonnement"
+    },
+    {
+      "id": "TC-CONFORT-016",
+      "titre": "Push abonnement - upsert idempotent sur endpoint existant",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "haute",
+      "technique": "Test du contrat (ON CONFLICT)",
+      "preconditions": "Un abonnement existe déjà pour endpoint 'https://push.example/ep1'.",
+      "donnees": "POST même endpoint avec p256dh/auth modifiés",
+      "etapes": [
+        "Créer l'abonnement (TC-014)",
+        "Re-POSTer le même endpoint avec de nouvelles clés",
+        "Vérifier le nombre de lignes pour cet endpoint"
+      ],
+      "attendu": "201 ; { ok: true } ; une seule ligne pour cet endpoint (ON CONFLICT(endpoint) DO UPDATE) ; user_id/p256dh/auth mis à jour. Aucun doublon créé.",
+      "tracabilite": "pwa_push | POST /api/confort/push/abonnement (upsert)"
+    },
+    {
+      "id": "TC-CONFORT-017",
+      "titre": "Push abonnement - réattribution de l'endpoint à l'utilisateur courant",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "Test du contrat",
+      "preconditions": "Endpoint déjà abonné par l'utilisateur A. Se connecter ensuite en utilisateur B et réutiliser le même endpoint (même navigateur partagé).",
+      "donnees": "POST /api/confort/push/abonnement (même endpoint) en tant que B",
+      "etapes": [
+        "A s'abonne avec endpoint E",
+        "B se connecte et POST le même endpoint E"
+      ],
+      "attendu": "201 ; ON CONFLICT met user_id = B (excluded.user_id) ; l'abonnement n'est plus rattaché à A. Pas de doublon.",
+      "tracabilite": "pwa_push | POST /api/confort/push/abonnement"
+    },
+    {
+      "id": "TC-CONFORT-018",
+      "titre": "Push abonnement - 400 endpoint manquant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "Partition d'équivalence (champ requis absent)",
+      "preconditions": "Connecté, pwa_push disponible.",
+      "donnees": "POST body { subscription:{ keys:{ p256dh:'x', auth:'y' } } } (pas d'endpoint)",
+      "etapes": [
+        "POST sans endpoint"
+      ],
+      "attendu": "400 ; { error: 'Abonnement invalide' } ; aucune ligne insérée.",
+      "tracabilite": "pwa_push | POST /api/confort/push/abonnement (validation)"
+    },
+    {
+      "id": "TC-CONFORT-019",
+      "titre": "Push abonnement - 400 p256dh manquant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "Partition d'équivalence",
+      "preconditions": "Connecté, pwa_push disponible.",
+      "donnees": "POST body { endpoint:'https://push.example/ep', keys:{ auth:'y' } }",
+      "etapes": [
+        "POST sans keys.p256dh"
+      ],
+      "attendu": "400 ; { error: 'Abonnement invalide' }.",
+      "tracabilite": "pwa_push | POST /api/confort/push/abonnement (validation)"
+    },
+    {
+      "id": "TC-CONFORT-020",
+      "titre": "Push abonnement - 400 auth manquant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "technique": "Partition d'équivalence",
+      "preconditions": "Connecté, pwa_push disponible.",
+      "donnees": "POST body { endpoint:'https://push.example/ep', keys:{ p256dh:'x' } }",
+      "etapes": [
+        "POST sans keys.auth"
+      ],
+      "attendu": "400 ; { error: 'Abonnement invalide' }.",
+      "tracabilite": "pwa_push | POST /api/confort/push/abonnement (validation)"
+    },
+    {
+      "id": "TC-CONFORT-021",
+      "titre": "Push abonnement - 400 corps vide / sans keys",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "Valeurs limites (corps minimal)",
+      "preconditions": "Connecté, pwa_push disponible.",
+      "donnees": "POST body {} (objet vide)",
+      "etapes": [
+        "POST avec un corps {} ou sans champ keys"
+      ],
+      "attendu": "400 ; { error: 'Abonnement invalide' } (sub.keys?.p256dh est undefined). Pas de 500.",
+      "tracabilite": "pwa_push | POST /api/confort/push/abonnement (validation)"
+    },
+    {
+      "id": "TC-CONFORT-022",
+      "titre": "Push abonnement - 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Anonyme.",
+      "donnees": "POST /api/confort/push/abonnement (corps valide) sans cookie",
+      "etapes": [
+        "POST sans session"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' } ; aucune écriture en base.",
+      "tracabilite": "pwa_push | requireAuth"
+    },
+    {
+      "id": "TC-CONFORT-023",
+      "titre": "Push abonnement - 403 feature 'pwa_push' absente",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Compte sur un plan sans pwa_push.",
+      "donnees": "POST /api/confort/push/abonnement (corps valide)",
+      "etapes": [
+        "S'authentifier sur le compte restreint",
+        "POST l'abonnement"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' } ; aucune insertion.",
+      "tracabilite": "pwa_push | requireFeature('pwa_push')"
+    },
+    {
+      "id": "TC-CONFORT-024",
+      "titre": "Push test - nominal sans abonnement (best-effort)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Test du contrat",
+      "preconditions": "Connecté (pwa_push disponible), aucun abonnement push enregistré pour l'utilisateur.",
+      "donnees": "POST /api/confort/push/test",
+      "etapes": [
+        "S'assurer qu'aucun push_subscriptions n'existe pour l'utilisateur",
+        "POST /api/confort/push/test"
+      ],
+      "attendu": "200 ; { ok: true } même sans abonnement (boucle vide, best-effort, aucune erreur).",
+      "tracabilite": "pwa_push | POST /api/confort/push/test"
+    },
+    {
+      "id": "TC-CONFORT-025",
+      "titre": "Push test - nominal avec abonnement enregistré",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "Test du contrat",
+      "preconditions": "Connecté, pwa_push disponible, au moins un abonnement (endpoint factice) enregistré.",
+      "donnees": "POST /api/confort/push/test",
+      "etapes": [
+        "Créer un abonnement (TC-014)",
+        "POST /api/confort/push/test"
+      ],
+      "attendu": "200 ; { ok: true }. L'envoi est best-effort : un endpoint factice peut échouer côté webpush sans faire échouer la réponse HTTP (les erreurs sont avalées).",
+      "tracabilite": "pwa_push | POST /api/confort/push/test"
+    },
+    {
+      "id": "TC-CONFORT-026",
+      "titre": "Push test - 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Anonyme.",
+      "donnees": "POST /api/confort/push/test sans cookie",
+      "etapes": [
+        "POST sans session"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "pwa_push | requireAuth"
+    },
+    {
+      "id": "TC-CONFORT-027",
+      "titre": "Push test - 403 feature 'pwa_push' absente",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Compte sur un plan sans pwa_push.",
+      "donnees": "POST /api/confort/push/test",
+      "etapes": [
+        "S'authentifier sur le compte restreint",
+        "POST le test"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' } ; aucun envoi.",
+      "tracabilite": "pwa_push | requireFeature('pwa_push')"
+    },
+    {
+      "id": "TC-CONFORT-028",
+      "titre": "pushToUser - unitaire : purge des abonnements morts (404/410)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "Table de décision (codes de statut webpush)",
+      "preconditions": "Stub de webpush.sendNotification qui lève une erreur avec statusCode 410 (Gone) pour un abonnement, et 500 pour un autre.",
+      "donnees": "Deux abonnements en base pour le même user : sub A (renvoie 410), sub B (renvoie 500)",
+      "etapes": [
+        "Insérer deux abonnements",
+        "Appeler pushToUser(userId, payload) avec le stub",
+        "Inspecter push_subscriptions après exécution"
+      ],
+      "attendu": "sub A (404/410) est SUPPRIMÉ de push_subscriptions ; sub B (500) est CONSERVÉ ; la fonction ne lève pas (best-effort).",
+      "tracabilite": "pwa_push | pushToUser (purge 404/410)"
+    },
+    {
+      "id": "TC-CONFORT-029",
+      "titre": "pushToUser - unitaire : payload titre/body/url transmis",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "Test du contrat",
+      "preconditions": "Stub de webpush.sendNotification capturant ses arguments. Un abonnement valide en base.",
+      "donnees": "pushToUser(id, { title:'Boussole', body:'...', url:'/espace' })",
+      "etapes": [
+        "Appeler pushToUser avec un payload",
+        "Inspecter l'argument JSON passé à sendNotification"
+      ],
+      "attendu": "sendNotification appelé une fois par abonnement, avec subscription { endpoint, keys:{p256dh,auth} } et un payload JSON contenant exactement title, body, url.",
+      "tracabilite": "pwa_push | pushToUser"
+    },
+    {
+      "id": "TC-CONFORT-030",
+      "titre": "Export dossier - nominal accompagnateur propriétaire",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Test du contrat",
+      "preconditions": "Connecté en accompagnateur (Mohamed). Un dossier m'appartient (accompagnateur_id = moi) avec questionnaire, CR publiés, synthèse publiée, actions, grille validée.",
+      "donnees": "GET /api/confort/export/dossier/{dossierId}",
+      "etapes": [
+        "S'authentifier en accompagnateur propriétaire",
+        "Appeler GET /api/confort/export/dossier/{dossierId}"
+      ],
+      "attendu": "200 ; JSON avec clés dossier{titre,statut,contexte,cree_le,accompagne}, questionnaire, comptes_rendus[] (date,html), synthese, actions[] (libelle,statut,echeance,critere), grille|null. Tous champs typés conformément au contrat.",
+      "tracabilite": "export_pdf | GET /api/confort/export/dossier/:id"
+    },
+    {
+      "id": "TC-CONFORT-031",
+      "titre": "Export dossier - n'inclut que les CR publiés",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Partition d'équivalence (publie=1 vs publie=0)",
+      "preconditions": "Dossier m'appartenant comportant des comptes_rendus publie=1 ET au moins un publie=0.",
+      "donnees": "GET /api/confort/export/dossier/{dossierId}",
+      "etapes": [
+        "Vérifier en base les CR publiés/non publiés du dossier",
+        "Appeler l'export"
+      ],
+      "attendu": "200 ; comptes_rendus ne contient QUE les CR avec publie=1, triés par s.date croissante ; les CR non publiés sont exclus.",
+      "tracabilite": "export_pdf | GET /api/confort/export/dossier/:id"
+    },
+    {
+      "id": "TC-CONFORT-032",
+      "titre": "Export dossier - synthèse : seule la dernière version publiée",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "Valeurs limites (ORDER BY version DESC LIMIT 1)",
+      "preconditions": "Dossier avec plusieurs syntheses publie=1 de versions différentes (+ éventuellement une non publiée plus récente).",
+      "donnees": "GET /api/confort/export/dossier/{dossierId}",
+      "etapes": [
+        "Constituer plusieurs versions de synthèse",
+        "Appeler l'export"
+      ],
+      "attendu": "200 ; synthese = contenu_html de la version publiée la plus élevée (version DESC, publie=1) ; ignore les versions non publiées.",
+      "tracabilite": "export_pdf | GET /api/confort/export/dossier/:id"
+    },
+    {
+      "id": "TC-CONFORT-033",
+      "titre": "Export dossier - grille : seule l'auto-évaluation validée la plus récente",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "technique": "Table de décision (statut='validee')",
+      "preconditions": "Dossier avec une auto_evaluation statut='validee' (note_globale, commentaire_global) et éventuellement des brouillons non validés.",
+      "donnees": "GET /api/confort/export/dossier/{dossierId}",
+      "etapes": [
+        "Préparer une grille validée + un brouillon",
+        "Appeler l'export"
+      ],
+      "attendu": "200 ; grille = { note, commentaire } de la dernière validée (id DESC) ; si aucune validée, grille = null.",
+      "tracabilite": "export_pdf | GET /api/confort/export/dossier/:id"
+    },
+    {
+      "id": "TC-CONFORT-034",
+      "titre": "Export dossier - dossier vide : sections null/listes vides",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "Valeurs limites (ensembles vides)",
+      "preconditions": "Dossier m'appartenant sans questionnaire, sans CR publié, sans synthèse publiée, sans action, sans grille validée.",
+      "donnees": "GET /api/confort/export/dossier/{dossierId}",
+      "etapes": [
+        "Créer un dossier minimal m'appartenant",
+        "Appeler l'export"
+      ],
+      "attendu": "200 ; questionnaire=null ; comptes_rendus=[] ; synthese=null ; actions=[] ; grille=null ; bloc dossier renseigné (accompagne = prénom+nom ou, à défaut, email).",
+      "tracabilite": "export_pdf | GET /api/confort/export/dossier/:id"
+    },
+    {
+      "id": "TC-CONFORT-035",
+      "titre": "Export dossier - libellé 'accompagne' : fallback sur email",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "Test du contrat (calcul du champ)",
+      "preconditions": "Dossier dont l'accompagné a prénom ET nom NULL (uniquement un email).",
+      "donnees": "GET /api/confort/export/dossier/{dossierId}",
+      "etapes": [
+        "Préparer un accompagné sans prénom ni nom",
+        "Appeler l'export"
+      ],
+      "attendu": "200 ; dossier.accompagne = email de l'accompagné (car [prenom,nom].filter(Boolean).join(' ') est vide).",
+      "tracabilite": "export_pdf | construction champ accompagne"
+    },
+    {
+      "id": "TC-CONFORT-036",
+      "titre": "Export dossier - 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Anonyme.",
+      "donnees": "GET /api/confort/export/dossier/1 sans cookie",
+      "etapes": [
+        "Appeler l'export sans session"
+      ],
+      "attendu": "401 ; { error: 'Non authentifié' }.",
+      "tracabilite": "export_pdf | requireAuth"
+    },
+    {
+      "id": "TC-CONFORT-037",
+      "titre": "Export dossier - 403 rôle accompagné (mauvais rôle)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Connecté en accompagné (Amine, sans plan, donc export_pdf disponible côté feature).",
+      "donnees": "GET /api/confort/export/dossier/{dossierId}",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "Appeler GET /api/confort/export/dossier/{dossierId}"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' } (requireRole('accompagnateur') bloque avant requireFeature et avant toute requête dossier).",
+      "tracabilite": "export_pdf | requireRole('accompagnateur')"
+    },
+    {
+      "id": "TC-CONFORT-038",
+      "titre": "Export dossier - 403 rôle admin (non-accompagnateur)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "Test basé sur les rôles",
+      "preconditions": "Connecté en admin (mohamed@elafrit.com).",
+      "donnees": "GET /api/confort/export/dossier/{dossierId}",
+      "etapes": [
+        "S'authentifier en admin",
+        "Appeler l'export"
+      ],
+      "attendu": "403 ; { error: 'Accès refusé' } (seul le rôle accompagnateur est autorisé).",
+      "tracabilite": "export_pdf | requireRole('accompagnateur')"
+    },
+    {
+      "id": "TC-CONFORT-039",
+      "titre": "Export dossier - 403 feature 'export_pdf' absente du plan",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Table de décision (rôle OK x feature KO)",
+      "preconditions": "Accompagnateur affecté à un plan SANS export_pdf (Découverte/Essentiel).",
+      "donnees": "GET /api/confort/export/dossier/{dossierId} (dossier m'appartenant)",
+      "etapes": [
+        "Affecter à l'accompagnateur un plan sans export_pdf",
+        "S'authentifier",
+        "Appeler l'export"
+      ],
+      "attendu": "403 ; { error: 'Fonctionnalité non disponible dans votre offre' } (rôle OK mais requireFeature('export_pdf') bloque).",
+      "tracabilite": "export_pdf | requireFeature('export_pdf')"
+    },
+    {
+      "id": "TC-CONFORT-040",
+      "titre": "Export dossier - 404 dossier d'un autre accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "technique": "Test basé sur les rôles (propriété ressource)",
+      "preconditions": "Connecté en accompagnateur Camille. Un dossier appartient à un AUTRE accompagnateur (Mohamed).",
+      "donnees": "GET /api/confort/export/dossier/{dossierIdAutrui}",
+      "etapes": [
+        "S'authentifier en Camille",
+        "Identifier un dossier dont accompagnateur_id != Camille",
+        "Appeler l'export"
+      ],
+      "attendu": "404 ; { error: 'Dossier introuvable' } (requête filtrée par accompagnateur_id = moi).",
+      "tracabilite": "export_pdf | GET /api/confort/export/dossier/:id (propriété)"
+    },
+    {
+      "id": "TC-CONFORT-041",
+      "titre": "Export dossier - 404 dossier inexistant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "technique": "Valeurs limites",
+      "preconditions": "Connecté en accompagnateur (export_pdf disponible).",
+      "donnees": "GET /api/confort/export/dossier/99999999",
+      "etapes": [
+        "Appeler l'export avec un id inexistant"
+      ],
+      "attendu": "404 ; { error: 'Dossier introuvable' }.",
+      "tracabilite": "export_pdf | GET /api/confort/export/dossier/:id"
+    },
+    {
+      "id": "TC-CONFORT-042",
+      "titre": "Export dossier - id non numérique traité comme introuvable",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "technique": "Partition d'équivalence (entrée invalide)",
+      "preconditions": "Connecté en accompagnateur, export_pdf disponible.",
+      "donnees": "GET /api/confort/export/dossier/abc",
+      "etapes": [
+        "Appeler l'export avec id 'abc'"
+      ],
+      "attendu": "404 ; { error: 'Dossier introuvable' } (Number('abc')=NaN). Pas de 500.",
+      "tracabilite": "export_pdf | GET /api/confort/export/dossier/:id"
+    },
+    {
+      "id": "TC-CONFORT-043",
+      "titre": "UI Visio - le bouton 'Visio' ouvre la salle Jitsi depuis le dossier",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Test du contrat (bout-en-bout)",
+      "preconditions": "Connecté en accompagnateur (feature visio active). Sur la page Dossier, un RDV à venir est listé.",
+      "donnees": "Page Dossier > carte RDV > bouton '🎥 Visio'",
+      "etapes": [
+        "Ouvrir http://localhost:8080 et se connecter en accompagnateur",
+        "Ouvrir un dossier comportant un RDV",
+        "Cliquer sur le bouton '🎥 Visio'"
+      ],
+      "attendu": "Un nouvel onglet s'ouvre sur https://meet.jit.si/Boussole-<id>-<hash> (window.open noopener). Le bouton est désactivé pendant l'appel (busy).",
+      "tracabilite": "visio | composant VisioButton (pages/Dossier.tsx, ParcoursDetail.tsx)"
+    },
+    {
+      "id": "TC-CONFORT-044",
+      "titre": "UI Visio - bouton masqué si feature 'visio' indisponible",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "Test basé sur les rôles (gating UI)",
+      "preconditions": "Connecté avec un compte dont le plan n'inclut pas 'visio'.",
+      "donnees": "Page Dossier / ParcoursDetail avec RDV",
+      "etapes": [
+        "Se connecter avec le compte restreint",
+        "Ouvrir un dossier/parcours avec RDV"
+      ],
+      "attendu": "Le bouton VisioButton n'est pas rendu (return null si !useFeature('visio')).",
+      "tracabilite": "visio | VisioButton (useFeature)"
+    },
+    {
+      "id": "TC-CONFORT-045",
+      "titre": "UI Push - activer puis tester les notifications depuis le profil",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Test du contrat (bout-en-bout)",
+      "preconditions": "Connecté (feature pwa_push active), navigateur supportant ServiceWorker + PushManager, permission accordée.",
+      "donnees": "Page Profil > carte '🔔 Notifications push'",
+      "etapes": [
+        "Aller sur Profil",
+        "Cliquer 'Activer les notifications' et accorder la permission",
+        "Cliquer 'Envoyer un test'"
+      ],
+      "attendu": "Après activation : message 'Notifications activées sur cet appareil ✓', boutons 'Envoyer un test' et 'Désactiver' affichés. Le test appelle POST /confort/push/test et affiche 'Notification de test envoyée'. L'abonnement est persité (POST /confort/push/abonnement renvoyé 201).",
+      "tracabilite": "pwa_push | composant PushToggle (pages/Profil.tsx)"
+    },
+    {
+      "id": "TC-CONFORT-046",
+      "titre": "UI Push - carte masquée si feature 'pwa_push' indisponible",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "Test basé sur les rôles (gating UI)",
+      "preconditions": "Compte sans pwa_push dans son plan.",
+      "donnees": "Page Profil",
+      "etapes": [
+        "Se connecter avec le compte restreint",
+        "Ouvrir Profil"
+      ],
+      "attendu": "La carte 'Notifications push' n'est pas rendue (PushToggle return null si !useFeature('pwa_push')).",
+      "tracabilite": "pwa_push | PushToggle (useFeature)"
+    },
+    {
+      "id": "TC-CONFORT-047",
+      "titre": "UI Push - message si navigateur non supporté",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "technique": "Partition d'équivalence (environnement)",
+      "preconditions": "Navigateur sans 'serviceWorker' ou sans 'PushManager' (ou contexte non sécurisé).",
+      "donnees": "Page Profil > carte Notifications push",
+      "etapes": [
+        "Ouvrir Profil dans un environnement sans support push"
+      ],
+      "attendu": "État 'non_supporte' : message 'Ton navigateur ne prend pas en charge les notifications push.' et aucun bouton d'activation.",
+      "tracabilite": "pwa_push | PushToggle (etat non_supporte)"
+    },
+    {
+      "id": "TC-CONFORT-048",
+      "titre": "UI Export - ouvrir l'export PDF complet et imprimer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "technique": "Test du contrat (bout-en-bout)",
+      "preconditions": "Connecté en accompagnateur (feature export_pdf active) sur un dossier m'appartenant et garni (synthèse, CR publiés, actions, grille).",
+      "donnees": "Page Dossier > bouton '📄 Export PDF complet'",
+      "etapes": [
+        "Ouvrir le dossier",
+        "Cliquer '📄 Export PDF complet'",
+        "Vérifier le contenu de la modale assemblée",
+        "Cliquer '🖨️ Imprimer / enregistrer en PDF'"
+      ],
+      "attendu": "La modale s'ouvre et charge GET /confort/export/dossier/{id} ; affiche en-tête (titre, accompagné, statut, date), questionnaire, synthèse, CR publiés (compte affiché), plan d'action et bilan (note/20) lorsque présents. Le bouton Imprimer est actif une fois les données chargées et déclenche window.print().",
+      "tracabilite": "export_pdf | composant ExportDossierModal (pages/Dossier.tsx)"
+    },
+    {
+      "id": "TC-CONFORT-049",
+      "titre": "UI Export - bouton masqué si feature 'export_pdf' indisponible",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "technique": "Test basé sur les rôles (gating UI)",
+      "preconditions": "Accompagnateur sur un plan sans export_pdf.",
+      "donnees": "Page Dossier",
+      "etapes": [
+        "Se connecter avec l'accompagnateur restreint",
+        "Ouvrir un dossier"
+      ],
+      "attendu": "Le bouton '📄 Export PDF complet' n'est pas affiché (exportActif = useFeature('export_pdf') faux).",
+      "tracabilite": "export_pdf | Dossier.tsx (useFeature('export_pdf'))"
+    },
+    {
+      "id": "TC-CONFORT-050",
+      "titre": "UI Export - message d'erreur si chargement impossible",
+      "niveau": "ui",
+      "type": "non-regression",
+      "priorite": "basse",
+      "technique": "Partition d'équivalence (réponse en erreur)",
+      "preconditions": "Modale d'export ouverte alors que l'API renvoie une erreur (ex. dossier non-propriétaire -> 404, ou réseau).",
+      "donnees": "ExportDossierModal avec un dossierId provoquant une erreur",
+      "etapes": [
+        "Forcer une réponse en erreur sur GET /confort/export/dossier/{id}",
+        "Ouvrir la modale"
+      ],
+      "attendu": "Affichage du message 'Chargement impossible.' (form-error) ; le bouton Imprimer reste désactivé (data null).",
+      "tracabilite": "export_pdf | ExportDossierModal (gestion erreur)"
+    }
+  ]
+}

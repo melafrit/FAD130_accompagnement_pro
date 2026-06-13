@@ -1,0 +1,877 @@
+{
+  "domaine": "ethique",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/ethique/attestation/dossier/:id",
+      "role": "accompagne|accompagnateur",
+      "feature": "attestation",
+      "summary": "Attestation de fin pour un parcours cloturé (accompagné ou accompagnateur du dossier). requireAuth + requireFeature('attestation'). 404 si introuvable/non-propriétaire, 400 si non cloturé."
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/effacements",
+      "role": "admin",
+      "feature": "(non gatée par plan)",
+      "summary": "Liste des demandes d'effacement en_attente avec accompagné et parcours. requireRole('admin')."
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/effacements/:id",
+      "role": "admin",
+      "feature": "(non gatée par plan)",
+      "summary": "Traite une demande d'effacement : anonymiser OU supprimer. 400 action invalide, 404 demande introuvable."
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/rgpd/:userId",
+      "role": "admin",
+      "feature": "(non gatée par plan)",
+      "summary": "Action RGPD directe sur un compte (hors demande) : anonymiser/supprimer. 400 sur propre compte, 404 user introuvable, 400 action invalide."
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/retention",
+      "role": "admin",
+      "feature": "(non gatée par plan)",
+      "summary": "Politique de rétention : months, auto, liste des comptes éligibles. requireRole('admin')."
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/retention/appliquer",
+      "role": "admin",
+      "feature": "(non gatée par plan)",
+      "summary": "Applique la rétention : anonymise les comptes éligibles, retourne {ok, anonymises}. requireRole('admin')."
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-ETHIQUE-001",
+      "titre": "Attestation d'un parcours cloturé (accompagné propriétaire) renvoie 200 et la forme attendue",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Compte accompagné Karim (karim.benali@boussole.demo) propriétaire du parcours D5 (VAE) clôturé. Aucun plan (accès à tout, dont 'attestation').",
+      "donnees": "GET /api/ethique/attestation/dossier/{id_D5} avec cookie de Karim",
+      "etapes": [
+        "Se connecter comme karim.benali@boussole.demo / BoussoleDemo2026",
+        "GET /api/ethique/attestation/dossier/{id_D5}"
+      ],
+      "attendu": "200 ; JSON contient titre, accompagne (string non vide), accompagnateur (string non vide), debut (date), fin (date|null), nb_entretiens (number>=0), nb_comptes_rendus (number>=0)",
+      "technique": "Test du contrat ; partition d'équivalence (parcours cloturé valide)",
+      "tracabilite": "feature 'attestation' — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-002",
+      "titre": "Attestation accessible aussi à l'accompagnateur du dossier cloturé",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Camille (camille.laurent@boussole.demo) accompagnatrice du parcours D5 clôturé de Karim.",
+      "donnees": "GET /api/ethique/attestation/dossier/{id_D5} avec cookie de Camille",
+      "etapes": [
+        "Se connecter comme camille.laurent@boussole.demo",
+        "GET /api/ethique/attestation/dossier/{id_D5}"
+      ],
+      "attendu": "200 ; mêmes champs que TC-ETHIQUE-001 ; accompagnateur correspond à Camille",
+      "technique": "Test basé sur les rôles ; test du contrat",
+      "tracabilite": "feature 'attestation' — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-003",
+      "titre": "Champs agrégés de l'attestation cohérents (nb_entretiens, nb_comptes_rendus publiés, fin = max synthèse publiée)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Parcours D5 clôturé avec sessions, CR publiés et synthèse publiée connus en base.",
+      "donnees": "GET /api/ethique/attestation/dossier/{id_D5}",
+      "etapes": [
+        "Compter en base les sessions du dossier, les CR publiés (cr.publie=1), la synthèse publiée la plus récente",
+        "GET /api/ethique/attestation/dossier/{id_D5}",
+        "Comparer nb_entretiens, nb_comptes_rendus et fin"
+      ],
+      "attendu": "nb_entretiens = COUNT(sessions du dossier) ; nb_comptes_rendus = COUNT(CR publiés) ; fin = MAX(syntheses.publie_le où publie=1) ou null si aucune",
+      "technique": "Test du contrat (vérification d'agrégats)",
+      "tracabilite": "feature 'attestation' — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-004",
+      "titre": "Attestation : 400 si le parcours n'est pas clôturé",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Léa (lea.martin@boussole.demo) propriétaire du parcours D4 (exploratoire) NON clôturé (statut != 'cloture'). Accès feature 'attestation' (aucun plan).",
+      "donnees": "GET /api/ethique/attestation/dossier/{id_D4}",
+      "etapes": [
+        "Se connecter comme lea.martin@boussole.demo",
+        "GET /api/ethique/attestation/dossier/{id_D4}"
+      ],
+      "attendu": "400 ; error = « L'attestation n'est disponible qu'une fois le parcours clôturé. »",
+      "technique": "Partition d'équivalence (statut invalide) ; table de décision (propriétaire=oui, cloturé=non → 400)",
+      "tracabilite": "feature 'attestation' — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-005",
+      "titre": "Attestation : 404 si le dossier n'appartient pas à l'utilisateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Léa (accompagnée) tente d'accéder à l'attestation du parcours D5 (clôturé) de Karim, dont elle n'est ni accompagnée ni accompagnatrice.",
+      "donnees": "GET /api/ethique/attestation/dossier/{id_D5} avec cookie de Léa",
+      "etapes": [
+        "Se connecter comme lea.martin@boussole.demo",
+        "GET /api/ethique/attestation/dossier/{id_D5} (dossier de Karim)"
+      ],
+      "attendu": "404 ; error = « Parcours introuvable » (la requête filtre accompagne_id=me OR accompagnateur_id=me)",
+      "technique": "Test basé sur les rôles / contrôle de propriété ; table de décision (propriétaire=non → 404 avant test du statut)",
+      "tracabilite": "feature 'attestation' — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-006",
+      "titre": "Attestation : 404 si l'identifiant de dossier est inexistant",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné authentifié avec accès feature 'attestation'.",
+      "donnees": "GET /api/ethique/attestation/dossier/99999999",
+      "etapes": [
+        "Se connecter comme accompagné",
+        "GET /api/ethique/attestation/dossier/99999999"
+      ],
+      "attendu": "404 ; error = « Parcours introuvable »",
+      "technique": "Valeurs limites (id hors plage existante) ; partition d'équivalence",
+      "tracabilite": "feature 'attestation' — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-007",
+      "titre": "Attestation : id non numérique → Number(id)=NaN → 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagné authentifié avec accès feature 'attestation'.",
+      "donnees": "GET /api/ethique/attestation/dossier/abc",
+      "etapes": [
+        "GET /api/ethique/attestation/dossier/abc"
+      ],
+      "attendu": "404 ; error = « Parcours introuvable » (le paramètre devient NaN, aucune ligne trouvée)",
+      "technique": "Partition d'équivalence (entrée invalide) ; valeurs limites",
+      "tracabilite": "feature 'attestation' — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-008",
+      "titre": "Attestation : 401 si non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie de session.",
+      "donnees": "GET /api/ethique/attestation/dossier/1 sans cookie",
+      "etapes": [
+        "GET /api/ethique/attestation/dossier/1 sans cookie boussole_token"
+      ],
+      "attendu": "401 ; error = « Non authentifié »",
+      "technique": "Test basé sur les rôles (anonyme) ; test du contrat (requireAuth)",
+      "tracabilite": "requireAuth — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-009",
+      "titre": "Attestation : 401 si cookie/jeton invalide",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Cookie boussole_token présent mais corrompu/expiré.",
+      "donnees": "GET /api/ethique/attestation/dossier/1 avec jeton invalide",
+      "etapes": [
+        "Envoyer un cookie boussole_token=xxx invalide",
+        "GET /api/ethique/attestation/dossier/1"
+      ],
+      "attendu": "401 ; error = « Session invalide »",
+      "technique": "Test du contrat (requireAuth, branche catch jwt.verify)",
+      "tracabilite": "requireAuth — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-010",
+      "titre": "Attestation : 403 si l'offre d'abonnement ne contient pas la fonctionnalité 'attestation'",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Un compte accompagné rattaché à un plan (ex. plan 'Découverte' ou 'Essentiel') NE comportant PAS la clé 'attestation', propriétaire d'un parcours clôturé.",
+      "donnees": "GET /api/ethique/attestation/dossier/{id_cloturé}",
+      "etapes": [
+        "L'admin rattache le compte à un plan sans 'attestation'",
+        "Se connecter avec ce compte",
+        "GET /api/ethique/attestation/dossier/{id_cloturé}"
+      ],
+      "attendu": "403 ; error = « Fonctionnalité non disponible dans votre offre »",
+      "technique": "Test du contrat (requireFeature) ; test basé sur l'offre/plan",
+      "tracabilite": "requireFeature('attestation') — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-011",
+      "titre": "Attestation : 403 prioritaire sur 400/404 (gating feature avant lecture du dossier)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Compte rattaché à un plan sans 'attestation'.",
+      "donnees": "GET /api/ethique/attestation/dossier/99999999 (id inexistant)",
+      "etapes": [
+        "Se connecter avec le compte sans 'attestation'",
+        "GET /api/ethique/attestation/dossier/99999999"
+      ],
+      "attendu": "403 (requireFeature s'exécute avant le handler) et non 404",
+      "technique": "Table de décision (ordre des middlewares) ; test du contrat",
+      "tracabilite": "requireFeature('attestation') — GET /api/ethique/attestation/dossier/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-012",
+      "titre": "Console RGPD — liste des demandes d'effacement (admin) renvoie 200 et la demande seedée de Léa",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin (mohamed@elafrit.com). Demande d'effacement en_attente seedée pour Léa sur le parcours D4 exploratoire.",
+      "donnees": "GET /api/admin/effacements",
+      "etapes": [
+        "Se connecter comme admin",
+        "GET /api/admin/effacements"
+      ],
+      "attendu": "200 ; { demandes: [...] } ; chaque item porte id, motif, statut='en_attente', cree_le, accompagne_id, email, prenom, nom, anonymise, dossier_titre ; la demande de Léa (D4) est présente",
+      "technique": "Test du contrat ; test basé sur les rôles (admin)",
+      "tracabilite": "console RGPD — GET /api/admin/effacements"
+    },
+    {
+      "id": "TC-ETHIQUE-013",
+      "titre": "Liste des effacements : 401 si non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session.",
+      "donnees": "GET /api/admin/effacements sans cookie",
+      "etapes": [
+        "GET /api/admin/effacements sans cookie"
+      ],
+      "attendu": "401 ; error = « Non authentifié »",
+      "technique": "Test du contrat (requireAuth)",
+      "tracabilite": "requireAuth — GET /api/admin/effacements"
+    },
+    {
+      "id": "TC-ETHIQUE-014",
+      "titre": "Liste des effacements : 403 pour un accompagnateur (mauvais rôle)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur Mohamen (elafrit.mohamed@gmail.com) authentifié.",
+      "donnees": "GET /api/admin/effacements avec cookie accompagnateur",
+      "etapes": [
+        "Se connecter comme elafrit.mohamed@gmail.com",
+        "GET /api/admin/effacements"
+      ],
+      "attendu": "403 ; error = « Accès refusé »",
+      "technique": "Test basé sur les rôles ; partition d'équivalence (rôle non-admin)",
+      "tracabilite": "requireRole('admin') — GET /api/admin/effacements"
+    },
+    {
+      "id": "TC-ETHIQUE-015",
+      "titre": "Liste des effacements : 403 pour un accompagné (mauvais rôle)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné (afrit_mohamed@yahoo.fr) authentifié.",
+      "donnees": "GET /api/admin/effacements avec cookie accompagné",
+      "etapes": [
+        "Se connecter comme afrit_mohamed@yahoo.fr",
+        "GET /api/admin/effacements"
+      ],
+      "attendu": "403 ; error = « Accès refusé »",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireRole('admin') — GET /api/admin/effacements"
+    },
+    {
+      "id": "TC-ETHIQUE-016",
+      "titre": "Console RGPD non gatée par plan : un admin rattaché à un plan minimal y accède quand même",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Admin rattaché à un plan 'Découverte' (socle, sans features admin). Aucun requireFeature sur les routes admin.",
+      "donnees": "GET /api/admin/effacements ; GET /api/admin/retention",
+      "etapes": [
+        "Rattacher l'admin à un plan minimal",
+        "Se connecter comme admin",
+        "GET /api/admin/effacements puis GET /api/admin/retention"
+      ],
+      "attendu": "200 sur les deux (les routes admin ne dépendent que du rôle, jamais de requireFeature)",
+      "technique": "Test du contrat (absence de gating par plan) ; test basé sur les rôles",
+      "tracabilite": "requireRole('admin') sans requireFeature — GET /api/admin/effacements, GET /api/admin/retention"
+    },
+    {
+      "id": "TC-ETHIQUE-017",
+      "titre": "Traiter une demande d'effacement par anonymisation (admin) — sur compte @boussole.test",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Compte de test accompagné (ex. *@boussole.test) avec une demande d'effacement en_attente. Action destructive → réservée aux comptes @boussole.test.",
+      "donnees": "POST /api/admin/effacements/{idDemande} body {\"action\":\"anonymiser\"}",
+      "etapes": [
+        "Créer/identifier une demande en_attente sur un compte @boussole.test",
+        "Se connecter comme admin",
+        "POST /api/admin/effacements/{idDemande} {action:'anonymiser'}",
+        "Vérifier la demande et le compte en base"
+      ],
+      "attendu": "200 ; { ok:true, action:'anonymiser' } ; demande passée à statut='traitee' avec action et traite_le renseignés ; user.email = anonyme-{id}@boussole.local, nom/prenom NULL, actif=0, anonymise=1",
+      "technique": "Table de décision (action=anonymiser) ; test du contrat",
+      "tracabilite": "console RGPD — POST /api/admin/effacements/:id (processEffacement)"
+    },
+    {
+      "id": "TC-ETHIQUE-018",
+      "titre": "Traiter une demande d'effacement par suppression (admin) — cascade — sur compte @boussole.test",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Compte de test accompagné (@boussole.test) avec une demande d'effacement en_attente.",
+      "donnees": "POST /api/admin/effacements/{idDemande} body {\"action\":\"supprimer\"}",
+      "etapes": [
+        "Identifier une demande en_attente sur un compte @boussole.test",
+        "Se connecter comme admin",
+        "POST /api/admin/effacements/{idDemande} {action:'supprimer'}",
+        "Vérifier en base"
+      ],
+      "attendu": "200 ; { ok:true, action:'supprimer' } ; le user est supprimé (DELETE) et la demande disparaît en cascade (pas de mise à jour de statut côté code pour 'supprimer')",
+      "technique": "Table de décision (action=supprimer) ; test du contrat",
+      "tracabilite": "console RGPD — POST /api/admin/effacements/:id (processEffacement → deleteUser)"
+    },
+    {
+      "id": "TC-ETHIQUE-019",
+      "titre": "Traiter un effacement : 400 si action absente ou invalide",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin authentifié ; une demande existante.",
+      "donnees": "POST /api/admin/effacements/{id} body {} ; puis {\"action\":\"foo\"}",
+      "etapes": [
+        "Se connecter comme admin",
+        "POST /api/admin/effacements/{id} avec body vide",
+        "POST /api/admin/effacements/{id} avec action='foo'"
+      ],
+      "attendu": "400 dans les deux cas ; error = « Action invalide (anonymiser | supprimer) » ; aucune donnée modifiée",
+      "technique": "Partition d'équivalence (valeurs hors {anonymiser,supprimer}) ; table de décision",
+      "tracabilite": "console RGPD — POST /api/admin/effacements/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-020",
+      "titre": "Traiter un effacement : 404 si la demande est introuvable",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin authentifié.",
+      "donnees": "POST /api/admin/effacements/99999999 body {\"action\":\"anonymiser\"}",
+      "etapes": [
+        "Se connecter comme admin",
+        "POST /api/admin/effacements/99999999 {action:'anonymiser'}"
+      ],
+      "attendu": "404 ; error = « Demande introuvable » (processEffacement renvoie false)",
+      "technique": "Valeurs limites (id inexistant) ; test du contrat",
+      "tracabilite": "console RGPD — POST /api/admin/effacements/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-021",
+      "titre": "Traiter un effacement : 401 non authentifié / 403 mauvais rôle",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Sans session, puis session accompagnateur.",
+      "donnees": "POST /api/admin/effacements/1 {action:'anonymiser'}",
+      "etapes": [
+        "POST sans cookie",
+        "POST avec cookie accompagnateur (elafrit.mohamed@gmail.com)"
+      ],
+      "attendu": "Sans cookie → 401 « Non authentifié » ; rôle accompagnateur → 403 « Accès refusé » ; aucune anonymisation/suppression effectuée",
+      "technique": "Test basé sur les rôles ; test du contrat (requireAuth puis requireRole)",
+      "tracabilite": "requireAuth + requireRole('admin') — POST /api/admin/effacements/:id"
+    },
+    {
+      "id": "TC-ETHIQUE-022",
+      "titre": "Action RGPD directe : anonymiser un compte hors demande (admin) — compte @boussole.test",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin ; un compte cible accompagné @boussole.test différent de l'admin.",
+      "donnees": "POST /api/admin/rgpd/{userIdTest} body {\"action\":\"anonymiser\"}",
+      "etapes": [
+        "Identifier un user @boussole.test",
+        "Se connecter comme admin",
+        "POST /api/admin/rgpd/{userIdTest} {action:'anonymiser'}",
+        "Vérifier en base"
+      ],
+      "attendu": "200 ; { ok:true, action:'anonymiser' } ; user anonymisé (email anonyme-{id}@boussole.local, nom/prenom NULL, actif=0, anonymise=1) ; push_subscriptions/tokens/journal_entrees supprimés, meteo_humeur.mot et emotions_roue.note effacés",
+      "technique": "Table de décision ; test du contrat",
+      "tracabilite": "console RGPD — POST /api/admin/rgpd/:userId (anonymizeUser)"
+    },
+    {
+      "id": "TC-ETHIQUE-023",
+      "titre": "Action RGPD directe : supprimer un compte hors demande (admin) — compte @boussole.test",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin ; compte cible @boussole.test.",
+      "donnees": "POST /api/admin/rgpd/{userIdTest} body {\"action\":\"supprimer\"}",
+      "etapes": [
+        "Identifier un user @boussole.test",
+        "Se connecter comme admin",
+        "POST /api/admin/rgpd/{userIdTest} {action:'supprimer'}",
+        "Vérifier en base"
+      ],
+      "attendu": "200 ; { ok:true, action:'supprimer' } ; le user est supprimé (DELETE FROM users)",
+      "technique": "Table de décision ; test du contrat",
+      "tracabilite": "console RGPD — POST /api/admin/rgpd/:userId (deleteUser)"
+    },
+    {
+      "id": "TC-ETHIQUE-024",
+      "titre": "Action RGPD directe : 400 si l'admin cible son propre compte",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Admin authentifié (mohamed@elafrit.com).",
+      "donnees": "POST /api/admin/rgpd/{idAdminLuiMeme} body {\"action\":\"anonymiser\"}",
+      "etapes": [
+        "Récupérer l'id de l'admin connecté",
+        "POST /api/admin/rgpd/{idAdmin} {action:'anonymiser'}"
+      ],
+      "attendu": "400 ; error = « Action impossible sur votre propre compte » ; le contrôle a lieu AVANT la recherche du user, aucune anonymisation",
+      "technique": "Table de décision (userId == meId) ; test du contrat (garde-fou)",
+      "tracabilite": "console RGPD — POST /api/admin/rgpd/:userId"
+    },
+    {
+      "id": "TC-ETHIQUE-025",
+      "titre": "Action RGPD directe : 404 si l'utilisateur cible n'existe pas",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin authentifié.",
+      "donnees": "POST /api/admin/rgpd/99999999 body {\"action\":\"anonymiser\"}",
+      "etapes": [
+        "Se connecter comme admin",
+        "POST /api/admin/rgpd/99999999 {action:'anonymiser'}"
+      ],
+      "attendu": "404 ; error = « Utilisateur introuvable »",
+      "technique": "Valeurs limites (id inexistant) ; test du contrat",
+      "tracabilite": "console RGPD — POST /api/admin/rgpd/:userId"
+    },
+    {
+      "id": "TC-ETHIQUE-026",
+      "titre": "Action RGPD directe : 400 si action invalide (sur un user existant ≠ soi)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Admin ; user cible @boussole.test existant ≠ admin.",
+      "donnees": "POST /api/admin/rgpd/{userIdTest} body {\"action\":\"effacer\"}",
+      "etapes": [
+        "Se connecter comme admin",
+        "POST /api/admin/rgpd/{userIdTest} {action:'effacer'}"
+      ],
+      "attendu": "400 ; error = « Action invalide » ; aucune modification du compte (la branche else échoue après vérification d'existence)",
+      "technique": "Partition d'équivalence (action hors {anonymiser,supprimer}) ; table de décision",
+      "tracabilite": "console RGPD — POST /api/admin/rgpd/:userId"
+    },
+    {
+      "id": "TC-ETHIQUE-027",
+      "titre": "Action RGPD directe : 401 non authentifié / 403 mauvais rôle",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Sans session, puis session accompagné.",
+      "donnees": "POST /api/admin/rgpd/2 {action:'supprimer'}",
+      "etapes": [
+        "POST sans cookie",
+        "POST avec cookie accompagné (afrit_mohamed@yahoo.fr)"
+      ],
+      "attendu": "Sans cookie → 401 « Non authentifié » ; accompagné → 403 « Accès refusé » ; aucune suppression",
+      "technique": "Test basé sur les rôles ; test du contrat",
+      "tracabilite": "requireAuth + requireRole('admin') — POST /api/admin/rgpd/:userId"
+    },
+    {
+      "id": "TC-ETHIQUE-028",
+      "titre": "Politique de rétention (admin) renvoie months, auto et la liste des éligibles",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin authentifié. RETENTION_MONTHS par défaut 36, RETENTION_AUTO non '1'.",
+      "donnees": "GET /api/admin/retention",
+      "etapes": [
+        "Se connecter comme admin",
+        "GET /api/admin/retention"
+      ],
+      "attendu": "200 ; { months:number (36 par défaut), auto:false, eligibles:[{id,email,derniere_activite}...] } ; eligibles est un tableau (typage cohérent)",
+      "technique": "Test du contrat ; partition d'équivalence",
+      "tracabilite": "console RGPD — GET /api/admin/retention"
+    },
+    {
+      "id": "TC-ETHIQUE-029",
+      "titre": "Rétention : 401 non authentifié / 403 mauvais rôle",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Sans session, puis accompagnateur.",
+      "donnees": "GET /api/admin/retention",
+      "etapes": [
+        "GET sans cookie",
+        "GET avec cookie accompagnateur"
+      ],
+      "attendu": "Sans cookie → 401 « Non authentifié » ; accompagnateur → 403 « Accès refusé »",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth + requireRole('admin') — GET /api/admin/retention"
+    },
+    {
+      "id": "TC-ETHIQUE-030",
+      "titre": "Appliquer la rétention (admin) anonymise les comptes éligibles et renvoie le décompte",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin ; au moins un compte @boussole.test éligible (accompagné, tous parcours clôturés, dernière activité > 36 mois). Action destructive → comptes @boussole.test.",
+      "donnees": "POST /api/admin/retention/appliquer",
+      "etapes": [
+        "Préparer un compte @boussole.test éligible (parcours clôturé + dernière activité ancienne)",
+        "Se connecter comme admin",
+        "GET /api/admin/retention pour noter le nombre d'éligibles N",
+        "POST /api/admin/retention/appliquer",
+        "GET /api/admin/retention de nouveau"
+      ],
+      "attendu": "200 ; { ok:true, anonymises:N } cohérent avec la liste précédente ; après application les comptes traités sont anonymise=1 et ne figurent plus dans eligibles (anonymise=0 requis)",
+      "technique": "Test du contrat ; partition d'équivalence (≥1 éligible)",
+      "tracabilite": "console RGPD — POST /api/admin/retention/appliquer (retentionEligibles + anonymizeUser)"
+    },
+    {
+      "id": "TC-ETHIQUE-031",
+      "titre": "Appliquer la rétention quand aucun compte n'est éligible",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin ; aucun compte éligible (base de démo récente).",
+      "donnees": "POST /api/admin/retention/appliquer",
+      "etapes": [
+        "Se connecter comme admin",
+        "S'assurer que GET /api/admin/retention renvoie eligibles=[]",
+        "POST /api/admin/retention/appliquer"
+      ],
+      "attendu": "200 ; { ok:true, anonymises:0 } ; aucun compte modifié",
+      "technique": "Valeurs limites (ensemble vide) ; test du contrat",
+      "tracabilite": "console RGPD — POST /api/admin/retention/appliquer"
+    },
+    {
+      "id": "TC-ETHIQUE-032",
+      "titre": "Appliquer la rétention : 401 non authentifié / 403 mauvais rôle",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Sans session, puis accompagné.",
+      "donnees": "POST /api/admin/retention/appliquer",
+      "etapes": [
+        "POST sans cookie",
+        "POST avec cookie accompagné"
+      ],
+      "attendu": "Sans cookie → 401 « Non authentifié » ; accompagné → 403 « Accès refusé » ; aucune anonymisation déclenchée",
+      "technique": "Test basé sur les rôles ; test du contrat",
+      "tracabilite": "requireAuth + requireRole('admin') — POST /api/admin/retention/appliquer"
+    },
+    {
+      "id": "TC-ETHIQUE-033",
+      "titre": "Unitaire — retentionEligibles() : sélectionne un accompagné dont TOUS les parcours sont clôturés et inactif > seuil",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Base de test ; un accompagné A avec ≥1 dossier, tous statut='cloture', anonymise=0, dernière activité (max session.date / max dossier.cree_le) antérieure à now-36 mois.",
+      "donnees": "Appel retentionEligibles(36)",
+      "etapes": [
+        "Insérer A et ses dossiers clôturés anciens",
+        "Appeler retentionEligibles(36)"
+      ],
+      "attendu": "Le résultat contient A avec id, email et derniere_activite non NULL (< now-36 mois)",
+      "technique": "Test unitaire ; partition d'équivalence (classe éligible)",
+      "tracabilite": "retentionEligibles() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-034",
+      "titre": "Unitaire — retentionEligibles() : EXCLUT un accompagné ayant au moins un parcours non clôturé",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné B avec un dossier clôturé ancien ET un dossier statut != 'cloture'.",
+      "donnees": "Appel retentionEligibles(36)",
+      "etapes": [
+        "Insérer B avec un dossier non clôturé",
+        "Appeler retentionEligibles(36)"
+      ],
+      "attendu": "B est absent du résultat (clause NOT EXISTS dossier non cloturé)",
+      "technique": "Table de décision (tous clôturés=non → exclu) ; test unitaire",
+      "tracabilite": "retentionEligibles() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-035",
+      "titre": "Unitaire — retentionEligibles() : EXCLUT un accompagné encore actif (dernière activité < seuil)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné C, tous parcours clôturés, mais une session récente (< 36 mois).",
+      "donnees": "Appel retentionEligibles(36)",
+      "etapes": [
+        "Insérer C avec une session datée d'il y a 1 mois",
+        "Appeler retentionEligibles(36)"
+      ],
+      "attendu": "C est absent (derniere_activite >= now-36 mois)",
+      "technique": "Valeurs limites (autour du seuil de rétention) ; test unitaire",
+      "tracabilite": "retentionEligibles() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-036",
+      "titre": "Unitaire — retentionEligibles() : EXCLUT les comptes déjà anonymisés et les non-accompagnés",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Compte D accompagné anonymise=1 (parcours clôturés anciens) ; compte E accompagnateur avec parcours clôturés anciens.",
+      "donnees": "Appel retentionEligibles(36)",
+      "etapes": [
+        "Insérer D (anonymise=1) et E (role accompagnateur)",
+        "Appeler retentionEligibles(36)"
+      ],
+      "attendu": "Ni D (anonymise=0 requis) ni E (role='accompagne' requis) ne figurent dans le résultat",
+      "technique": "Partition d'équivalence (classes exclues : anonymisé, rôle non accompagné) ; test unitaire",
+      "tracabilite": "retentionEligibles() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-037",
+      "titre": "Unitaire — retentionEligibles() : EXCLUT un accompagné SANS aucun dossier",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Accompagné F sans aucun dossier.",
+      "donnees": "Appel retentionEligibles(36)",
+      "etapes": [
+        "Insérer F sans dossier",
+        "Appeler retentionEligibles(36)"
+      ],
+      "attendu": "F absent (clause EXISTS dossier) ; derniere_activite serait NULL de toute façon (filtre IS NOT NULL)",
+      "technique": "Valeurs limites (ensemble de dossiers vide) ; test unitaire",
+      "tracabilite": "retentionEligibles() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-038",
+      "titre": "Unitaire — retentionEligibles(months) : le paramètre months déplace le seuil",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné G, tous parcours clôturés, dernière activité il y a ~10 mois.",
+      "donnees": "retentionEligibles(36) puis retentionEligibles(6)",
+      "etapes": [
+        "Insérer G inactif depuis ~10 mois",
+        "Appeler retentionEligibles(36)",
+        "Appeler retentionEligibles(6)"
+      ],
+      "attendu": "G absent pour months=36 ; G présent pour months=6 (seuil now-6 mois franchi)",
+      "technique": "Valeurs limites (frontière du seuil) ; partition d'équivalence",
+      "tracabilite": "retentionEligibles() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-039",
+      "titre": "Unitaire — anonymizeUser() : efface l'identité et les contenus libres, conserve les parcours",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "User H accompagné avec email/nom/prenom/password_hash, push_subscriptions, tokens, journal_entrees, meteo_humeur(mot), emotions_roue(note) et des dossiers.",
+      "donnees": "Appel anonymizeUser(H.id)",
+      "etapes": [
+        "Préparer H et ses données associées",
+        "Appeler anonymizeUser(H.id)",
+        "Inspecter la base"
+      ],
+      "attendu": "users : email=anonyme-{id}@boussole.local, nom/prenom/password_hash NULL, actif=0, anonymise=1 ; push_subscriptions/tokens/journal_entrees supprimés ; meteo_humeur.mot NULL et emotions_roue.note NULL ; dossiers conservés",
+      "technique": "Test unitaire ; test du contrat (effet attendu d'anonymisation)",
+      "tracabilite": "anonymizeUser() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-040",
+      "titre": "Unitaire — anonymizeUser() : ne fait rien (sans erreur) sur un id inexistant",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Aucun user avec l'id 99999999.",
+      "donnees": "Appel anonymizeUser(99999999)",
+      "etapes": [
+        "Appeler anonymizeUser(99999999)"
+      ],
+      "attendu": "Aucune exception ; aucune modification (return anticipé si user introuvable)",
+      "technique": "Valeurs limites (id inexistant) ; test unitaire (robustesse)",
+      "tracabilite": "anonymizeUser() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-041",
+      "titre": "Unitaire — processEffacement('anonymiser') : marque la demande traitee avec action et traite_le",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Demande d'effacement en_attente liée à un accompagné de test.",
+      "donnees": "Appel processEffacement(idDemande, 'anonymiser')",
+      "etapes": [
+        "Préparer une demande en_attente",
+        "Appeler processEffacement(idDemande,'anonymiser')",
+        "Inspecter demandes_effacement"
+      ],
+      "attendu": "Retourne true ; le compte est anonymisé ; demandes_effacement.statut='traitee', action='anonymiser', traite_le renseigné",
+      "technique": "Table de décision (action=anonymiser → update statut) ; test unitaire",
+      "tracabilite": "processEffacement() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-042",
+      "titre": "Unitaire — processEffacement('supprimer') : supprime le compte sans marquer la demande",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Demande d'effacement en_attente liée à un accompagné de test.",
+      "donnees": "Appel processEffacement(idDemande, 'supprimer')",
+      "etapes": [
+        "Préparer une demande en_attente",
+        "Appeler processEffacement(idDemande,'supprimer')",
+        "Inspecter la base"
+      ],
+      "attendu": "Retourne true ; le user est supprimé (deleteUser) ; aucune mise à jour de statut n'est tentée (branche 'anonymiser' seule met à jour)",
+      "technique": "Table de décision (action=supprimer) ; test unitaire",
+      "tracabilite": "processEffacement() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-043",
+      "titre": "Unitaire — processEffacement() : retourne false si la demande n'existe pas",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Aucune demande avec l'id 99999999.",
+      "donnees": "Appel processEffacement(99999999, 'anonymiser')",
+      "etapes": [
+        "Appeler processEffacement(99999999,'anonymiser')"
+      ],
+      "attendu": "Retourne false ; aucune anonymisation/suppression effectuée",
+      "technique": "Valeurs limites (demande inexistante) ; test unitaire",
+      "tracabilite": "processEffacement() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-044",
+      "titre": "Unitaire — deleteUser() : retire le compte de la table users",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "User de test I existant.",
+      "donnees": "Appel deleteUser(I.id)",
+      "etapes": [
+        "Insérer I",
+        "Appeler deleteUser(I.id)",
+        "SELECT users WHERE id=I.id"
+      ],
+      "attendu": "Aucune ligne restante pour I.id",
+      "technique": "Test unitaire ; test du contrat",
+      "tracabilite": "deleteUser() — app/api/src/ethique.ts"
+    },
+    {
+      "id": "TC-ETHIQUE-045",
+      "titre": "UI — L'accompagné télécharge son attestation depuis le détail d'un parcours clôturé",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Karim (accompagné, feature 'attestation' active) connecté ; parcours D5 clôturé. Stack http://localhost:8080.",
+      "donnees": "Page ParcoursDetail du parcours D5",
+      "etapes": [
+        "Se connecter comme karim.benali@boussole.demo",
+        "Ouvrir le parcours clôturé D5 (/espace puis détail)",
+        "Vérifier la présence du bouton « 📜 Mon attestation »",
+        "Cliquer dessus",
+        "Vérifier la modale Attestation (titre, accompagné, accompagnateur, période, nb entretiens, nb CR) et le bouton Imprimer"
+      ],
+      "attendu": "Le bouton « Mon attestation » est visible (gating attestationActive && statut==='cloture') ; la modale affiche les données et propose l'impression/PDF",
+      "technique": "Test bout-en-bout basé sur les rôles (accompagné) ; test du contrat UI",
+      "tracabilite": "feature 'attestation' — ParcoursDetail.tsx + AttestationModal.tsx (GET /api/ethique/attestation/dossier/:id)"
+    },
+    {
+      "id": "TC-ETHIQUE-046",
+      "titre": "UI — Le bouton attestation est absent pour un parcours NON clôturé",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Léa (accompagnée) connectée ; parcours D4 exploratoire non clôturé ; feature 'attestation' active.",
+      "donnees": "Page ParcoursDetail du parcours D4",
+      "etapes": [
+        "Se connecter comme lea.martin@boussole.demo",
+        "Ouvrir le parcours D4 (non clôturé)",
+        "Chercher le bouton « Mon attestation »"
+      ],
+      "attendu": "Le bouton « Mon attestation » n'apparaît pas (condition d.statut === 'cloture' fausse)",
+      "technique": "Table de décision (cloturé=non → bouton masqué) ; test bout-en-bout",
+      "tracabilite": "feature 'attestation' — ParcoursDetail.tsx (gating UI)"
+    },
+    {
+      "id": "TC-ETHIQUE-047",
+      "titre": "UI — L'accompagnateur délivre l'attestation depuis le dossier clôturé",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Camille (accompagnatrice, feature 'attestation' active) connectée ; dossier D5 clôturé de Karim.",
+      "donnees": "Page Dossier D5",
+      "etapes": [
+        "Se connecter comme camille.laurent@boussole.demo",
+        "Ouvrir le dossier clôturé D5",
+        "Vérifier le bouton « 📜 Délivrer l'attestation »",
+        "Cliquer et vérifier la modale"
+      ],
+      "attendu": "Bouton visible (attestationActif && cloture) ; modale affichée avec le contenu de l'attestation côté accompagnateur",
+      "technique": "Test bout-en-bout basé sur les rôles (accompagnateur)",
+      "tracabilite": "feature 'attestation' — Dossier.tsx + AttestationModal.tsx (GET /api/ethique/attestation/dossier/:id)"
+    },
+    {
+      "id": "TC-ETHIQUE-048",
+      "titre": "UI — La console RGPD admin affiche la demande d'effacement de Léa et permet anonymiser/supprimer",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Admin (mohamed@elafrit.com) connecté ; demande d'effacement de Léa (D4) seedée en_attente. Pour traiter réellement, opérer sur un compte @boussole.test.",
+      "donnees": "Page /admin → section « Confidentialité & RGPD »",
+      "etapes": [
+        "Se connecter comme admin",
+        "Aller sur /admin",
+        "Repérer la section RGPD, le compteur de demandes et la carte de Léa (motif, parcours)",
+        "Vérifier les boutons « 🕶️ Anonymiser » et « 🗑️ Supprimer » et la confirmation window.confirm",
+        "Vérifier le bloc Rétention (mois, auto/manuel, liste des éligibles, bouton Appliquer)"
+      ],
+      "attendu": "La demande de Léa est listée (nom/email/motif/parcours) ; les deux actions déclenchent une confirmation ; le bloc rétention affiche months et la liste des éligibles",
+      "technique": "Test bout-en-bout basé sur les rôles (admin) ; test du contrat UI",
+      "tracabilite": "console RGPD — Admin.tsx + RgpdConsole.tsx (GET /api/admin/effacements, GET /api/admin/retention)"
+    },
+    {
+      "id": "TC-ETHIQUE-049",
+      "titre": "UI — La page /admin (et la console RGPD) est inaccessible à un non-admin",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur (elafrit.mohamed@gmail.com) connecté.",
+      "donnees": "Navigation vers /admin",
+      "etapes": [
+        "Se connecter comme elafrit.mohamed@gmail.com",
+        "Naviguer vers /admin"
+      ],
+      "attendu": "La route Protected role='admin' redirige/refuse l'accès ; la console RGPD n'est jamais rendue ; côté API tout appel /api/admin/* renverrait 403",
+      "technique": "Test basé sur les rôles ; test bout-en-bout (garde de route)",
+      "tracabilite": "Protected role='admin' — App.tsx + Admin.tsx / RgpdConsole.tsx"
+    },
+    {
+      "id": "TC-ETHIQUE-050",
+      "titre": "UI — Appliquer la rétention depuis la console (avec confirmation) met à jour le décompte",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Admin connecté ; au moins un compte @boussole.test éligible à la rétention.",
+      "donnees": "Page /admin → bloc Rétention → « Appliquer la rétention maintenant »",
+      "etapes": [
+        "Préparer un compte @boussole.test éligible",
+        "Se connecter comme admin et ouvrir /admin",
+        "Dans le bloc Rétention, cliquer « Appliquer la rétention maintenant »",
+        "Confirmer la boîte de dialogue",
+        "Observer le message de succès et la liste rechargée"
+      ],
+      "attendu": "Message « N compte(s) anonymisé(s) par rétention. » ; la liste des éligibles se vide des comptes traités après rechargement",
+      "technique": "Test bout-en-bout ; test du contrat UI (POST /api/admin/retention/appliquer)",
+      "tracabilite": "console RGPD — RgpdConsole.tsx (POST /api/admin/retention/appliquer)"
+    }
+  ]
+}

@@ -1,0 +1,1471 @@
+{
+  "domaine": "dossier",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/dossiers/accompagnateurs",
+      "role": "accompagne",
+      "summary": "Liste des accompagnateurs actifs disponibles pour démarrer un parcours",
+      "feature": "multi_parcours"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dossiers/start",
+      "role": "accompagne",
+      "summary": "Démarrer un nouveau parcours (titre + accompagnateur), crée lien + dossier + notif + email",
+      "feature": "multi_parcours"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dossiers/mine",
+      "role": "accompagne",
+      "summary": "Liste des parcours de l'accompagné avec compteurs (questionnaire, synthèse publiée, CR, RDV)",
+      "feature": "multi_parcours"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dossiers/mine/:id",
+      "role": "accompagne",
+      "summary": "Détail lecture seule d'un parcours de l'accompagné (questionnaire, CR publiés, synthèse, actions, RDV)",
+      "feature": "multi_parcours"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dossiers/:id",
+      "role": "accompagnateur",
+      "summary": "Détail complet d'un dossier pour l'accompagnateur propriétaire (sessions+CR, actions, RDV)",
+      "feature": "synthese"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dossiers/:id/synthese",
+      "role": "accompagnateur",
+      "summary": "Synthèse JSON complète du parcours (rendue par SyntheseModal export/print)",
+      "feature": "synthese"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dossiers/:id/cloturer",
+      "role": "accompagnateur",
+      "summary": "Clôturer la démarche avec synthèse finale optionnelle, notifie l'accompagné",
+      "feature": "synthese"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dossiers/:id/rouvrir",
+      "role": "accompagnateur",
+      "summary": "Rouvrir un dossier clôturé (statut en_cours)",
+      "feature": "synthese"
+    },
+    {
+      "method": "GET",
+      "path": "/api/autoeval/grille",
+      "role": "accompagnateur",
+      "summary": "Structure statique de la grille (3 critères × 7 indicateurs, 4 zones)",
+      "feature": "auto_evaluation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/autoeval/:id",
+      "role": "accompagnateur",
+      "summary": "Brouillon courant (scores 21 indicateurs, note, commentaires) + historique des versions validées",
+      "feature": "auto_evaluation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/autoeval/:id",
+      "role": "accompagnateur",
+      "summary": "Enregistrer le brouillon (upsert scores, clamp 0–100, recalcule note_globale)",
+      "feature": "auto_evaluation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/autoeval/:id/valider",
+      "role": "accompagnateur",
+      "summary": "Valider : fige la version courante (statut validee) et repart d'un nouveau brouillon copié",
+      "feature": "auto_evaluation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/autoeval/:id/ia",
+      "role": "accompagnateur",
+      "summary": "Pré-remplissage IA (Opus) des 21 indicateurs : suggère sans sauvegarder, repli available:false",
+      "feature": "auto_evaluation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/synthese/generer",
+      "role": "accompagnateur",
+      "summary": "Générer/régénérer la synthèse HTML (IA narrative ou repli déterministe), nouvelle version",
+      "feature": "synthese"
+    },
+    {
+      "method": "GET",
+      "path": "/api/synthese/dossier/:id",
+      "role": "accompagnateur|accompagne",
+      "summary": "État de la synthèse (acc: courant+historique ; accompagné: version publiée seule)",
+      "feature": "synthese"
+    },
+    {
+      "method": "GET",
+      "path": "/api/synthese/version/:id",
+      "role": "accompagnateur",
+      "summary": "Lire une version archivée par son id (propriétaire)",
+      "feature": "synthese"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/synthese/version/:id",
+      "role": "accompagnateur",
+      "summary": "Enregistrer le contenu de la version courante (source=edition), seule la courante est modifiable",
+      "feature": "synthese"
+    },
+    {
+      "method": "POST",
+      "path": "/api/synthese/version/:id/publier",
+      "role": "accompagnateur",
+      "summary": "Publier une version (dépublie les autres du dossier), notifie l'accompagné",
+      "feature": "synthese"
+    },
+    {
+      "method": "GET",
+      "path": "/api/synthese/mine",
+      "role": "accompagne",
+      "summary": "Liste des synthèses publiées de l'accompagné (une par dossier)",
+      "feature": "synthese"
+    },
+    {
+      "method": "GET",
+      "path": "/api/synthese/dossier/:id/messages",
+      "role": "accompagnateur|accompagne",
+      "summary": "Messages de discussion sur la synthèse (accompagné ssi synthèse publiée)",
+      "feature": "synthese"
+    },
+    {
+      "method": "POST",
+      "path": "/api/synthese/dossier/:id/messages",
+      "role": "accompagnateur|accompagne",
+      "summary": "Poster un message de discussion, notifie l'autre partie",
+      "feature": "synthese"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-DOSS-001",
+      "titre": "Lister les accompagnateurs disponibles (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné (afrit_mohamed@yahoo.fr). Au moins 2 accompagnateurs actifs seedés.",
+      "donnees": "GET /api/dossiers/accompagnateurs",
+      "etapes": [
+        "S'authentifier en accompagné",
+        "Appeler GET /api/dossiers/accompagnateurs"
+      ],
+      "attendu": "200 ; corps { accompagnateurs: [...] } ; chaque item a id, prenom, nom, email ; triés par prenom puis email ; seuls les accompagnateurs actifs (actif=1) y figurent.",
+      "technique": "test du contrat",
+      "tracabilite": "multi_parcours · GET /api/dossiers/accompagnateurs"
+    },
+    {
+      "id": "TC-DOSS-002",
+      "titre": "Accès accompagnateurs refusé sans authentification",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie de session.",
+      "donnees": "GET /api/dossiers/accompagnateurs sans cookie",
+      "etapes": [
+        "Appeler l'endpoint sans cookie boussole_token"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireAuth · GET /api/dossiers/accompagnateurs"
+    },
+    {
+      "id": "TC-DOSS-003",
+      "titre": "Accès accompagnateurs refusé pour rôle accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur (camille.laurent@boussole.demo).",
+      "donnees": "GET /api/dossiers/accompagnateurs",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "Appeler l'endpoint"
+      ],
+      "attendu": "403 { error: 'Accès refusé' } (requireRole('accompagne'))",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagne') · GET /api/dossiers/accompagnateurs"
+    },
+    {
+      "id": "TC-DOSS-004",
+      "titre": "Démarrer un parcours (nominal, 201)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné ; un accompagnateur actif valide (id connu).",
+      "donnees": "POST /api/dossiers/start { titre:'Mémoire — refonte appli', accompagnateurId: <id valide> }",
+      "etapes": [
+        "Récupérer un accompagnateurId via /accompagnateurs",
+        "POST /start avec titre et accompagnateurId"
+      ],
+      "attendu": "201 { dossierId: <number> } ; un dossier est créé (accompagne_id=moi, accompagnateur_id choisi, statut en_cours) ; lien INSERT OR IGNORE créé ; une notification et un email sont émis vers l'accompagnateur.",
+      "technique": "test du contrat",
+      "tracabilite": "multi_parcours · POST /api/dossiers/start"
+    },
+    {
+      "id": "TC-DOSS-005",
+      "titre": "Démarrer un parcours : titre manquant/vide → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné ; accompagnateur valide.",
+      "donnees": "Cas A: { titre:'', accompagnateurId:valide } ; Cas B: { titre:'   ', accompagnateurId:valide } ; Cas C: corps sans titre",
+      "etapes": [
+        "POST /start avec titre vide ou espaces ou absent"
+      ],
+      "attendu": "400 { error: 'Donne un titre à ton parcours.' } pour chaque cas (trim côté serveur).",
+      "technique": "partition d'équivalence + valeurs limites",
+      "tracabilite": "multi_parcours · POST /api/dossiers/start"
+    },
+    {
+      "id": "TC-DOSS-006",
+      "titre": "Démarrer un parcours : accompagnateur invalide/inexistant/inactif → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "Cas A: accompagnateurId=999999 (inexistant) ; Cas B: id d'un utilisateur de rôle 'accompagne' ; Cas C: id d'un accompagnateur actif=0 ; Cas D: accompagnateurId absent (NaN)",
+      "etapes": [
+        "POST /start avec titre valide et accompagnateurId non éligible"
+      ],
+      "attendu": "400 { error: 'Choisis un accompagnateur valide.' } ; aucun dossier créé.",
+      "technique": "partition d'équivalence (classe invalide) + test basé sur les rôles",
+      "tracabilite": "multi_parcours · POST /api/dossiers/start"
+    },
+    {
+      "id": "TC-DOSS-007",
+      "titre": "Démarrer un parcours : non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucun cookie.",
+      "donnees": "POST /api/dossiers/start sans cookie",
+      "etapes": [
+        "POST /start sans session"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireAuth · POST /api/dossiers/start"
+    },
+    {
+      "id": "TC-DOSS-008",
+      "titre": "Démarrer un parcours : rôle accompagnateur → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur.",
+      "donnees": "POST /api/dossiers/start { titre:'x', accompagnateurId:valide }",
+      "etapes": [
+        "S'authentifier en accompagnateur",
+        "POST /start"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagne') · POST /api/dossiers/start"
+    },
+    {
+      "id": "TC-DOSS-009",
+      "titre": "Lien d'accompagnement non dupliqué au re-démarrage (INSERT OR IGNORE)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné ayant déjà un parcours avec l'accompagnateur A.",
+      "donnees": "POST /start { titre:'Second parcours', accompagnateurId: A }",
+      "etapes": [
+        "Démarrer un 1er parcours avec A",
+        "Démarrer un 2e parcours avec le même A"
+      ],
+      "attendu": "201 ; un nouveau dossier est créé ; la table liens_accompagnement contient toujours une seule ligne (accompagnateur_id, accompagne_id) — pas de doublon.",
+      "technique": "test du contrat (idempotence)",
+      "tracabilite": "multi_parcours · POST /api/dossiers/start"
+    },
+    {
+      "id": "TC-DOSS-010",
+      "titre": "Lister mes parcours (nominal + compteurs)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné (Amine) avec ≥1 dossier ayant questionnaire, CR publié, synthèse publiée et RDV.",
+      "donnees": "GET /api/dossiers/mine",
+      "etapes": [
+        "GET /api/dossiers/mine"
+      ],
+      "attendu": "200 { dossiers:[...] } trié par cree_le DESC ; chaque item: id, titre, statut, cree_le, acc_prenom/nom/email, has_questionnaire, synthese_publiee, nb_cr (seulement CR publie=1), nb_rdv ; n'inclut QUE les dossiers de l'accompagné.",
+      "technique": "test du contrat",
+      "tracabilite": "multi_parcours · GET /api/dossiers/mine"
+    },
+    {
+      "id": "TC-DOSS-011",
+      "titre": "Lister mes parcours : isolation entre accompagnés",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Deux accompagnés (Amine, Léa) ayant chacun des dossiers.",
+      "donnees": "GET /api/dossiers/mine connecté en Léa",
+      "etapes": [
+        "Se connecter en Léa",
+        "GET /mine"
+      ],
+      "attendu": "200 ; seuls les dossiers de Léa apparaissent ; aucun dossier d'Amine.",
+      "technique": "test basé sur les rôles (isolation des données)",
+      "tracabilite": "multi_parcours · GET /api/dossiers/mine"
+    },
+    {
+      "id": "TC-DOSS-012",
+      "titre": "Détail d'un parcours côté accompagné (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné, propriétaire du dossier <id>.",
+      "donnees": "GET /api/dossiers/mine/:id",
+      "etapes": [
+        "GET /api/dossiers/mine/<id du dossier d'Amine>"
+      ],
+      "attendu": "200 ; corps { dossier{ id,titre,statut,cree_le,accompagnateur_id,acc_prenom,acc_nom,acc_email }, questionnaire, crs (publie=1, triés publie_le DESC), synthese_publiee:boolean, phase_max, nb_entretiens, actions (triées ordre,id), rdvs }.",
+      "technique": "test du contrat",
+      "tracabilite": "multi_parcours · GET /api/dossiers/mine/:id"
+    },
+    {
+      "id": "TC-DOSS-013",
+      "titre": "Détail parcours accompagné : dossier d'autrui ou inexistant → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Léa.",
+      "donnees": "GET /api/dossiers/mine/:id avec id = dossier d'Amine ; et id = 999999",
+      "etapes": [
+        "GET /mine/<id du dossier d'Amine> en tant que Léa",
+        "GET /mine/999999"
+      ],
+      "attendu": "404 { error: 'Parcours introuvable' } dans les deux cas (filtre accompagne_id=me.id).",
+      "technique": "test basé sur les rôles (non-propriétaire)",
+      "tracabilite": "multi_parcours · GET /api/dossiers/mine/:id"
+    },
+    {
+      "id": "TC-DOSS-014",
+      "titre": "Détail parcours accompagné : rôle accompagnateur → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur.",
+      "donnees": "GET /api/dossiers/mine/1",
+      "etapes": [
+        "GET /mine/1 en accompagnateur"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagne') · GET /api/dossiers/mine/:id"
+    },
+    {
+      "id": "TC-DOSS-015",
+      "titre": "Détail complet dossier côté accompagnateur (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire (Camille) du dossier <id>.",
+      "donnees": "GET /api/dossiers/:id",
+      "etapes": [
+        "GET /api/dossiers/<id possédé>"
+      ],
+      "attendu": "200 ; { dossier{ id,titre,contexte,statut,synthese,cree_le,accompagne_prenom,accompagne_email }, questionnaire, sessions[] chaque session avec crs[] (id,version,genere_le,publie triés version DESC), synthese_publiee, actions, rdvs }.",
+      "technique": "test du contrat",
+      "tracabilite": "synthese · GET /api/dossiers/:id"
+    },
+    {
+      "id": "TC-DOSS-016",
+      "titre": "Détail dossier : non-propriétaire → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Deux accompagnateurs ; Camille tente d'accéder à un dossier appartenant à Mohamed.",
+      "donnees": "GET /api/dossiers/:id (id d'un dossier d'un autre accompagnateur)",
+      "etapes": [
+        "Se connecter en Camille",
+        "GET /:id d'un dossier de Mohamed"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } (owns() faux).",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "owns() · GET /api/dossiers/:id"
+    },
+    {
+      "id": "TC-DOSS-017",
+      "titre": "Détail dossier : id inexistant → 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur.",
+      "donnees": "GET /api/dossiers/999999",
+      "etapes": [
+        "GET /:id inexistant"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' }",
+      "technique": "valeurs limites (ressource absente)",
+      "tracabilite": "owns() · GET /api/dossiers/:id"
+    },
+    {
+      "id": "TC-DOSS-018",
+      "titre": "Détail dossier : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "GET /api/dossiers/1",
+      "etapes": [
+        "GET /:id en accompagné"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') · GET /api/dossiers/:id"
+    },
+    {
+      "id": "TC-DOSS-019",
+      "titre": "Synthèse JSON du dossier (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur propriétaire d'un dossier avec questionnaire (cr_recap), sessions/réponses, actions, RDV.",
+      "donnees": "GET /api/dossiers/:id/synthese",
+      "etapes": [
+        "GET /api/dossiers/<id>/synthese"
+      ],
+      "attendu": "200 ; { titre (défaut 'Dossier d'accompagnement' si null), accompagne, statut, creeLe, editeLe (ISO du moment), contexte (défaut '—'), questionnaire {cr_recap,complete_le}|null, entretiens[] avec reponses{phase,texte}, actions[], rdvs[], synthese }.",
+      "technique": "test du contrat",
+      "tracabilite": "synthese · GET /api/dossiers/:id/synthese"
+    },
+    {
+      "id": "TC-DOSS-020",
+      "titre": "Synthèse JSON dossier : non-propriétaire → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur non propriétaire.",
+      "donnees": "GET /api/dossiers/:id/synthese (dossier d'autrui)",
+      "etapes": [
+        "GET /:id/synthese sur dossier non possédé"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' }",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "owns() · GET /api/dossiers/:id/synthese"
+    },
+    {
+      "id": "TC-DOSS-021",
+      "titre": "Clôturer la démarche avec synthèse finale (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire d'un dossier en_cours.",
+      "donnees": "POST /api/dossiers/:id/cloturer { synthese:'Beau parcours, autonomie acquise.' }",
+      "etapes": [
+        "POST /:id/cloturer avec texte de synthèse"
+      ],
+      "attendu": "200 { ok:true } ; dossier.statut='cloture' et dossier.synthese=texte ; une notification est créée pour l'accompagné.",
+      "technique": "test du contrat",
+      "tracabilite": "synthese · POST /api/dossiers/:id/cloturer"
+    },
+    {
+      "id": "TC-DOSS-022",
+      "titre": "Clôturer sans synthèse (synthese null accepté)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire d'un dossier en_cours.",
+      "donnees": "POST /api/dossiers/:id/cloturer {} (corps sans champ synthese)",
+      "etapes": [
+        "POST /:id/cloturer sans champ synthese"
+      ],
+      "attendu": "200 { ok:true } ; statut='cloture' ; synthese=NULL (req.body.synthese != null faux → null).",
+      "technique": "partition d'équivalence (valeur facultative absente)",
+      "tracabilite": "synthese · POST /api/dossiers/:id/cloturer"
+    },
+    {
+      "id": "TC-DOSS-023",
+      "titre": "Clôturer : non-propriétaire → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur non propriétaire.",
+      "donnees": "POST /api/dossiers/:id/cloturer (dossier d'autrui)",
+      "etapes": [
+        "POST /:id/cloturer sur dossier non possédé"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } ; aucune modification.",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "owns() · POST /api/dossiers/:id/cloturer"
+    },
+    {
+      "id": "TC-DOSS-024",
+      "titre": "Clôturer : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "POST /api/dossiers/1/cloturer { synthese:'x' }",
+      "etapes": [
+        "POST /:id/cloturer en accompagné"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') · POST /api/dossiers/:id/cloturer"
+    },
+    {
+      "id": "TC-DOSS-025",
+      "titre": "Rouvrir un dossier clôturé (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire d'un dossier statut='cloture'.",
+      "donnees": "POST /api/dossiers/:id/rouvrir",
+      "etapes": [
+        "Clôturer un dossier",
+        "POST /:id/rouvrir"
+      ],
+      "attendu": "200 { ok:true } ; dossier.statut repasse à 'en_cours' (la synthèse finale saisie reste inchangée).",
+      "technique": "table de décision (transition statut)",
+      "tracabilite": "synthese · POST /api/dossiers/:id/rouvrir"
+    },
+    {
+      "id": "TC-DOSS-026",
+      "titre": "Rouvrir : non-propriétaire → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur non propriétaire.",
+      "donnees": "POST /api/dossiers/:id/rouvrir (dossier d'autrui)",
+      "etapes": [
+        "POST /:id/rouvrir sur dossier non possédé"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' }",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "owns() · POST /api/dossiers/:id/rouvrir"
+    },
+    {
+      "id": "TC-DOSS-027",
+      "titre": "Cycle clôturer puis rouvrir (non-régression d'état)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire, dossier en_cours.",
+      "donnees": "POST /cloturer puis /rouvrir puis GET /:id",
+      "etapes": [
+        "Clôturer",
+        "Rouvrir",
+        "GET /:id"
+      ],
+      "attendu": "Après le cycle statut='en_cours' ; aucune perte de sessions/actions/RDV ; deux notifications cohérentes émises côté accompagné (clôture).",
+      "technique": "transition d'états",
+      "tracabilite": "synthese · POST /api/dossiers/:id/cloturer + /rouvrir"
+    },
+    {
+      "id": "TC-DOSS-028",
+      "titre": "Grille statique d'auto-évaluation (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur.",
+      "donnees": "GET /api/autoeval/grille",
+      "etapes": [
+        "GET /api/autoeval/grille"
+      ],
+      "attendu": "200 { criteres:[3 critères], zones:[4 zones] } ; 3 critères × 7 indicateurs = 21 indicateurs au total ; chaque critère a id,titre,resume,indicateurs[{id,texte}] ; zones ordonnées min 0/25/50/75 (Émergent/En développement/Maîtrisé/Expert).",
+      "technique": "test du contrat",
+      "tracabilite": "auto_evaluation · GET /api/autoeval/grille"
+    },
+    {
+      "id": "TC-DOSS-029",
+      "titre": "Grille : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "GET /api/autoeval/grille",
+      "etapes": [
+        "GET /api/autoeval/grille en accompagné"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') · GET /api/autoeval/grille"
+    },
+    {
+      "id": "TC-DOSS-030",
+      "titre": "Grille : non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Sans cookie.",
+      "donnees": "GET /api/autoeval/grille",
+      "etapes": [
+        "GET sans session"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireAuth · GET /api/autoeval/grille"
+    },
+    {
+      "id": "TC-DOSS-031",
+      "titre": "Charger l'auto-évaluation courante crée un brouillon (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire d'un dossier sans auto-évaluation existante.",
+      "donnees": "GET /api/autoeval/:id",
+      "etapes": [
+        "GET /api/autoeval/<id possédé>"
+      ],
+      "attendu": "200 ; { eval:{ id, statut:'brouillon', note_globale (null si vierge), commentaire_global, analyse_questions, maj_le, scores } , historique:[] } ; scores contient les 21 clés d'indicateurs initialisées {score:null,commentaire:null} ; un brouillon est créé si absent.",
+      "technique": "test du contrat",
+      "tracabilite": "auto_evaluation · GET /api/autoeval/:id (getOrCreateDraft)"
+    },
+    {
+      "id": "TC-DOSS-032",
+      "titre": "Charger auto-évaluation : non-propriétaire → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur non propriétaire.",
+      "donnees": "GET /api/autoeval/:id (dossier d'autrui)",
+      "etapes": [
+        "GET /api/autoeval/<dossier non possédé>"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' }",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "owns() · GET /api/autoeval/:id"
+    },
+    {
+      "id": "TC-DOSS-033",
+      "titre": "Enregistrer le brouillon avec scores valides (nominal + note)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire ; brouillon existant.",
+      "donnees": "POST /api/autoeval/:id { scores:[{indicateur:'1.1',score:80,commentaire:'ok'},{indicateur:'2.1',score:60,commentaire:null}], commentaire_global:'Forces…', analyse_questions:'Questions ouvertes…' }",
+      "etapes": [
+        "POST /api/autoeval/<id> avec 2 scores"
+      ],
+      "attendu": "200 { ok:true, note_globale: 1.4 } ; note = round((80+60)/2/5*10)/10 = 1.4 ; relecture GET /:id renvoie les scores upsertés et commentaires globaux persistés.",
+      "technique": "test du contrat + valeurs limites (calcul note)",
+      "tracabilite": "auto_evaluation · POST /api/autoeval/:id"
+    },
+    {
+      "id": "TC-DOSS-034",
+      "titre": "Enregistrer : clamp des scores hors bornes [0,100]",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire ; brouillon existant.",
+      "donnees": "POST /api/autoeval/:id { scores:[{indicateur:'1.1',score:150},{indicateur:'1.2',score:-20},{indicateur:'1.3',score:0},{indicateur:'1.4',score:100}] }",
+      "etapes": [
+        "Enregistrer des scores hors bornes et aux limites"
+      ],
+      "attendu": "200 ; après relecture 1.1=100, 1.2=0, 1.3=0, 1.4=100 (clampScore borne à [0,100]).",
+      "technique": "valeurs limites (clamp)",
+      "tracabilite": "auto_evaluation · clampScore · POST /api/autoeval/:id"
+    },
+    {
+      "id": "TC-DOSS-035",
+      "titre": "Enregistrer : score non numérique/NaN/Infinity → null",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire ; brouillon.",
+      "donnees": "POST /api/autoeval/:id { scores:[{indicateur:'1.1',score:'abc'},{indicateur:'1.2',score:null}] }",
+      "etapes": [
+        "Enregistrer un score non-numérique et null"
+      ],
+      "attendu": "200 ; après relecture score 1.1=null et 1.2=null (clampScore renvoie null si non fini/non number) ; ces indicateurs ne comptent pas dans la moyenne.",
+      "technique": "partition d'équivalence (classe invalide)",
+      "tracabilite": "auto_evaluation · clampScore · POST /api/autoeval/:id"
+    },
+    {
+      "id": "TC-DOSS-036",
+      "titre": "Enregistrer : indicateur inconnu ignoré",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire ; brouillon.",
+      "donnees": "POST /api/autoeval/:id { scores:[{indicateur:'9.9',score:50},{indicateur:'1.1',score:50}] }",
+      "etapes": [
+        "Enregistrer un indicateur hors des 21 + un valide"
+      ],
+      "attendu": "200 ; '9.9' n'est pas persisté (INDICATEUR_IDS.includes filtre) ; seul '1.1' est enregistré.",
+      "technique": "partition d'équivalence (filtrage liste blanche)",
+      "tracabilite": "auto_evaluation · INDICATEUR_IDS · POST /api/autoeval/:id"
+    },
+    {
+      "id": "TC-DOSS-037",
+      "titre": "Enregistrer : corps sans scores (tableau vide accepté)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur propriétaire ; brouillon avec scores existants.",
+      "donnees": "POST /api/autoeval/:id { commentaire_global:'maj' } (pas de tableau scores)",
+      "etapes": [
+        "POST sans champ scores"
+      ],
+      "attendu": "200 { ok:true, note_globale } ; scores existants inchangés (scores=[] si non tableau) ; commentaire_global mis à jour.",
+      "technique": "partition d'équivalence (valeur absente)",
+      "tracabilite": "auto_evaluation · POST /api/autoeval/:id"
+    },
+    {
+      "id": "TC-DOSS-038",
+      "titre": "Enregistrer : non-propriétaire → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur non propriétaire.",
+      "donnees": "POST /api/autoeval/:id (dossier d'autrui)",
+      "etapes": [
+        "POST /api/autoeval/<dossier non possédé>"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } ; aucune écriture.",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "owns() · POST /api/autoeval/:id"
+    },
+    {
+      "id": "TC-DOSS-039",
+      "titre": "Note globale null quand aucun score numérique",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Fonction computeNote isolée (ou via POST avec scores tous null).",
+      "donnees": "map avec tous score=null OU aucun indicateur noté",
+      "etapes": [
+        "Appeler computeNote sur une map sans valeur numérique"
+      ],
+      "attendu": "computeNote renvoie null ; côté API note_globale=null.",
+      "technique": "partition d'équivalence (ensemble vide)",
+      "tracabilite": "auto_evaluation · computeNote()"
+    },
+    {
+      "id": "TC-DOSS-040",
+      "titre": "Unitaire computeNote : moyenne /5 arrondie à 0,1",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Fonction computeNote isolée.",
+      "donnees": "Cas A: {a:100} → 20/… attention : 100/5=20 → round(20*10)/10=20.0 ? (vérifier formule : avg/5 → 20) ; Cas B: {a:80,b:60} → avg=70, /5=14 → 14.0 ; Cas C: {a:55,b:60,c:65} → avg=60 → 12.0",
+      "etapes": [
+        "Calculer computeNote sur jeux connus"
+      ],
+      "attendu": "Résultat = Math.round(avg/5*10)/10 ; ex {80,60} → 14.0 ; {55,65}→ avg 60 → 12.0 ; arrondi au dixième.",
+      "technique": "valeurs limites + table de décision",
+      "tracabilite": "auto_evaluation · computeNote()"
+    },
+    {
+      "id": "TC-DOSS-041",
+      "titre": "Unitaire clampScore : partition et limites",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Fonction clampScore isolée.",
+      "donnees": "-1→0 ; 0→0 ; 50→50 ; 100→100 ; 101→100 ; 'x'→null ; NaN→null ; Infinity→null ; null→null",
+      "etapes": [
+        "Évaluer clampScore sur chaque valeur"
+      ],
+      "attendu": "Bornes respectées [0,100] ; valeurs non finies/non-number → null.",
+      "technique": "valeurs limites + partition d'équivalence",
+      "tracabilite": "auto_evaluation · clampScore()"
+    },
+    {
+      "id": "TC-DOSS-042",
+      "titre": "Valider fige la version et crée un nouveau brouillon copié",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire ; brouillon avec scores saisis.",
+      "donnees": "POST /api/autoeval/:id/valider { scores:[…], commentaire_global, analyse_questions }",
+      "etapes": [
+        "Saisir des scores",
+        "POST /:id/valider",
+        "GET /:id"
+      ],
+      "attendu": "200 { ok:true } ; l'ancien brouillon devient statut='validee' et apparaît dans historique ; un NOUVEAU brouillon est créé reprenant note_globale/commentaires et les scores copiés ; GET /:id renvoie le nouveau brouillon + historique contenant la version validée (note_globale, maj_le).",
+      "technique": "transition d'états + test du contrat",
+      "tracabilite": "auto_evaluation · POST /api/autoeval/:id/valider"
+    },
+    {
+      "id": "TC-DOSS-043",
+      "titre": "Valider plusieurs fois : historique croissant et trié",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire.",
+      "donnees": "Deux validations successives avec notes différentes",
+      "etapes": [
+        "Saisir+valider (note A)",
+        "Modifier+valider (note B)",
+        "GET /:id"
+      ],
+      "attendu": "historique contient 2 entrées triées par maj_le,id ; chaque entrée a id, note_globale, maj_le ; le brouillon courant est distinct des versions validées.",
+      "technique": "test du contrat (historisation)",
+      "tracabilite": "auto_evaluation · POST /api/autoeval/:id/valider"
+    },
+    {
+      "id": "TC-DOSS-044",
+      "titre": "Valider : non-propriétaire → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur non propriétaire.",
+      "donnees": "POST /api/autoeval/:id/valider (dossier d'autrui)",
+      "etapes": [
+        "POST /:id/valider sur dossier non possédé"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } ; aucune version figée.",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "owns() · POST /api/autoeval/:id/valider"
+    },
+    {
+      "id": "TC-DOSS-045",
+      "titre": "Pré-remplissage IA grille : contrat de réponse disponible",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire d'un dossier riche (questionnaire+entretiens+questions) ; ANTHROPIC_API_KEY configurée et service joignable.",
+      "donnees": "POST /api/autoeval/:id/ia",
+      "etapes": [
+        "POST /api/autoeval/<id possédé>/ia"
+      ],
+      "attendu": "200 { available:true, scores:[...], commentaire_global:string, analyse_questions:string } ; chaque score a indicateur ∈ 21 IDs, score ∈ [0,100]|null (clampé), commentaire string|null ; ne sauvegarde RIEN en base (GET /:id du brouillon inchangé). NE PAS figer le texte.",
+      "technique": "test du contrat (endpoint IA)",
+      "tracabilite": "auto_evaluation · POST /api/autoeval/:id/ia"
+    },
+    {
+      "id": "TC-DOSS-046",
+      "titre": "Pré-remplissage IA : repli déterministe sans clé API",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "ANTHROPIC_API_KEY absente (ou service injoignable / réponse non-ok).",
+      "donnees": "POST /api/autoeval/:id/ia",
+      "etapes": [
+        "Configurer l'environnement sans clé",
+        "POST /:id/ia"
+      ],
+      "attendu": "200 { available:false, message:\"L'assistant IA n'est pas disponible (clé API absente ou service injoignable).\" } ; aucune exception ; aucune écriture.",
+      "technique": "test du contrat (branche de repli)",
+      "tracabilite": "auto_evaluation · suggererGrille() repli · POST /api/autoeval/:id/ia"
+    },
+    {
+      "id": "TC-DOSS-047",
+      "titre": "Unitaire : filtrage des scores IA (indicateurs valides + clamp)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Fonction suggererGrille / parsing isolé ; réponse IA simulée contenant un indicateur hors-liste et des scores hors bornes.",
+      "donnees": "JSON IA simulé { scores:[{indicateur:'1.1',score:120},{indicateur:'X',score:50}], commentaire_global:'…', analyse_questions:'…' }",
+      "etapes": [
+        "Fournir la réponse IA simulée au parseur"
+      ],
+      "attendu": "Seuls les indicateurs ∈ INDICATEUR_IDS sont conservés ; scores clampés [0,100] (120→100) ; commentaire_global/analyse_questions par défaut '' si absents.",
+      "technique": "partition d'équivalence + valeurs limites",
+      "tracabilite": "auto_evaluation · suggererGrille() (parsing)"
+    },
+    {
+      "id": "TC-DOSS-048",
+      "titre": "Pré-remplissage IA : non-propriétaire → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur non propriétaire.",
+      "donnees": "POST /api/autoeval/:id/ia (dossier d'autrui)",
+      "etapes": [
+        "POST /:id/ia sur dossier non possédé"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' }",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "owns() · POST /api/autoeval/:id/ia"
+    },
+    {
+      "id": "TC-DOSS-049",
+      "titre": "Endpoints autoeval : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "GET /api/autoeval/:id ; POST /api/autoeval/:id ; POST /:id/valider ; POST /:id/ia",
+      "etapes": [
+        "Appeler chaque endpoint autoeval en accompagné"
+      ],
+      "attendu": "403 { error: 'Accès refusé' } sur tous (requireRole('accompagnateur')).",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') · /api/autoeval/*"
+    },
+    {
+      "id": "TC-DOSS-050",
+      "titre": "Générer la synthèse (nominal, 201, nouvelle version)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire d'un dossier ; clé API présente OU absente (les deux acceptés par contrat).",
+      "donnees": "POST /api/synthese/generer { dossierId:<possédé> }",
+      "etapes": [
+        "POST /api/synthese/generer"
+      ],
+      "attendu": "201 { id, version:(latest+1), contenu_html:non vide (HTML), source:'ia', publie:0 } ; une ligne syntheses est créée ; version s'incrémente à chaque appel.",
+      "technique": "test du contrat (endpoint IA, sans figer le texte)",
+      "tracabilite": "synthese · POST /api/synthese/generer"
+    },
+    {
+      "id": "TC-DOSS-051",
+      "titre": "Générer : dossierId d'autrui/inexistant → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur ; dossierId non possédé ou inexistant.",
+      "donnees": "POST /api/synthese/generer { dossierId:<autrui ou 999999> }",
+      "etapes": [
+        "POST /generer avec dossierId non possédé"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } ; aucune version créée.",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "synthese · dossierInfo+accompagnateur_id · POST /api/synthese/generer"
+    },
+    {
+      "id": "TC-DOSS-052",
+      "titre": "Générer : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "POST /api/synthese/generer { dossierId:<le sien> }",
+      "etapes": [
+        "POST /generer en accompagné"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') · POST /api/synthese/generer"
+    },
+    {
+      "id": "TC-DOSS-053",
+      "titre": "Unitaire repli déterministe syntheseToHtml : structure et fidélité",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Fonction syntheseToHtml isolée avec un SyntheseData connu (accompagné, contexte, 2 entretiens, actions, RDV, synthèse).",
+      "donnees": "SyntheseData renseigné",
+      "etapes": [
+        "Appeler syntheseToHtml(data)"
+      ],
+      "attendu": "HTML contenant les 6 sections (1. Contexte, 2. Questionnaire initial, 3. Entretiens, 4. Plan d'action, 5. Rendez-vous, 6. Synthèse finale) ; entretiens et actions reflètent les données ; section synthèse = 'Démarche en cours.' si statut≠cloture et synthese null.",
+      "technique": "test du contrat (repli déterministe)",
+      "tracabilite": "synthese · syntheseToHtml()"
+    },
+    {
+      "id": "TC-DOSS-054",
+      "titre": "Unitaire esc() : échappement HTML anti-injection",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Fonction esc/syntheseToHtml isolée ; contexte contenant '<script>alert(1)</script> & \"x\"'.",
+      "donnees": "contexte = '<script>alert(1)</script> & test'",
+      "etapes": [
+        "Générer le HTML de repli avec ce contexte"
+      ],
+      "attendu": "'&' → '&amp;', '<' → '&lt;', '>' → '&gt;' dans la sortie ; aucune balise script active injectée.",
+      "technique": "test de validation (échappement)",
+      "tracabilite": "synthese · esc()/parasHtml()"
+    },
+    {
+      "id": "TC-DOSS-055",
+      "titre": "Unitaire frDate() : formatage et cas limites",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Fonction frDate isolée.",
+      "donnees": "'' → '—' ; '2026-06-12' → '12/06/2026' ; '2026-06-12T14:30:00' → '12/06/2026 à 14:30' ; chaîne non ISO → renvoyée telle quelle",
+      "etapes": [
+        "Évaluer frDate sur chaque entrée"
+      ],
+      "attendu": "Conforme : vide→'—', date seule→jj/mm/aaaa, datetime→'jj/mm/aaaa à hh:mm', format inattendu→valeur d'origine.",
+      "technique": "valeurs limites + partition d'équivalence",
+      "tracabilite": "synthese · frDate()"
+    },
+    {
+      "id": "TC-DOSS-056",
+      "titre": "État synthèse côté accompagnateur (courant + historique)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire ayant généré ≥2 versions.",
+      "donnees": "GET /api/synthese/dossier/:id",
+      "etapes": [
+        "Générer 2 versions",
+        "GET /synthese/dossier/<id>"
+      ],
+      "attendu": "200 { role:'accompagnateur', doc:(latest), versions:[...] triées version DESC, chaque version a id,version,source,genere_le,publie }.",
+      "technique": "test du contrat (réponse selon rôle)",
+      "tracabilite": "synthese · GET /api/synthese/dossier/:id"
+    },
+    {
+      "id": "TC-DOSS-057",
+      "titre": "État synthèse côté accompagné : version publiée seule",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné propriétaire ; une synthèse a été publiée par l'accompagnateur.",
+      "donnees": "GET /api/synthese/dossier/:id",
+      "etapes": [
+        "GET /synthese/dossier/<id> en accompagné après publication"
+      ],
+      "attendu": "200 { role:'accompagne', doc:{ id,version,contenu_html,genere_le,publie:1 }, versions:[] } ; si aucune publication, doc:null.",
+      "technique": "table de décision (rôle × publication)",
+      "tracabilite": "synthese · GET /api/synthese/dossier/:id"
+    },
+    {
+      "id": "TC-DOSS-058",
+      "titre": "État synthèse : accès non autorisé (ni acc ni accompagné) → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Utilisateur tiers (autre accompagné/accompagnateur non lié au dossier).",
+      "donnees": "GET /api/synthese/dossier/:id (dossier d'autrui)",
+      "etapes": [
+        "GET /synthese/dossier/<id non lié>"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } (canAccess faux).",
+      "technique": "test basé sur les rôles (propriété mixte)",
+      "tracabilite": "synthese · canAccess · GET /api/synthese/dossier/:id"
+    },
+    {
+      "id": "TC-DOSS-059",
+      "titre": "Lire une version archivée (propriétaire)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire ; ≥1 version existante.",
+      "donnees": "GET /api/synthese/version/:id",
+      "etapes": [
+        "GET /synthese/version/<id de version possédée>"
+      ],
+      "attendu": "200 { doc:{ id, version, contenu_html } }.",
+      "technique": "test du contrat",
+      "tracabilite": "synthese · GET /api/synthese/version/:id"
+    },
+    {
+      "id": "TC-DOSS-060",
+      "titre": "Lire une version : version d'un dossier d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur non propriétaire du dossier de la version.",
+      "donnees": "GET /api/synthese/version/:id (version liée à un dossier d'autrui)",
+      "etapes": [
+        "GET /synthese/version/<id d'autrui>"
+      ],
+      "attendu": "404 { error: 'Introuvable' } (v.accompagnateur_id ≠ me.id).",
+      "technique": "test basé sur les rôles (propriété via jointure)",
+      "tracabilite": "synthese · GET /api/synthese/version/:id"
+    },
+    {
+      "id": "TC-DOSS-061",
+      "titre": "Lire une version : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "GET /api/synthese/version/1",
+      "etapes": [
+        "GET /synthese/version/1 en accompagné"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') · GET /api/synthese/version/:id"
+    },
+    {
+      "id": "TC-DOSS-062",
+      "titre": "Éditer la version courante (PATCH, nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire ; doc courant existant.",
+      "donnees": "PATCH /api/synthese/version/:id { contenu_html:'<h2>Édité</h2><p>…</p>' }",
+      "etapes": [
+        "PATCH la version courante avec nouveau HTML"
+      ],
+      "attendu": "200 { ok:true } ; relecture: contenu_html mis à jour, source devient 'edition' ; statut publié inchangé.",
+      "technique": "test du contrat",
+      "tracabilite": "synthese · PATCH /api/synthese/version/:id"
+    },
+    {
+      "id": "TC-DOSS-063",
+      "titre": "Éditer une version NON courante → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire ; ≥2 versions, on cible une version archivée (pas la plus récente).",
+      "donnees": "PATCH /api/synthese/version/:id (id d'une version non-latest)",
+      "etapes": [
+        "Générer v1 puis v2",
+        "PATCH sur v1"
+      ],
+      "attendu": "400 { error: 'Seule la version courante est modifiable.' } ; v1 inchangée.",
+      "technique": "table de décision (latest vs archivée)",
+      "tracabilite": "synthese · PATCH /api/synthese/version/:id"
+    },
+    {
+      "id": "TC-DOSS-064",
+      "titre": "Éditer : version d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur non propriétaire.",
+      "donnees": "PATCH /api/synthese/version/:id (dossier d'autrui)",
+      "etapes": [
+        "PATCH une version d'un dossier non possédé"
+      ],
+      "attendu": "404 { error: 'Introuvable' }",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "synthese · PATCH /api/synthese/version/:id"
+    },
+    {
+      "id": "TC-DOSS-065",
+      "titre": "Publier une version (nominal, unicité du publié)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire ; ≥1 version, idéalement une déjà publiée.",
+      "donnees": "POST /api/synthese/version/:id/publier",
+      "etapes": [
+        "Publier v1",
+        "Publier v2",
+        "GET /synthese/dossier/:id"
+      ],
+      "attendu": "200 { ok:true } ; après publication de v2, v2.publie=1 avec publie_le renseigné et TOUTES les autres versions du dossier publie=0/publie_le=NULL (une seule publiée) ; notification créée pour l'accompagné.",
+      "technique": "table de décision (exclusivité) + test du contrat",
+      "tracabilite": "synthese · POST /api/synthese/version/:id/publier"
+    },
+    {
+      "id": "TC-DOSS-066",
+      "titre": "Publier : version d'autrui → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur non propriétaire.",
+      "donnees": "POST /api/synthese/version/:id/publier (dossier d'autrui)",
+      "etapes": [
+        "Publier une version d'un dossier non possédé"
+      ],
+      "attendu": "404 { error: 'Introuvable' } ; rien publié, pas de notification.",
+      "technique": "test basé sur les rôles (propriété)",
+      "tracabilite": "synthese · POST /api/synthese/version/:id/publier"
+    },
+    {
+      "id": "TC-DOSS-067",
+      "titre": "Publier : rôle accompagné → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "POST /api/synthese/version/1/publier",
+      "etapes": [
+        "POST publier en accompagné"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagnateur') · POST /api/synthese/version/:id/publier"
+    },
+    {
+      "id": "TC-DOSS-068",
+      "titre": "Synthèses publiées de l'accompagné (mine)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné (Amine) avec une synthèse publiée sur au moins un dossier.",
+      "donnees": "GET /api/synthese/mine",
+      "etapes": [
+        "GET /api/synthese/mine en accompagné"
+      ],
+      "attendu": "200 { syntheses:[{ id, dossier_id, publie_le, dossier_titre }] } triées publie_le DESC ; uniquement les publie=1 des dossiers de l'accompagné ; une par dossier.",
+      "technique": "test du contrat",
+      "tracabilite": "synthese · GET /api/synthese/mine"
+    },
+    {
+      "id": "TC-DOSS-069",
+      "titre": "Synthèses mine : rôle accompagnateur → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Connecté en accompagnateur.",
+      "donnees": "GET /api/synthese/mine",
+      "etapes": [
+        "GET /synthese/mine en accompagnateur"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireRole('accompagne') · GET /api/synthese/mine"
+    },
+    {
+      "id": "TC-DOSS-070",
+      "titre": "Discussion synthèse : accompagné bloqué tant que non publiée → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné propriétaire d'un dossier SANS synthèse publiée.",
+      "donnees": "GET /api/synthese/dossier/:id/messages ; POST .../messages { texte:'Bonjour' }",
+      "etapes": [
+        "S'assurer qu'aucune synthèse n'est publiée",
+        "GET puis POST messages en accompagné"
+      ],
+      "attendu": "404 { error: 'Discussion indisponible' } sur GET et POST (canDiscuss: accompagné requiert published).",
+      "technique": "table de décision (rôle × publication)",
+      "tracabilite": "synthese · canDiscuss · /api/synthese/dossier/:id/messages"
+    },
+    {
+      "id": "TC-DOSS-071",
+      "titre": "Discussion synthèse : accompagnateur autorisé même non publié",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire ; synthèse non encore publiée.",
+      "donnees": "POST /api/synthese/dossier/:id/messages { texte:'Note interne' } puis GET",
+      "etapes": [
+        "POST un message en accompagnateur (non publié)",
+        "GET les messages"
+      ],
+      "attendu": "POST 201 { id } ; GET 200 { messages:[...] } avec is_me=true pour l'auteur ; une notification est créée pour l'accompagné.",
+      "technique": "table de décision (accompagnateur toujours autorisé)",
+      "tracabilite": "synthese · canDiscuss · POST /api/synthese/dossier/:id/messages"
+    },
+    {
+      "id": "TC-DOSS-072",
+      "titre": "Discussion : accompagné autorisé après publication (échange complet)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Synthèse publiée sur le dossier ; accompagné propriétaire.",
+      "donnees": "POST .../messages { texte:'Merci pour cette synthèse' } puis GET",
+      "etapes": [
+        "Publier la synthèse (accompagnateur)",
+        "POST un message (accompagné)",
+        "GET les messages"
+      ],
+      "attendu": "POST 201 { id } ; GET 200 ; messages ordonnés cree_le,id ASC ; champ is_me correct selon l'appelant ; auteur_prenom/auteur_role exposés ; notification créée pour l'accompagnateur.",
+      "technique": "test du contrat (flux bout-en-bout API)",
+      "tracabilite": "synthese · /api/synthese/dossier/:id/messages"
+    },
+    {
+      "id": "TC-DOSS-073",
+      "titre": "Discussion : message vide → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Discussion autorisée (accompagnateur, ou accompagné avec synthèse publiée).",
+      "donnees": "POST .../messages { texte:'   ' } et { } (sans texte)",
+      "etapes": [
+        "POST un message vide ou composé d'espaces"
+      ],
+      "attendu": "400 { error: 'Message vide' } (trim côté serveur) ; aucun message inséré, aucune notification.",
+      "technique": "partition d'équivalence (entrée vide) + valeurs limites",
+      "tracabilite": "synthese · POST /api/synthese/dossier/:id/messages"
+    },
+    {
+      "id": "TC-DOSS-074",
+      "titre": "Discussion : tiers non lié au dossier → 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Utilisateur ni accompagnateur ni accompagné du dossier.",
+      "donnees": "GET/POST /api/synthese/dossier/:id/messages (dossier d'autrui)",
+      "etapes": [
+        "Appeler messages sur un dossier non lié"
+      ],
+      "attendu": "404 { error: 'Discussion indisponible' } (canAccess faux).",
+      "technique": "test basé sur les rôles (isolation)",
+      "tracabilite": "synthese · canAccess/canDiscuss · /api/synthese/dossier/:id/messages"
+    },
+    {
+      "id": "TC-DOSS-075",
+      "titre": "Endpoints messages/dossier synthese : non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Sans cookie.",
+      "donnees": "GET /api/synthese/dossier/:id ; GET /:id/messages ; POST /:id/messages",
+      "etapes": [
+        "Appeler chaque endpoint sans session"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "requireAuth · /api/synthese/dossier/:id(+/messages)"
+    },
+    {
+      "id": "TC-DOSS-076",
+      "titre": "UI accompagné : démarrer un nouveau parcours bout-en-bout",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné sur http://localhost:8080 ; ≥1 accompagnateur disponible.",
+      "donnees": "Page /nouveau-parcours",
+      "etapes": [
+        "Aller sur Mon espace, cliquer '+ Démarrer un nouveau parcours'",
+        "Saisir un titre",
+        "Choisir un accompagnateur dans la liste",
+        "Cliquer 'Démarrer et remplir le questionnaire'"
+      ],
+      "attendu": "Redirection vers /questionnaire?dossier=<id> ; le nouveau parcours apparaît ensuite dans 'Mes parcours' avec badge 'Questionnaire à faire'.",
+      "technique": "test du contrat (parcours utilisateur)",
+      "tracabilite": "multi_parcours · NouveauParcours.tsx + POST /api/dossiers/start"
+    },
+    {
+      "id": "TC-DOSS-077",
+      "titre": "UI accompagné : titre vide ou aucun accompagnateur bloque la soumission",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "Page /nouveau-parcours",
+      "etapes": [
+        "Laisser le titre vide et soumettre",
+        "(Variante) cas où aucun accompagnateur n'est disponible"
+      ],
+      "attendu": "Message 'Renseigne un titre et choisis un accompagnateur.' ; le bouton est désactivé si accs.length===0 ; aucune navigation.",
+      "technique": "partition d'équivalence (formulaire)",
+      "tracabilite": "multi_parcours · NouveauParcours.tsx"
+    },
+    {
+      "id": "TC-DOSS-078",
+      "titre": "UI accompagné : liste 'Mes parcours' avec badges et état vide",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "Composant MesParcours (page Espace)",
+      "etapes": [
+        "Ouvrir Mon espace",
+        "Observer les cartes parcours"
+      ],
+      "attendu": "Chaque carte affiche titre, accompagnateur, statut (En cours/Clôturé), badges (Questionnaire, n comptes rendus, Synthèse ✓) ; si aucun parcours, message d'invitation à démarrer ; bouton 'Ouvrir le parcours' → /parcours/:id.",
+      "technique": "test du contrat (rendu liste)",
+      "tracabilite": "multi_parcours · MesParcours.tsx + GET /api/dossiers/mine"
+    },
+    {
+      "id": "TC-DOSS-079",
+      "titre": "UI accompagné : détail parcours lecture seule (ParcoursDetail)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné propriétaire d'un parcours avec questionnaire, CR publié, RDV.",
+      "donnees": "Page /parcours/:id",
+      "etapes": [
+        "Ouvrir un parcours depuis Mes parcours"
+      ],
+      "attendu": "Affiche boussole/progression, questionnaire (ou bouton 'Remplir le questionnaire'), CR publiés, RDV, état synthèse ; bouton synthèse ouvre SyntheseModal en rôle accompagné.",
+      "technique": "test du contrat (rendu détail)",
+      "tracabilite": "multi_parcours · ParcoursDetail.tsx + GET /api/dossiers/mine/:id"
+    },
+    {
+      "id": "TC-DOSS-080",
+      "titre": "UI accompagnateur : clôturer puis rouvrir un dossier",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire d'un dossier en_cours (page /dossier/:id).",
+      "donnees": "Section clôture de Dossier.tsx",
+      "etapes": [
+        "Saisir une synthèse finale (facultatif)",
+        "Cliquer 'Clôturer la démarche'",
+        "Observer le badge 'Clôturé'",
+        "Cliquer 'Rouvrir le dossier'"
+      ],
+      "attendu": "Après clôture: badge 'Clôturé', synthèse finale affichée en lecture seule, bouton 'Rouvrir le dossier' présent ; après réouverture: badge 'En cours', zone de saisie de synthèse de nouveau éditable.",
+      "technique": "transition d'états (UI)",
+      "tracabilite": "synthese · Dossier.tsx + POST /api/dossiers/:id/cloturer + /rouvrir"
+    },
+    {
+      "id": "TC-DOSS-081",
+      "titre": "UI accompagnateur : remplir et valider la grille d'auto-évaluation",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire ; page /dossier/:id/autoeval (AutoEvaluation.tsx).",
+      "donnees": "Grille 21 indicateurs",
+      "etapes": [
+        "Régler plusieurs curseurs (GradientSlider)",
+        "Saisir des commentaires",
+        "Cliquer '💾 Enregistrer'",
+        "Cliquer '✓ Valider cette version'"
+      ],
+      "attendu": "Jauge 'Score global' et radar par critère se mettent à jour ; compteur 'x/21 notés' et note globale cohérents ; message 'Enregistré ✅' puis 'Version validée et archivée dans l'historique ✅' ; après validation un nouveau brouillon repart.",
+      "technique": "test du contrat (parcours UI)",
+      "tracabilite": "auto_evaluation · AutoEvaluation.tsx + POST /api/autoeval/:id(+/valider)"
+    },
+    {
+      "id": "TC-DOSS-082",
+      "titre": "UI accompagnateur : pré-remplissage IA de la grille (confirmation + badges)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur propriétaire ; dossier avec données ; clé API présente.",
+      "donnees": "Bouton '✨ Pré-remplir avec l'IA'",
+      "etapes": [
+        "Saisir au préalable un score",
+        "Cliquer 'Pré-remplir avec l'IA'",
+        "Confirmer le remplacement dans la boîte de dialogue",
+        "Attendre la fin de l'animation AiProgress"
+      ],
+      "attendu": "Confirmation demandée si saisie existante ; les curseurs/commentaires se peuplent ; badge '✨ suggéré par l'IA' sur les indicateurs proposés ; commentaire global et analyse des questions renseignés ; rien n'est sauvegardé tant que l'utilisateur n'enregistre/valide pas. Ne pas figer le texte généré.",
+      "technique": "test du contrat (UI IA) + table de décision (confirmation)",
+      "tracabilite": "auto_evaluation · AutoEvaluation.tsx + POST /api/autoeval/:id/ia"
+    },
+    {
+      "id": "TC-DOSS-083",
+      "titre": "UI accompagnateur : IA indisponible affiche un message non bloquant",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Clé API absente côté serveur ; accompagnateur sur la grille.",
+      "donnees": "Bouton '✨ Pré-remplir avec l'IA'",
+      "etapes": [
+        "Cliquer 'Pré-remplir avec l'IA'"
+      ],
+      "attendu": "Message d'indisponibilité affiché (r.message) ; la grille reste saisissable manuellement ; aucune erreur bloquante.",
+      "technique": "test du contrat (branche de repli UI)",
+      "tracabilite": "auto_evaluation · AutoEvaluation.tsx (available:false)"
+    },
+    {
+      "id": "TC-DOSS-084",
+      "titre": "UI accompagnateur : générer, éditer, publier la synthèse",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire ; SyntheseModal ouverte depuis /dossier/:id.",
+      "donnees": "SyntheseModal role=accompagnateur",
+      "etapes": [
+        "Cliquer '✨ Générer la synthèse (IA)'",
+        "Cliquer '✎ Éditer' et modifier le contenu, Enregistrer",
+        "Cliquer '📣 Publier'"
+      ],
+      "attendu": "Après génération: badge '• Brouillon', contenu HTML affiché ; après édition+enregistrement: badge éditée, contenu mis à jour ; après publication: badge '✓ Publiée' et message 'Synthèse publiée — l'accompagné peut la consulter.' ; l'historique liste les versions.",
+      "technique": "test du contrat (parcours UI versions)",
+      "tracabilite": "synthese · SyntheseModal.tsx + /api/synthese/*"
+    },
+    {
+      "id": "TC-DOSS-085",
+      "titre": "UI : discussion de synthèse entre accompagnateur et accompagné",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Synthèse publiée ; deux sessions (accompagnateur et accompagné).",
+      "donnees": "Section '💬 Échanges' de SyntheseModal",
+      "etapes": [
+        "Accompagnateur: ouvrir la synthèse, écrire un message, Envoyer",
+        "Accompagné: ouvrir sa synthèse publiée, lire le message, répondre, Envoyer",
+        "Accompagnateur: recharger et lire la réponse"
+      ],
+      "attendu": "Les messages s'affichent dans l'ordre chronologique, alignés selon is_me ; chaque partie reçoit une notification ; côté accompagné la discussion n'est disponible qu'après publication (sinon message d'attente côté accompagnateur 'visible une fois publiée').",
+      "technique": "test du contrat (collaboration bout-en-bout)",
+      "tracabilite": "synthese · SyntheseModal.tsx + /api/synthese/dossier/:id/messages"
+    }
+  ]
+}

@@ -14,6 +14,17 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me'
 interface U { id: number; role: string }
 const getUser = (req: Request) => (req as Request & { user?: U }).user as U
 
+/** Nom de salle Jitsi déterministe pour un RDV : 'Boussole-<id>-<hash10>' (hash = sha256(id:JWT_SECRET).hex tronqué à 10). */
+export function salleVisio(rdvId: number): string {
+  const hash = crypto.createHash('sha256').update(`${rdvId}:${JWT_SECRET}`).digest('hex').slice(0, 10)
+  return `Boussole-${rdvId}-${hash}`
+}
+
+/** Libellé affiché de l'accompagné : « prénom nom » si présents, sinon repli sur l'email. */
+export function libelleAccompagne(prenom: string | null, nom: string | null, email: string): string {
+  return [prenom, nom].filter(Boolean).join(' ') || email
+}
+
 // --- VAPID : clés stables via l'environnement, sinon éphémères (régénérées au démarrage) ---
 let vapidPublic = process.env.VAPID_PUBLIC_KEY || ''
 const vapidPrivate = process.env.VAPID_PRIVATE_KEY || ''
@@ -29,6 +40,10 @@ try {
 } catch (e) {
   console.error('[push] Initialisation VAPID impossible :', e)
 }
+
+// Expose l'instance web-push effectivement utilisée par pushToUser (permet aux tests unitaires de
+// la stuber sans dépendre de la résolution du paquet 'web-push' hors du dossier api).
+export { webpush }
 
 /** Envoie une notification push à tous les appareils d'un utilisateur (best effort, purge les abonnements morts). */
 export async function pushToUser(userId: number, payload: { title: string; body: string; url?: string }): Promise<void> {
@@ -53,8 +68,7 @@ router.get('/visio/rdv/:id', requireAuth, requireFeature('visio'), (req: Request
   const rdv = db.prepare('SELECT r.id, r.accompagne_id, c.accompagnateur_id FROM rdv r JOIN creneaux c ON c.id=r.creneau_id WHERE r.id=?').get(id) as
     { id: number; accompagne_id: number; accompagnateur_id: number } | undefined
   if (!rdv || (me.id !== rdv.accompagne_id && me.id !== rdv.accompagnateur_id)) { res.status(404).json({ error: 'Rendez-vous introuvable' }); return }
-  const hash = crypto.createHash('sha256').update(`${rdv.id}:${JWT_SECRET}`).digest('hex').slice(0, 10)
-  const salle = `Boussole-${rdv.id}-${hash}`
+  const salle = salleVisio(rdv.id)
   res.json({ salle, url: `https://meet.jit.si/${salle}` })
 })
 
@@ -105,7 +119,7 @@ router.get('/export/dossier/:id', requireAuth, requireRole('accompagnateur'), re
   const grille = db.prepare("SELECT note_globale, commentaire_global FROM auto_evaluations WHERE dossier_id=? AND statut='validee' ORDER BY id DESC LIMIT 1").get(id) as { note_globale: number | null; commentaire_global: string | null } | undefined
 
   res.json({
-    dossier: { titre: dossier.titre, statut: dossier.statut, contexte: dossier.contexte, cree_le: dossier.cree_le, accompagne: [dossier.prenom, dossier.nom].filter(Boolean).join(' ') || dossier.email },
+    dossier: { titre: dossier.titre, statut: dossier.statut, contexte: dossier.contexte, cree_le: dossier.cree_le, accompagne: libelleAccompagne(dossier.prenom, dossier.nom, dossier.email) },
     questionnaire,
     comptes_rendus: crs.map((c) => ({ date: c.date, html: c.html || '' })),
     synthese,

@@ -1,0 +1,853 @@
+{
+  "domaine": "viz",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/viz/nuage/dossier/:id",
+      "feature": "nuage_themes",
+      "role": "accompagne|accompagnateur (propriétaire du dossier)",
+      "summary": "Relit le nuage de thèmes persisté d'un parcours (ou null s'il n'a jamais été généré)."
+    },
+    {
+      "method": "POST",
+      "path": "/api/viz/nuage/dossier/:id",
+      "feature": "nuage_themes",
+      "role": "accompagne|accompagnateur (propriétaire du dossier)",
+      "summary": "Génère/regénère le nuage de thèmes via IA (repli heuristique par fréquence), persiste en upsert et renvoie themes + source."
+    },
+    {
+      "method": "GET",
+      "path": "/api/viz/emotions/catalogue",
+      "feature": "roue_emotions",
+      "role": "tout authentifié avec la feature",
+      "summary": "Renvoie le catalogue des 16 émotions catégorisées (cle + famille)."
+    },
+    {
+      "method": "GET",
+      "path": "/api/viz/emotions/dossier/:id",
+      "feature": "roue_emotions",
+      "role": "accompagne|accompagnateur (propriétaire du dossier)",
+      "summary": "Renvoie les 30 derniers relevés d'émotions du parcours + agrégat de fréquence par émotion."
+    },
+    {
+      "method": "POST",
+      "path": "/api/viz/emotions/dossier/:id",
+      "feature": "roue_emotions",
+      "role": "accompagne|accompagnateur (propriétaire du dossier)",
+      "summary": "Enregistre un relevé d'émotions (sanitize contre le catalogue, note tronquée à 200), 201 ok."
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-VIZ-001",
+      "titre": "GET nuage existant - relecture nominale (200, forme du nuage)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Amine (afrit_mohamed@yahoo.fr) propriétaire d'un dossier did dont le nuage a déjà été généré (POST préalable).",
+      "donnees": "GET /api/viz/nuage/dossier/{did}",
+      "etapes": [
+        "Se connecter (mdp BoussoleDemo2026)",
+        "Générer le nuage via POST une fois",
+        "Appeler GET /api/viz/nuage/dossier/{did}"
+      ],
+      "attendu": "200. Corps { nuage: { themes:[{mot:string, poids:number 1..10}], source:'ia'|'heuristique', genere_le:ISO } }. themes est un tableau non vide, chaque poids entier dans [1,10].",
+      "technique": "Test du contrat (forme et typage de la réponse)",
+      "tracabilite": "nuage_themes | GET /api/viz/nuage/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-002",
+      "titre": "GET nuage jamais généré - renvoie nuage:null (200)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en propriétaire d'un dossier did pour lequel aucun nuage n'a été persisté (aucune ligne dans nuages_themes).",
+      "donnees": "GET /api/viz/nuage/dossier/{did}",
+      "etapes": [
+        "Se connecter en propriétaire",
+        "Choisir un dossier sans nuage",
+        "Appeler GET /api/viz/nuage/dossier/{did}"
+      ],
+      "attendu": "200 avec { nuage: null }. Aucune erreur, branche row=undefined couverte.",
+      "technique": "Partition d'équivalence (présence vs absence de la ressource)",
+      "tracabilite": "nuage_themes | GET /api/viz/nuage/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-003",
+      "titre": "GET nuage - non authentifié (401)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie d'authentification (anonyme).",
+      "donnees": "GET /api/viz/nuage/dossier/1 sans cookie boussole_token",
+      "etapes": [
+        "Ne pas se connecter",
+        "Appeler GET /api/viz/nuage/dossier/1"
+      ],
+      "attendu": "401 { error:'Non authentifié' }. requireAuth bloque avant requireFeature.",
+      "technique": "Test basé sur les rôles (rôle anonyme)",
+      "tracabilite": "nuage_themes | GET /api/viz/nuage/dossier/:id (requireAuth)"
+    },
+    {
+      "id": "TC-VIZ-004",
+      "titre": "GET nuage - feature absente de l'offre (403 requireFeature)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Admin a affecté à l'accompagné un plan (ex. Découverte/socle) dont les features n'incluent PAS 'nuage_themes' (PATCH /api/admin/users/:id { plan_id }).",
+      "donnees": "GET /api/viz/nuage/dossier/{did} avec utilisateur rattaché à un plan sans nuage_themes",
+      "etapes": [
+        "Admin: créer/choisir un plan sans 'nuage_themes'",
+        "Admin: affecter ce plan à l'utilisateur",
+        "Se connecter en cet utilisateur",
+        "Appeler GET /api/viz/nuage/dossier/{did}"
+      ],
+      "attendu": "403 { error:'Fonctionnalité non disponible dans votre offre' }.",
+      "technique": "Table de décision (authentifié x feature présente/absente)",
+      "tracabilite": "nuage_themes | GET /api/viz/nuage/dossier/:id (requireFeature)"
+    },
+    {
+      "id": "TC-VIZ-005",
+      "titre": "GET nuage - dossier d'un autre utilisateur (404 propriété)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Léa (lea.martin@boussole.demo) ; did appartient à un dossier dont elle n'est ni accompagne_id ni accompagnateur_id.",
+      "donnees": "GET /api/viz/nuage/dossier/{did_autrui}",
+      "etapes": [
+        "Se connecter en Léa",
+        "Identifier un dossier d'Amine",
+        "Appeler GET /api/viz/nuage/dossier/{did_autrui}"
+      ],
+      "attendu": "404 { error:'Parcours introuvable' }. ownEither renvoie undefined.",
+      "technique": "Test basé sur les rôles (contrôle de propriété ownEither)",
+      "tracabilite": "nuage_themes | GET /api/viz/nuage/dossier/:id (ownEither)"
+    },
+    {
+      "id": "TC-VIZ-006",
+      "titre": "GET nuage - id non numérique / inexistant (404)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur Mohamed (elafrit.mohamed@gmail.com).",
+      "donnees": "GET /api/viz/nuage/dossier/abc puis GET /api/viz/nuage/dossier/999999",
+      "etapes": [
+        "Se connecter",
+        "Appeler avec :id='abc' (Number -> NaN)",
+        "Appeler avec :id=999999 (inexistant)"
+      ],
+      "attendu": "404 { error:'Parcours introuvable' } dans les deux cas (ownEither ne trouve aucune ligne).",
+      "technique": "Valeurs limites / partition d'équivalence (id invalide vs inexistant)",
+      "tracabilite": "nuage_themes | GET /api/viz/nuage/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-007",
+      "titre": "POST nuage - génération nominale par contrat (200, themes + source)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en propriétaire d'un dossier did riche en contenu (questionnaire récap, CR publiés, notes, journal partagé, fil rouge) > 80 caractères agrégés.",
+      "donnees": "POST /api/viz/nuage/dossier/{did} (body vide)",
+      "etapes": [
+        "Se connecter en propriétaire",
+        "Appeler POST /api/viz/nuage/dossier/{did}"
+      ],
+      "attendu": "200 { themes:[{mot:string non vide, poids:int 1..10}], source:'ia'|'heuristique' }. <=24 thèmes. Sans clé API ou si l'IA échoue, source='heuristique' mais le contrat reste respecté (NE PAS figer le texte des mots).",
+      "technique": "Test du contrat (champs présents, typés, non vides ; gating IA/repli)",
+      "tracabilite": "nuage_themes | POST /api/viz/nuage/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-008",
+      "titre": "POST nuage - persistance et relecture (upsert puis GET cohérent)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en propriétaire d'un dossier did.",
+      "donnees": "POST puis GET /api/viz/nuage/dossier/{did}",
+      "etapes": [
+        "POST /api/viz/nuage/dossier/{did}",
+        "Noter themes/source renvoyés",
+        "GET /api/viz/nuage/dossier/{did}"
+      ],
+      "attendu": "Le GET renvoie nuage.themes identiques à ceux du POST, plus source et genere_le (datetime now). Une seule ligne en base (ON CONFLICT(dossier_id) DO UPDATE).",
+      "technique": "Test du contrat (persistance/relecture)",
+      "tracabilite": "nuage_themes | POST + GET /api/viz/nuage/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-009",
+      "titre": "POST nuage - régénération met à jour sans doublon (idempotence upsert)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en propriétaire d'un dossier did déjà doté d'un nuage.",
+      "donnees": "POST /api/viz/nuage/dossier/{did} appelé deux fois",
+      "etapes": [
+        "POST une 1re fois",
+        "POST une 2e fois",
+        "Vérifier en base nuages_themes WHERE dossier_id={did}"
+      ],
+      "attendu": "Toujours exactement 1 ligne pour ce dossier ; genere_le mis à jour. Pas de violation de contrainte d'unicité.",
+      "technique": "Test du contrat (conflit/upsert ON CONFLICT)",
+      "tracabilite": "nuage_themes | POST /api/viz/nuage/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-010",
+      "titre": "POST nuage - dossier quasi vide => repli heuristique (source='heuristique')",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en propriétaire d'un dossier did dont le texte agrégé fait <= 80 caractères (branche txt.trim().length>80 fausse).",
+      "donnees": "POST /api/viz/nuage/dossier/{did}",
+      "etapes": [
+        "Choisir/créer un dossier sans contenu textuel",
+        "Appeler POST /api/viz/nuage/dossier/{did}"
+      ],
+      "attendu": "200. L'IA n'est pas appelée ; result vient de nuageFallback ; source='heuristique'. themes peut être vide si aucun mot >=4 lettres.",
+      "technique": "Valeurs limites (seuil de longueur 80) + partition (contenu suffisant/insuffisant)",
+      "tracabilite": "nuage_themes | POST /api/viz/nuage/dossier/:id (branche fallback)"
+    },
+    {
+      "id": "TC-VIZ-011",
+      "titre": "POST nuage - 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Anonyme.",
+      "donnees": "POST /api/viz/nuage/dossier/1 sans cookie",
+      "etapes": [
+        "Ne pas se connecter",
+        "Appeler POST /api/viz/nuage/dossier/1"
+      ],
+      "attendu": "401 { error:'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "nuage_themes | POST /api/viz/nuage/dossier/:id (requireAuth)"
+    },
+    {
+      "id": "TC-VIZ-012",
+      "titre": "POST nuage - 403 feature non disponible",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Utilisateur rattaché à un plan sans 'nuage_themes'.",
+      "donnees": "POST /api/viz/nuage/dossier/{did}",
+      "etapes": [
+        "Admin: affecter un plan sans nuage_themes",
+        "Se connecter",
+        "Appeler POST /api/viz/nuage/dossier/{did}"
+      ],
+      "attendu": "403 { error:'Fonctionnalité non disponible dans votre offre' }. Aucune écriture en base.",
+      "technique": "Table de décision (feature absente)",
+      "tracabilite": "nuage_themes | POST /api/viz/nuage/dossier/:id (requireFeature)"
+    },
+    {
+      "id": "TC-VIZ-013",
+      "titre": "POST nuage - 404 dossier d'autrui",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Karim (karim.benali@boussole.demo) ; did appartient à un autre utilisateur.",
+      "donnees": "POST /api/viz/nuage/dossier/{did_autrui}",
+      "etapes": [
+        "Se connecter en Karim",
+        "Appeler POST sur un dossier d'Amine"
+      ],
+      "attendu": "404 { error:'Parcours introuvable' }. Aucune génération ni écriture.",
+      "technique": "Test basé sur les rôles (propriété ownEither)",
+      "tracabilite": "nuage_themes | POST /api/viz/nuage/dossier/:id (ownEither)"
+    },
+    {
+      "id": "TC-VIZ-014",
+      "titre": "POST nuage - accès par l'accompagnateur du dossier (ownEither côté accompagnateur)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur Mohamed, propriétaire (accompagnateur_id) du dossier did d'Amine.",
+      "donnees": "POST /api/viz/nuage/dossier/{did}",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Appeler POST sur le dossier qu'il suit"
+      ],
+      "attendu": "200 (génération autorisée). Confirme que ownEither accepte aussi l'accompagnateur, pas seulement l'accompagné.",
+      "technique": "Partition d'équivalence (les deux parties propriétaires)",
+      "tracabilite": "nuage_themes | POST /api/viz/nuage/dossier/:id (ownEither OR)"
+    },
+    {
+      "id": "TC-VIZ-015",
+      "titre": "UNITAIRE nuageFallback - calcul des poids normalisés (max -> 10)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Fonction nuageFallback(did) testable avec un texteDossier connu/mocké contenant des mots répétés.",
+      "donnees": "Texte où 'memoire' apparaît 10x, 'projet' 5x, 'écriture' 2x, plus des stopwords.",
+      "etapes": [
+        "Construire un dossier avec ce texte agrégé",
+        "Appeler nuageFallback(did)",
+        "Inspecter themes"
+      ],
+      "attendu": "Le mot le plus fréquent reçoit poids=10 (Math.round((n/max)*10)). Les autres poids = max(1, round(ratio*10)). themes triés par fréquence décroissante, <=24 entrées.",
+      "technique": "Test unitaire de repli déterministe + valeurs limites (poids min=1, max=10)",
+      "tracabilite": "nuage_themes | fonction nuageFallback"
+    },
+    {
+      "id": "TC-VIZ-016",
+      "titre": "UNITAIRE nuageFallback - exclusion stopwords et mots < 4 lettres",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "nuageFallback testable.",
+      "donnees": "Texte: 'le la les pour avec' (stopwords) + 'mot oui job' (<4 lettres) + 'parcours parcours'.",
+      "etapes": [
+        "Préparer le texte",
+        "Appeler nuageFallback",
+        "Lister les mots retenus"
+      ],
+      "attendu": "Seul 'parcours' est retenu. Les stopwords du Set STOP et tout mot de longueur <4 sont écartés (m.length<4 || STOP.has(m)).",
+      "technique": "Partition d'équivalence (mot retenu vs filtré) + valeurs limites (longueur 3 vs 4)",
+      "tracabilite": "nuage_themes | fonction nuageFallback (STOP, longueur)"
+    },
+    {
+      "id": "TC-VIZ-017",
+      "titre": "UNITAIRE nuageFallback - normalisation accents et casse",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "nuageFallback testable.",
+      "donnees": "Texte: 'Mémoire mémoire MEMOIRE mémorisé' (accents + casses mêlées).",
+      "etapes": [
+        "Préparer le texte",
+        "Appeler nuageFallback",
+        "Vérifier le regroupement"
+      ],
+      "attendu": "'mémoire'/'MEMOIRE' sont normalisés en 'memoire' (toLowerCase + NFD + suppression diacritiques) et comptés ensemble (poids agrégé), distinct de 'memorise'.",
+      "technique": "Partition d'équivalence (variantes orthographiques équivalentes)",
+      "tracabilite": "nuage_themes | fonction nuageFallback (normalize NFD)"
+    },
+    {
+      "id": "TC-VIZ-018",
+      "titre": "UNITAIRE nuageFallback - texte vide => themes:[]",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Dossier sans aucun contenu textuel exploitable.",
+      "donnees": "texteDossier renvoie '' ou uniquement stopwords.",
+      "etapes": [
+        "Préparer un dossier vide",
+        "Appeler nuageFallback(did)"
+      ],
+      "attendu": "{ themes: [] } (sorted vide, map vide). max=1 par défaut, aucune exception.",
+      "technique": "Valeurs limites (cas vide / borne inférieure)",
+      "tracabilite": "nuage_themes | fonction nuageFallback"
+    },
+    {
+      "id": "TC-VIZ-019",
+      "titre": "UNITAIRE extractJson - parse JSON encadré et tolère le bruit",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Fonction extractJson testable (repli de parsing de la réponse IA).",
+      "donnees": "Entrées: 'bla {\\\"themes\\\":[{\\\"mot\\\":\\\"x\\\",\\\"poids\\\":3}]} fin' ; 'aucun json' ; null ; '{cassé'",
+      "etapes": [
+        "Appeler extractJson sur chaque entrée"
+      ],
+      "attendu": "1) Renvoie l'objet { themes:[...] } en isolant du 1er '{' au dernier '}'. 2) 'aucun json' (pas d'accolade) -> null. 3) null -> null. 4) JSON invalide -> null (catch).",
+      "technique": "Test unitaire de repli + partition d'équivalence (valide/invalide/null)",
+      "tracabilite": "nuage_themes | fonction extractJson"
+    },
+    {
+      "id": "TC-VIZ-020",
+      "titre": "UNITAIRE strip - retire balises HTML et entités",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Fonction strip testable (utilisée par texteDossier sur les CR publiés).",
+      "donnees": "'<p>Bonjour&nbsp;<b>monde</b></p>'",
+      "etapes": [
+        "Appeler strip sur l'entrée"
+      ],
+      "attendu": "Le texte ne contient plus de balises <...> ni d'entités &xxx; ; ne reste que le texte ' Bonjour  monde '. Sécurise l'extraction des thèmes.",
+      "technique": "Test unitaire de sanitize",
+      "tracabilite": "nuage_themes | fonction strip"
+    },
+    {
+      "id": "TC-VIZ-021",
+      "titre": "POST nuage - texteDossier n'inclut que les CR publiés et le journal partagé",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Dossier did avec au moins un CR publie=0 (brouillon) et une entrée de journal partage=0 (privée).",
+      "donnees": "POST /api/viz/nuage/dossier/{did}",
+      "etapes": [
+        "Préparer un CR non publié contenant un mot rare 'xylophone'",
+        "Préparer un journal privé contenant 'crocodile'",
+        "POST le nuage (cas repli déterministe)"
+      ],
+      "attendu": "Les mots issus du CR brouillon (publie=0) et du journal privé (partage=0) n'apparaissent pas dans les thèmes : texteDossier filtre cr.publie=1 et journal partage=1.",
+      "technique": "Table de décision (publie x partage) - confidentialité de l'agrégation",
+      "tracabilite": "nuage_themes | POST /api/viz/nuage/dossier/:id (texteDossier filtres)"
+    },
+    {
+      "id": "TC-VIZ-022",
+      "titre": "GET catalogue émotions - nominal (200, 16 émotions catégorisées)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en utilisateur disposant de la feature roue_emotions (par défaut, sans plan).",
+      "donnees": "GET /api/viz/emotions/catalogue",
+      "etapes": [
+        "Se connecter",
+        "Appeler GET /api/viz/emotions/catalogue"
+      ],
+      "attendu": "200 { emotions:[{cle:string, famille:string}] } de 16 entrées couvrant les familles joie, peur, tristesse, colere, surprise, calme. Chaque famille appartient à l'ensemble attendu.",
+      "technique": "Test du contrat (forme + complétude du catalogue)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/catalogue"
+    },
+    {
+      "id": "TC-VIZ-023",
+      "titre": "GET catalogue émotions - 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Anonyme.",
+      "donnees": "GET /api/viz/emotions/catalogue sans cookie",
+      "etapes": [
+        "Ne pas se connecter",
+        "Appeler GET /api/viz/emotions/catalogue"
+      ],
+      "attendu": "401 { error:'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/catalogue (requireAuth)"
+    },
+    {
+      "id": "TC-VIZ-024",
+      "titre": "GET catalogue émotions - 403 feature non disponible",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Utilisateur rattaché à un plan sans 'roue_emotions'.",
+      "donnees": "GET /api/viz/emotions/catalogue",
+      "etapes": [
+        "Admin: affecter un plan sans roue_emotions",
+        "Se connecter",
+        "Appeler GET /api/viz/emotions/catalogue"
+      ],
+      "attendu": "403 { error:'Fonctionnalité non disponible dans votre offre' }.",
+      "technique": "Table de décision (feature absente)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/catalogue (requireFeature)"
+    },
+    {
+      "id": "TC-VIZ-025",
+      "titre": "GET émotions dossier - nominal entries + aggregate (200)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en propriétaire d'un dossier did avec plusieurs relevés d'émotions enregistrés.",
+      "donnees": "GET /api/viz/emotions/dossier/{did}",
+      "etapes": [
+        "Se connecter en propriétaire",
+        "Avoir au moins 2 POST d'émotions",
+        "Appeler GET /api/viz/emotions/dossier/{did}"
+      ],
+      "attendu": "200 { entries:[{id, role, emotions:string[], note:string|null, cree_le}], aggregate:{ <emotion>:count } }. entries triées cree_le DESC, max 30. aggregate compte chaque occurrence d'émotion sur tous les relevés.",
+      "technique": "Test du contrat (forme + agrégat de fréquence)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-026",
+      "titre": "GET émotions dossier - agrégat correct (table de décision multi-relevés)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en propriétaire d'un dossier did vierge de tout relevé.",
+      "donnees": "POST {emotions:['fier','stresse']}, POST {emotions:['fier','curieux']}, puis GET",
+      "etapes": [
+        "POST relevé 1: fier+stresse",
+        "POST relevé 2: fier+curieux",
+        "GET /api/viz/emotions/dossier/{did}"
+      ],
+      "attendu": "aggregate = { fier:2, stresse:1, curieux:1 }. entries.length=2. Vérifie l'agrégation par accumulation.",
+      "technique": "Table de décision / partition (occurrences cumulées)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/dossier/:id (agg)"
+    },
+    {
+      "id": "TC-VIZ-027",
+      "titre": "GET émotions dossier - dossier sans relevé (200, listes vides)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en propriétaire d'un dossier did sans aucun relevé d'émotions.",
+      "donnees": "GET /api/viz/emotions/dossier/{did}",
+      "etapes": [
+        "Choisir un dossier vierge",
+        "Appeler GET"
+      ],
+      "attendu": "200 { entries:[], aggregate:{} }. Aucune erreur.",
+      "technique": "Valeurs limites (collection vide)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-028",
+      "titre": "GET émotions dossier - limite 30 derniers relevés",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "basse",
+      "preconditions": "Connecté en propriétaire d'un dossier did avec plus de 30 relevés enregistrés.",
+      "donnees": "GET /api/viz/emotions/dossier/{did} après 31 POST",
+      "etapes": [
+        "Enregistrer 31 relevés",
+        "Appeler GET"
+      ],
+      "attendu": "entries.length === 30 (LIMIT 30), tri cree_le DESC (les plus récents). L'agrégat ne porte que sur ces 30 entries renvoyées.",
+      "technique": "Valeurs limites (borne 30)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/dossier/:id (LIMIT 30)"
+    },
+    {
+      "id": "TC-VIZ-029",
+      "titre": "GET émotions dossier - 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Anonyme.",
+      "donnees": "GET /api/viz/emotions/dossier/1 sans cookie",
+      "etapes": [
+        "Ne pas se connecter",
+        "Appeler GET /api/viz/emotions/dossier/1"
+      ],
+      "attendu": "401 { error:'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/dossier/:id (requireAuth)"
+    },
+    {
+      "id": "TC-VIZ-030",
+      "titre": "GET émotions dossier - 403 feature non disponible",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Utilisateur rattaché à un plan sans 'roue_emotions'.",
+      "donnees": "GET /api/viz/emotions/dossier/{did}",
+      "etapes": [
+        "Admin: affecter un plan sans roue_emotions",
+        "Se connecter",
+        "Appeler GET"
+      ],
+      "attendu": "403 { error:'Fonctionnalité non disponible dans votre offre' }.",
+      "technique": "Table de décision (feature absente)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/dossier/:id (requireFeature)"
+    },
+    {
+      "id": "TC-VIZ-031",
+      "titre": "GET émotions dossier - 404 dossier d'autrui",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Léa ; did appartient à un autre utilisateur.",
+      "donnees": "GET /api/viz/emotions/dossier/{did_autrui}",
+      "etapes": [
+        "Se connecter en Léa",
+        "Appeler GET sur un dossier d'Amine"
+      ],
+      "attendu": "404 { error:'Parcours introuvable' }.",
+      "technique": "Test basé sur les rôles (propriété ownEither)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/dossier/:id (ownEither)"
+    },
+    {
+      "id": "TC-VIZ-032",
+      "titre": "GET émotions dossier - accès accompagnateur du dossier autorisé",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur Mohamed, accompagnateur_id du dossier did d'Amine.",
+      "donnees": "GET /api/viz/emotions/dossier/{did}",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Appeler GET sur le dossier suivi"
+      ],
+      "attendu": "200. L'accompagnateur visualise le climat (entries+aggregate). Confirme ownEither OR côté accompagnateur.",
+      "technique": "Partition d'équivalence (les deux parties propriétaires)",
+      "tracabilite": "roue_emotions | GET /api/viz/emotions/dossier/:id (ownEither OR)"
+    },
+    {
+      "id": "TC-VIZ-033",
+      "titre": "POST émotions - enregistrement nominal (201 ok)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Amine, propriétaire du dossier did.",
+      "donnees": "POST /api/viz/emotions/dossier/{did} body { emotions:['fier','serein'], note:'bonne semaine' }",
+      "etapes": [
+        "Se connecter",
+        "POST avec émotions valides et note"
+      ],
+      "attendu": "201 { ok:true }. Une ligne insérée dans emotions_roue avec auteur_id=me.id, role=me.role, emotions=JSON dédupliqué, note tronquée. GET ultérieur reflète l'ajout.",
+      "technique": "Test du contrat (création + persistance)",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-034",
+      "titre": "POST émotions - sanitize dédoublonne les émotions valides",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en propriétaire d'un dossier did.",
+      "donnees": "POST body { emotions:['fier','fier','serein'] }",
+      "etapes": [
+        "POST avec doublon 'fier'",
+        "GET le dossier"
+      ],
+      "attendu": "201. L'entrée enregistrée contient ['fier','serein'] (Set de déduplication dans sanitizeEmotions). Le doublon n'est pas compté deux fois.",
+      "technique": "Partition d'équivalence (déduplication)",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id (sanitizeEmotions)"
+    },
+    {
+      "id": "TC-VIZ-035",
+      "titre": "POST émotions - sanitize filtre les émotions hors catalogue (400)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en propriétaire d'un dossier did.",
+      "donnees": "POST body { emotions:['licorne','hs_42','<script>'] } (aucune dans EMOTIONS)",
+      "etapes": [
+        "Se connecter",
+        "POST avec uniquement des clés invalides"
+      ],
+      "attendu": "400 { error:'Sélectionne au moins une émotion' }. sanitizeEmotions filtre toutes les clés absentes de EMOTIONS -> tableau vide -> 400. Aucune insertion.",
+      "technique": "Partition d'équivalence (entrée invalide) + sanitize serveur",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id (sanitizeEmotions, 400)"
+    },
+    {
+      "id": "TC-VIZ-036",
+      "titre": "POST émotions - mélange valide/invalide ne garde que les valides (201)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en propriétaire d'un dossier did.",
+      "donnees": "POST body { emotions:['fier','licorne','curieux','xxx'] }",
+      "etapes": [
+        "POST le mélange",
+        "GET le dossier"
+      ],
+      "attendu": "201. L'entrée ne contient que ['fier','curieux'] ; 'licorne' et 'xxx' sont écartés. Robustesse de la sanitize.",
+      "technique": "Table de décision (valide x invalide) + sanitize",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id (sanitizeEmotions)"
+    },
+    {
+      "id": "TC-VIZ-037",
+      "titre": "POST émotions - corps sans émotions / emotions absent (400)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en propriétaire d'un dossier did.",
+      "donnees": "POST body {} ; POST body { emotions:[] } ; POST body { emotions:'fier' } (non tableau)",
+      "etapes": [
+        "POST sans champ emotions",
+        "POST avec tableau vide",
+        "POST avec emotions string"
+      ],
+      "attendu": "400 { error:'Sélectionne au moins une émotion' } dans les trois cas (sanitizeEmotions renvoie [] si non-tableau ou vide).",
+      "technique": "Partition d'équivalence (champ manquant/vide/mauvais type) + valeurs limites (0 émotion)",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id (400)"
+    },
+    {
+      "id": "TC-VIZ-038",
+      "titre": "POST émotions - note tronquée à 200 caractères",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Connecté en propriétaire d'un dossier did.",
+      "donnees": "POST body { emotions:['fier'], note: chaîne de 250 caractères }",
+      "etapes": [
+        "POST avec note longue",
+        "GET le dossier",
+        "Inspecter la note de l'entrée"
+      ],
+      "attendu": "201. La note stockée fait exactement 200 caractères (String(note).slice(0,200)). Pas d'erreur.",
+      "technique": "Valeurs limites (longueur 200 ; 199/200/201)",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id (note slice 200)"
+    },
+    {
+      "id": "TC-VIZ-039",
+      "titre": "POST émotions - note absente => null (facultative)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Connecté en propriétaire d'un dossier did.",
+      "donnees": "POST body { emotions:['serein'] } sans note",
+      "etapes": [
+        "POST sans note",
+        "GET le dossier"
+      ],
+      "attendu": "201. L'entrée a note=null (req.body.note == null -> null). Aucune chaîne 'undefined' stockée.",
+      "technique": "Partition d'équivalence (note présente/absente)",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id"
+    },
+    {
+      "id": "TC-VIZ-040",
+      "titre": "POST émotions - 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Anonyme.",
+      "donnees": "POST /api/viz/emotions/dossier/1 sans cookie body { emotions:['fier'] }",
+      "etapes": [
+        "Ne pas se connecter",
+        "Appeler POST"
+      ],
+      "attendu": "401 { error:'Non authentifié' }. Aucune insertion.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id (requireAuth)"
+    },
+    {
+      "id": "TC-VIZ-041",
+      "titre": "POST émotions - 403 feature non disponible",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Utilisateur rattaché à un plan sans 'roue_emotions'.",
+      "donnees": "POST /api/viz/emotions/dossier/{did} body { emotions:['fier'] }",
+      "etapes": [
+        "Admin: affecter un plan sans roue_emotions",
+        "Se connecter",
+        "Appeler POST"
+      ],
+      "attendu": "403 { error:'Fonctionnalité non disponible dans votre offre' }. Aucune insertion (requireFeature avant le handler).",
+      "technique": "Table de décision (feature absente)",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id (requireFeature)"
+    },
+    {
+      "id": "TC-VIZ-042",
+      "titre": "POST émotions - 404 dossier d'autrui",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Karim ; did appartient à un autre utilisateur.",
+      "donnees": "POST /api/viz/emotions/dossier/{did_autrui} body { emotions:['fier'] }",
+      "etapes": [
+        "Se connecter en Karim",
+        "Appeler POST sur un dossier d'Amine"
+      ],
+      "attendu": "404 { error:'Parcours introuvable' }. Vérification de propriété avant sanitize/insertion.",
+      "technique": "Test basé sur les rôles (propriété ownEither)",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id (ownEither)"
+    },
+    {
+      "id": "TC-VIZ-043",
+      "titre": "POST émotions - rôle de l'auteur enregistré dans le relevé",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Connecté en accompagnateur Mohamed, propriétaire (accompagnateur_id) du dossier did.",
+      "donnees": "POST /api/viz/emotions/dossier/{did} body { emotions:['serein'] }",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "POST un relevé",
+        "GET le dossier"
+      ],
+      "attendu": "201. L'entrée créée porte role='accompagnateur' (me.role). Permet de distinguer l'origine du relevé dans entries.",
+      "technique": "Partition d'équivalence (rôle de l'auteur)",
+      "tracabilite": "roue_emotions | POST /api/viz/emotions/dossier/:id (role)"
+    },
+    {
+      "id": "TC-VIZ-044",
+      "titre": "UNITAIRE sanitizeEmotions - contrat de filtrage et déduplication",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Fonction sanitizeEmotions testable contre le registre EMOTIONS.",
+      "donnees": "Entrées: ['fier','fier','licorne'] ; 'fier' (non tableau) ; null ; [123,'serein'] ; []",
+      "etapes": [
+        "Appeler sanitizeEmotions sur chaque entrée"
+      ],
+      "attendu": "['fier'] (dédup + filtre licorne) ; [] (non tableau) ; [] (null) ; ['serein'] (123 stringifié '123' absent du catalogue, filtré) ; [].",
+      "technique": "Test unitaire de sanitize + partition (valide/invalide/non-tableau)",
+      "tracabilite": "roue_emotions | fonction sanitizeEmotions"
+    },
+    {
+      "id": "TC-VIZ-045",
+      "titre": "UI - Accompagné génère le nuage de thèmes depuis le parcours",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Amine sur la page détail de son parcours ; feature nuage_themes active ; parcours doté de contenu.",
+      "donnees": "http://localhost:8080 - composant NuageThemes",
+      "etapes": [
+        "Se connecter en Amine",
+        "Ouvrir le détail du parcours",
+        "Repérer la section '🗂️ Nuage de thèmes'",
+        "Cliquer '✨ Générer le nuage'",
+        "Attendre la fin (bouton 'Analyse…')"
+      ],
+      "attendu": "Le bouton passe en 'Analyse…' (disabled) puis revient à '↻ Régénérer'. Les thèmes s'affichent dimensionnés par poids (fontSize/opacité). Au rechargement de la page, le nuage persisté est rechargé via GET.",
+      "technique": "Test bout-en-bout basé sur les rôles (accompagné)",
+      "tracabilite": "nuage_themes | composant NuageThemes.tsx / page ParcoursDetail"
+    },
+    {
+      "id": "TC-VIZ-046",
+      "titre": "UI - Section nuage masquée si feature inactive",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Utilisateur rattaché à un plan sans nuage_themes (useFeature('nuage_themes') = false).",
+      "donnees": "Page détail parcours - NuageThemes",
+      "etapes": [
+        "Affecter un plan sans nuage_themes",
+        "Se connecter",
+        "Ouvrir le détail du parcours"
+      ],
+      "attendu": "La section Nuage de thèmes n'est pas rendue (return null si !actif) ; aucun appel réseau /viz/nuage.",
+      "technique": "Test basé sur les rôles (gating UI cohérent avec le back)",
+      "tracabilite": "nuage_themes | composant NuageThemes.tsx (useFeature)"
+    },
+    {
+      "id": "TC-VIZ-047",
+      "titre": "UI - Accompagné saisit ses émotions sur la roue",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné Amine sur le détail du parcours ; feature roue_emotions active.",
+      "donnees": "Composant RoueEmotions role='accompagne'",
+      "etapes": [
+        "Se connecter en Amine",
+        "Ouvrir la section '🎡 Roue des émotions'",
+        "Cliquer des pastilles (ex. Fier·e, Serein·e) -> aria-pressed=true",
+        "Saisir une note facultative",
+        "Cliquer 'Enregistrer'"
+      ],
+      "attendu": "Message 'C'est noté ✓'. Sélection et note réinitialisées. La section 'Mon climat émotionnel' affiche l'agrégat mis à jour. Le bouton Enregistrer est désactivé tant qu'aucune émotion n'est sélectionnée.",
+      "technique": "Test bout-en-bout basé sur les rôles (accompagné, saisie)",
+      "tracabilite": "roue_emotions | composant RoueEmotions.tsx (role accompagne)"
+    },
+    {
+      "id": "TC-VIZ-048",
+      "titre": "UI - Accompagnateur visualise le climat émotionnel en lecture seule",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur Mohamed sur le dossier d'Amine qui a des relevés ; feature roue_emotions active.",
+      "donnees": "Composant RoueEmotions role='accompagnateur'",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Ouvrir le dossier suivi",
+        "Repérer '🎡 Roue des émotions (climat de l'accompagné)'"
+      ],
+      "attendu": "Pas de pastilles de saisie ni de bouton Enregistrer (readOnly). Affiche 'Émotions les plus exprimées' (agrégat) et l'historique des 6 derniers relevés. Si aucun relevé : message 'L'accompagné n'a pas encore utilisé la roue des émotions.'",
+      "technique": "Test basé sur les rôles (accompagnateur, lecture seule)",
+      "tracabilite": "roue_emotions | composant RoueEmotions.tsx (role accompagnateur, readOnly)"
+    },
+    {
+      "id": "TC-VIZ-049",
+      "titre": "UI - Bouton Enregistrer désactivé sans sélection (garde front cohérente avec 400)",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné, roue affichée, aucune émotion sélectionnée.",
+      "donnees": "Composant RoueEmotions",
+      "etapes": [
+        "Ouvrir la roue",
+        "Ne sélectionner aucune émotion",
+        "Observer le bouton 'Enregistrer'"
+      ],
+      "attendu": "Le bouton est disabled (disabled={busy || !sel.length}) ; envoyer() retourne tôt si !sel.length. Cohérent avec le 400 serveur 'Sélectionne au moins une émotion'.",
+      "technique": "Valeurs limites (0 sélection) - cohérence garde UI/API",
+      "tracabilite": "roue_emotions | composant RoueEmotions.tsx (disabled) + POST 400"
+    }
+  ]
+}

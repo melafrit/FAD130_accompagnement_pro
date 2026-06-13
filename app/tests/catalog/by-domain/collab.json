@@ -1,0 +1,1101 @@
+{
+  "domaine": "collab",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/collab/ressources/public/:token",
+      "feature": "(aucune — lien public hors auth)",
+      "role": "anonyme",
+      "summary": "Lecture seule d'une ressource partagée publiquement, identifiée par son jeton. Aucune authentification ni feature requise. 404 si introuvable ou portee != public."
+    },
+    {
+      "method": "GET",
+      "path": "/api/collab/ressources",
+      "feature": "mutualisation",
+      "role": "accompagnateur",
+      "summary": "Bibliothèque interne : liste de toutes les ressources partagées entre accompagnateurs, avec flag mienne et auteur calculé."
+    },
+    {
+      "method": "POST",
+      "path": "/api/collab/ressources",
+      "feature": "mutualisation",
+      "role": "accompagnateur",
+      "summary": "Créer une ressource partagée (titre+contenu requis ; type ∈ {question,methode,astuce} sinon 'astuce'). 201 + {id}."
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/collab/ressources/:id",
+      "feature": "mutualisation",
+      "role": "accompagnateur",
+      "summary": "Basculer une ressource dont on est l'auteur entre interne et public ; génère/réutilise le jeton du lien public. 404 si non-propriétaire."
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/collab/ressources/:id",
+      "feature": "mutualisation",
+      "role": "accompagnateur",
+      "summary": "Supprimer une ressource dont on est l'auteur. 404 si non-propriétaire (aucune ligne supprimée)."
+    },
+    {
+      "method": "GET",
+      "path": "/api/collab/problematisation/dossier/:id",
+      "feature": "problematisation",
+      "role": "accompagne",
+      "summary": "Récupère les questions guidées + l'état enregistré de la problématique pour un parcours possédé. 404 si parcours non possédé."
+    },
+    {
+      "method": "POST",
+      "path": "/api/collab/problematisation/dossier/:id",
+      "feature": "problematisation",
+      "role": "accompagne",
+      "summary": "Enregistre (upsert) les réponses guidées + la problématique (source=manuel). 404 si parcours non possédé."
+    },
+    {
+      "method": "POST",
+      "path": "/api/collab/problematisation/dossier/:id/suggerer",
+      "feature": "problematisation",
+      "role": "accompagne",
+      "summary": "IA : propose une problématique + sous-questions à partir des réponses guidées et du contexte ; repli heuristique déterministe si IA indisponible. 404 si parcours non possédé."
+    },
+    {
+      "method": "GET",
+      "path": "/api/collab/resume/dossier/:id",
+      "feature": "resume_parcours",
+      "role": "accompagne",
+      "summary": "Récupère le dernier résumé « où j'en suis » enregistré pour un parcours possédé (ou null). 404 si parcours non possédé."
+    },
+    {
+      "method": "POST",
+      "path": "/api/collab/resume/dossier/:id",
+      "feature": "resume_parcours",
+      "role": "accompagne",
+      "summary": "IA : génère et persiste (upsert) le résumé d'avancement ; repli heuristique resumeFallback si IA indisponible. 404 si parcours non possédé."
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-COLLAB-001",
+      "titre": "Lien public d'une ressource : lecture sans authentification (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Ressource démo publique de Mohamed (token=demo-question-exploration, portee=public). Aucune session/cookie.",
+      "donnees": "GET /api/collab/ressources/public/demo-question-exploration, sans cookie d'auth.",
+      "etapes": [
+        "Envoyer la requête GET sur le token public sans aucun en-tête d'authentification"
+      ],
+      "attendu": "200 ; body {ressource:{titre, type, contenu, cree_le, auteur}} ; aucun id ni token n'est exposé ; auteur = 'Mohamed ...' (prénom+nom joints).",
+      "technique": "test du contrat (lien public sans auth ni feature)",
+      "tracabilite": "(public) GET /api/collab/ressources/public/:token — page RessourcePublique.tsx"
+    },
+    {
+      "id": "TC-COLLAB-002",
+      "titre": "Lien public : repli auteur 'Un accompagnateur' quand prénom/nom vides",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Ressource publique dont l'auteur n'a ni prénom ni nom renseignés.",
+      "donnees": "GET /api/collab/ressources/public/<token-d-une-ressource-auteur-anonyme>.",
+      "etapes": [
+        "Créer/préparer une ressource publique avec auteur sans prénom/nom",
+        "Appeler le lien public"
+      ],
+      "attendu": "200 ; ressource.auteur == 'Un accompagnateur'.",
+      "technique": "partition d'équivalence (auteur nommé vs anonyme)",
+      "tracabilite": "(public) GET /api/collab/ressources/public/:token"
+    },
+    {
+      "id": "TC-COLLAB-003",
+      "titre": "Lien public : token inexistant -> 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Aucune ressource avec ce token.",
+      "donnees": "GET /api/collab/ressources/public/token-inexistant-xyz",
+      "etapes": [
+        "Appeler le lien public avec un token aléatoire inexistant"
+      ],
+      "attendu": "404 ; body {error:'Ressource introuvable ou non publique'}.",
+      "technique": "partition d'équivalence (token valide / invalide)",
+      "tracabilite": "(public) GET /api/collab/ressources/public/:token"
+    },
+    {
+      "id": "TC-COLLAB-004",
+      "titre": "Lien public : ressource existante mais portee=interne -> 404 (pas de fuite)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Ressource interne de Mohamed (ex. 'Distinguer la demande du besoin réel', portee=interne, token=NULL).",
+      "donnees": "GET /api/collab/ressources/public/<token-d-une-ressource-interne> (ou tenter via id).",
+      "etapes": [
+        "Tenter d'accéder par le lien public à une ressource non publique"
+      ],
+      "attendu": "404 ; {error:'Ressource introuvable ou non publique'} ; le filtre WHERE portee='public' empêche toute fuite d'une ressource interne.",
+      "technique": "test du contrat (le filtre portee='public' borne l'exposition)",
+      "tracabilite": "(public) GET /api/collab/ressources/public/:token"
+    },
+    {
+      "id": "TC-COLLAB-005",
+      "titre": "Lien public : aucune feature exigée même avec compte connecté limité",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Ressource publique existante. Optionnellement un cookie d'un compte sans la feature mutualisation.",
+      "donnees": "GET /api/collab/ressources/public/<token-public> avec et sans cookie.",
+      "etapes": [
+        "Appeler le lien public sans cookie",
+        "Rappeler avec un cookie d'un accompagné/compte limité"
+      ],
+      "attendu": "200 dans les deux cas ; le endpoint public ne traverse ni requireAuth, ni requireRole, ni requireFeature.",
+      "technique": "test basé sur les rôles (route hors-garde)",
+      "tracabilite": "(public) GET /api/collab/ressources/public/:token"
+    },
+    {
+      "id": "TC-COLLAB-006",
+      "titre": "Bibliothèque interne : liste nominale pour un accompagnateur",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Session accompagnateur (Mohamed elafrit.mohamed@gmail.com), sans plan (= toutes features). 3 ressources démo seedées.",
+      "donnees": "GET /api/collab/ressources",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Appeler GET /api/collab/ressources"
+      ],
+      "attendu": "200 ; {ressources:[...]} trié par cree_le DESC ; chaque item a id, titre, type, contenu, portee, token, cree_le, auteur (string), mienne (boolean) ; mienne=true pour les ressources de Mohamed, false pour celles de Camille.",
+      "technique": "test du contrat (forme et typage de la réponse)",
+      "tracabilite": "mutualisation — GET /api/collab/ressources — page Mutualisation.tsx"
+    },
+    {
+      "id": "TC-COLLAB-007",
+      "titre": "Bibliothèque interne : auteur 'Anonyme' si prénom/nom vides",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Au moins une ressource dont l'auteur n'a ni prénom ni nom.",
+      "donnees": "GET /api/collab/ressources",
+      "etapes": [
+        "Appeler la liste interne"
+      ],
+      "attendu": "200 ; pour la ressource concernée, auteur == 'Anonyme' (alors que le lien public renvoie 'Un accompagnateur').",
+      "technique": "valeurs limites (chaîne vide vs renseignée)",
+      "tracabilite": "mutualisation — GET /api/collab/ressources"
+    },
+    {
+      "id": "TC-COLLAB-008",
+      "titre": "Bibliothèque interne : 401 si non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie d'authentification.",
+      "donnees": "GET /api/collab/ressources sans cookie.",
+      "etapes": [
+        "Appeler l'endpoint sans session"
+      ],
+      "attendu": "401 ; {error:'Non authentifié'}.",
+      "technique": "test basé sur les rôles (anonyme)",
+      "tracabilite": "mutualisation — GET /api/collab/ressources (requireAuth)"
+    },
+    {
+      "id": "TC-COLLAB-009",
+      "titre": "Bibliothèque interne : 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Session accompagné (Amine afrit_mohamed@yahoo.fr).",
+      "donnees": "GET /api/collab/ressources avec cookie accompagné.",
+      "etapes": [
+        "Se connecter en accompagné",
+        "Appeler GET /api/collab/ressources"
+      ],
+      "attendu": "403 ; {error:'Accès refusé'} (requireRole('accompagnateur')).",
+      "technique": "test basé sur les rôles (accompagné interdit)",
+      "tracabilite": "mutualisation — GET /api/collab/ressources (requireRole)"
+    },
+    {
+      "id": "TC-COLLAB-010",
+      "titre": "Bibliothèque interne : 403 admin (rôle non autorisé)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Session admin (mohamed@elafrit.com).",
+      "donnees": "GET /api/collab/ressources avec cookie admin.",
+      "etapes": [
+        "Se connecter en admin",
+        "Appeler GET /api/collab/ressources"
+      ],
+      "attendu": "403 ; {error:'Accès refusé'} : seul le rôle 'accompagnateur' est autorisé, pas 'admin'.",
+      "technique": "test basé sur les rôles (admin non listé)",
+      "tracabilite": "mutualisation — GET /api/collab/ressources (requireRole)"
+    },
+    {
+      "id": "TC-COLLAB-011",
+      "titre": "Bibliothèque interne : 403 si offre sans la feature mutualisation",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur dont le plan (ex. Découverte/Essentiel) n'inclut PAS 'mutualisation'.",
+      "donnees": "GET /api/collab/ressources avec cookie d'un accompagnateur au plan limité.",
+      "etapes": [
+        "Affecter à l'accompagnateur un plan sans 'mutualisation'",
+        "Appeler l'endpoint"
+      ],
+      "attendu": "403 ; {error:'Fonctionnalité non disponible dans votre offre'} (requireFeature('mutualisation')).",
+      "technique": "table de décision (rôle OK × feature absente)",
+      "tracabilite": "mutualisation — GET /api/collab/ressources (requireFeature)"
+    },
+    {
+      "id": "TC-COLLAB-012",
+      "titre": "Créer une ressource : cas nominal (type valide)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Session accompagnateur avec feature mutualisation.",
+      "donnees": "POST /api/collab/ressources {titre:'Reformuler la demande', type:'methode', contenu:'Distinguer demande explicite et besoin réel.'}",
+      "etapes": [
+        "Poster la ressource valide"
+      ],
+      "attendu": "201 ; {id:<number>} ; relecture via GET /ressources montre la ressource avec type='methode', portee='interne' par défaut, mienne=true.",
+      "technique": "partition d'équivalence (entrée valide) + test du contrat",
+      "tracabilite": "mutualisation — POST /api/collab/ressources"
+    },
+    {
+      "id": "TC-COLLAB-013",
+      "titre": "Créer une ressource : type inconnu -> repli 'astuce'",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Session accompagnateur avec feature mutualisation.",
+      "donnees": "POST /api/collab/ressources {titre:'T', contenu:'C', type:'banane'}",
+      "etapes": [
+        "Poster avec un type hors {question,methode,astuce}"
+      ],
+      "attendu": "201 ; relecture: type=='astuce' (TYPES.includes échoue -> défaut). Pas d'erreur.",
+      "technique": "partition d'équivalence (type valide / invalide -> défaut)",
+      "tracabilite": "mutualisation — POST /api/collab/ressources"
+    },
+    {
+      "id": "TC-COLLAB-014",
+      "titre": "Créer une ressource : type absent -> repli 'astuce'",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Session accompagnateur avec feature mutualisation.",
+      "donnees": "POST /api/collab/ressources {titre:'T', contenu:'C'} (sans champ type)",
+      "etapes": [
+        "Poster sans champ type"
+      ],
+      "attendu": "201 ; type=='astuce'.",
+      "technique": "valeurs limites (champ optionnel absent)",
+      "tracabilite": "mutualisation — POST /api/collab/ressources"
+    },
+    {
+      "id": "TC-COLLAB-015",
+      "titre": "Créer une ressource : titre manquant -> 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Session accompagnateur avec feature mutualisation.",
+      "donnees": "POST /api/collab/ressources {contenu:'C', type:'astuce'} (titre absent)",
+      "etapes": [
+        "Poster sans titre"
+      ],
+      "attendu": "400 ; {error:'Titre et contenu requis'} ; aucune insertion.",
+      "technique": "partition d'équivalence (champ requis manquant)",
+      "tracabilite": "mutualisation — POST /api/collab/ressources"
+    },
+    {
+      "id": "TC-COLLAB-016",
+      "titre": "Créer une ressource : titre/contenu vides ou espaces -> 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Session accompagnateur avec feature mutualisation.",
+      "donnees": "POST /api/collab/ressources {titre:'   ', contenu:'\\n\\t '} (après trim => vides)",
+      "etapes": [
+        "Poster titre et contenu composés uniquement d'espaces"
+      ],
+      "attendu": "400 ; {error:'Titre et contenu requis'} : trim() ramène à chaîne vide -> rejet.",
+      "technique": "valeurs limites (chaîne d'espaces -> vide après trim)",
+      "tracabilite": "mutualisation — POST /api/collab/ressources"
+    },
+    {
+      "id": "TC-COLLAB-017",
+      "titre": "Créer une ressource : contenu manquant -> 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Session accompagnateur avec feature mutualisation.",
+      "donnees": "POST /api/collab/ressources {titre:'T'} (contenu absent)",
+      "etapes": [
+        "Poster sans contenu"
+      ],
+      "attendu": "400 ; {error:'Titre et contenu requis'}.",
+      "technique": "partition d'équivalence (champ requis manquant)",
+      "tracabilite": "mutualisation — POST /api/collab/ressources"
+    },
+    {
+      "id": "TC-COLLAB-018",
+      "titre": "Créer une ressource : 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "POST /api/collab/ressources {titre:'T', contenu:'C'} sans cookie.",
+      "etapes": [
+        "Poster sans session"
+      ],
+      "attendu": "401 ; {error:'Non authentifié'}.",
+      "technique": "test basé sur les rôles (anonyme)",
+      "tracabilite": "mutualisation — POST /api/collab/ressources (requireAuth)"
+    },
+    {
+      "id": "TC-COLLAB-019",
+      "titre": "Créer une ressource : 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Session accompagné.",
+      "donnees": "POST /api/collab/ressources {titre:'T', contenu:'C'} en accompagné.",
+      "etapes": [
+        "Poster en accompagné"
+      ],
+      "attendu": "403 ; {error:'Accès refusé'}.",
+      "technique": "test basé sur les rôles",
+      "tracabilite": "mutualisation — POST /api/collab/ressources (requireRole)"
+    },
+    {
+      "id": "TC-COLLAB-020",
+      "titre": "Créer une ressource : 403 sans la feature mutualisation",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur au plan sans 'mutualisation'.",
+      "donnees": "POST /api/collab/ressources {titre:'T', contenu:'C'}.",
+      "etapes": [
+        "Poster avec un plan dépourvu de la feature"
+      ],
+      "attendu": "403 ; {error:'Fonctionnalité non disponible dans votre offre'}.",
+      "technique": "table de décision (rôle OK × feature absente)",
+      "tracabilite": "mutualisation — POST /api/collab/ressources (requireFeature)"
+    },
+    {
+      "id": "TC-COLLAB-021",
+      "titre": "Basculer en public : génération du jeton (nominal)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire d'une ressource interne (token=NULL).",
+      "donnees": "PATCH /api/collab/ressources/<id-propre-interne> {public:true}",
+      "etapes": [
+        "Patcher la ressource avec public:true"
+      ],
+      "attendu": "200 ; {ok:true, portee:'public', token:<hex 64 car.>} ; le lien public GET /ressources/public/<token> renvoie alors 200.",
+      "technique": "test du contrat + transition d'état (interne -> public)",
+      "tracabilite": "mutualisation — PATCH /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-022",
+      "titre": "Basculer en public deux fois : le jeton est réutilisé (idempotence du token)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Ressource déjà publique avec un token connu T.",
+      "donnees": "PATCH /api/collab/ressources/<id> {public:true} (re-publication)",
+      "etapes": [
+        "Patcher public:true une 1re fois et noter token T",
+        "Patcher public:true une 2e fois"
+      ],
+      "attendu": "200 ; token renvoyé == T (réutilisation de r.token existant via 'r.token || makeToken()'), pas de nouveau jeton généré.",
+      "technique": "test du contrat (idempotence du jeton)",
+      "tracabilite": "mutualisation — PATCH /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-023",
+      "titre": "Repasser en interne : portee mise à 'interne', token conservé en base",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Ressource publique de l'accompagnateur (token T).",
+      "donnees": "PATCH /api/collab/ressources/<id> {public:false}",
+      "etapes": [
+        "Patcher public:false"
+      ],
+      "attendu": "200 ; {ok:true, portee:'interne'} (token non renvoyé) ; ensuite le lien public sur T renvoie 404 (filtre portee='public').",
+      "technique": "transition d'état (public -> interne)",
+      "tracabilite": "mutualisation — PATCH /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-024",
+      "titre": "Bascule : 'public' absent ou non strictement true -> interne",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Ressource publique de l'accompagnateur.",
+      "donnees": "PATCH /api/collab/ressources/<id> {} puis {public:'true'} (chaîne) puis {public:1}",
+      "etapes": [
+        "Patcher avec body vide",
+        "Patcher avec public:'true' (string)",
+        "Patcher avec public:1 (number)"
+      ],
+      "attendu": "200 dans chaque cas, portee=='interne' : seul le booléen strict true (=== true) active le mode public.",
+      "technique": "valeurs limites / table de décision (true strict vs valeurs truthy)",
+      "tracabilite": "mutualisation — PATCH /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-025",
+      "titre": "Bascule : ressource d'un autre accompagnateur -> 404 (non-propriétaire)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Session Mohame... non : session accompagnateur Camille ; ressource appartenant à Mohamed.",
+      "donnees": "PATCH /api/collab/ressources/<id-de-Mohamed> {public:true} en tant que Camille.",
+      "etapes": [
+        "Se connecter en Camille",
+        "Patcher une ressource de Mohamed"
+      ],
+      "attendu": "404 ; {error:'Ressource introuvable'} (clause WHERE auteur_id=me.id) ; aucune modification de la ressource d'autrui.",
+      "technique": "test basé sur les rôles (propriété) — contrôle d'accès horizontal",
+      "tracabilite": "mutualisation — PATCH /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-026",
+      "titre": "Bascule : id inexistant -> 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Session accompagnateur avec feature.",
+      "donnees": "PATCH /api/collab/ressources/999999 {public:true}",
+      "etapes": [
+        "Patcher un id inexistant"
+      ],
+      "attendu": "404 ; {error:'Ressource introuvable'}.",
+      "technique": "partition d'équivalence (id existant / inexistant)",
+      "tracabilite": "mutualisation — PATCH /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-027",
+      "titre": "Bascule : 401 / 403 (accès)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "a) sans cookie ; b) accompagné ; c) accompagnateur sans feature mutualisation.",
+      "donnees": "PATCH /api/collab/ressources/<id> {public:true} pour chaque cas.",
+      "etapes": [
+        "Patcher sans session",
+        "Patcher en accompagné",
+        "Patcher avec plan sans mutualisation"
+      ],
+      "attendu": "a) 401 'Non authentifié' ; b) 403 'Accès refusé' ; c) 403 'Fonctionnalité non disponible dans votre offre'.",
+      "technique": "table de décision (auth × rôle × feature)",
+      "tracabilite": "mutualisation — PATCH /api/collab/ressources/:id (requireAuth/Role/Feature)"
+    },
+    {
+      "id": "TC-COLLAB-028",
+      "titre": "Supprimer une ressource : cas nominal (propriétaire)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur propriétaire d'une ressource (créée pour le test).",
+      "donnees": "DELETE /api/collab/ressources/<id-propre>",
+      "etapes": [
+        "Créer une ressource",
+        "La supprimer"
+      ],
+      "attendu": "200 ; {ok:true} ; relecture via GET /ressources : elle n'apparaît plus.",
+      "technique": "test du contrat (suppression effective)",
+      "tracabilite": "mutualisation — DELETE /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-029",
+      "titre": "Supprimer : ressource d'un autre accompagnateur -> 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Session Camille ; ressource de Mohamed.",
+      "donnees": "DELETE /api/collab/ressources/<id-de-Mohamed> en tant que Camille.",
+      "etapes": [
+        "Se connecter en Camille",
+        "Supprimer une ressource de Mohamed"
+      ],
+      "attendu": "404 ; {error:'Ressource introuvable'} (changes=0 car WHERE auteur_id=me.id) ; la ressource de Mohamed existe toujours.",
+      "technique": "test basé sur les rôles (propriété) — accès horizontal",
+      "tracabilite": "mutualisation — DELETE /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-030",
+      "titre": "Supprimer : id inexistant ou déjà supprimé -> 404",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Session accompagnateur avec feature.",
+      "donnees": "DELETE /api/collab/ressources/999999 ; puis re-DELETE d'un id déjà supprimé.",
+      "etapes": [
+        "Supprimer un id inexistant",
+        "Supprimer deux fois une même ressource"
+      ],
+      "attendu": "404 ; {error:'Ressource introuvable'} (changes=0) à chaque fois.",
+      "technique": "partition d'équivalence + idempotence",
+      "tracabilite": "mutualisation — DELETE /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-031",
+      "titre": "Supprimer : 401 / 403 (accès)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "a) sans cookie ; b) accompagné ; c) accompagnateur sans feature.",
+      "donnees": "DELETE /api/collab/ressources/<id> pour chaque cas.",
+      "etapes": [
+        "Supprimer sans session",
+        "Supprimer en accompagné",
+        "Supprimer avec plan sans mutualisation"
+      ],
+      "attendu": "a) 401 'Non authentifié' ; b) 403 'Accès refusé' ; c) 403 'Fonctionnalité non disponible dans votre offre'.",
+      "technique": "table de décision (auth × rôle × feature)",
+      "tracabilite": "mutualisation — DELETE /api/collab/ressources/:id"
+    },
+    {
+      "id": "TC-COLLAB-032",
+      "titre": "Problématisation GET : questions + données nominales",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné Amine, propriétaire du dossier vitrine D1, feature problematisation active.",
+      "donnees": "GET /api/collab/problematisation/dossier/<D1>",
+      "etapes": [
+        "Se connecter en Amine",
+        "Appeler le GET sur son dossier"
+      ],
+      "attendu": "200 ; {questions:[4 chaînes PB_QUESTIONS], data: null (si jamais enregistré) ou {reponses[], problematique, source, maj_le}} ; questions.length==4.",
+      "technique": "test du contrat (forme de réponse)",
+      "tracabilite": "problematisation — GET /api/collab/problematisation/dossier/:id — ProblematisationCard.tsx"
+    },
+    {
+      "id": "TC-COLLAB-033",
+      "titre": "Problématisation GET : dossier d'un autre accompagné -> 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné Léa ; dossier D1 appartenant à Amine.",
+      "donnees": "GET /api/collab/problematisation/dossier/<D1-d-Amine> en tant que Léa.",
+      "etapes": [
+        "Se connecter en Léa",
+        "Appeler le GET sur le dossier d'Amine"
+      ],
+      "attendu": "404 ; {error:'Parcours introuvable'} (ownDossier KO).",
+      "technique": "test basé sur les rôles (propriété ressource) — accès horizontal",
+      "tracabilite": "problematisation — GET /api/collab/problematisation/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-034",
+      "titre": "Problématisation GET : 401 / 403 rôle / 403 feature",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "a) sans cookie ; b) accompagnateur ; c) accompagné sans feature problematisation.",
+      "donnees": "GET /api/collab/problematisation/dossier/<id> pour chaque cas.",
+      "etapes": [
+        "Appeler sans session",
+        "Appeler en accompagnateur",
+        "Appeler en accompagné au plan sans problematisation"
+      ],
+      "attendu": "a) 401 'Non authentifié' ; b) 403 'Accès refusé' ; c) 403 'Fonctionnalité non disponible dans votre offre'.",
+      "technique": "table de décision (auth × rôle × feature)",
+      "tracabilite": "problematisation — GET /api/collab/problematisation/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-035",
+      "titre": "Problématisation POST : enregistrement manuel (upsert insert)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné Amine, dossier D1, feature active, aucune problématisation préexistante.",
+      "donnees": "POST /api/collab/problematisation/dossier/<D1> {reponses:['terrain','tension','pôles','utilité'], problematique:'Comment ... ?'}",
+      "etapes": [
+        "Poster réponses + problématique",
+        "Relire via GET"
+      ],
+      "attendu": "200 {ok:true} ; GET renvoie data.problematique == valeur postée, data.reponses == tableau posté, source=='manuel', maj_le renseigné.",
+      "technique": "test du contrat (persistance/relecture)",
+      "tracabilite": "problematisation — POST /api/collab/problematisation/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-036",
+      "titre": "Problématisation POST : ré-enregistrement (upsert update sur conflit dossier_id)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Une problématisation existe déjà pour D1.",
+      "donnees": "POST /api/collab/problematisation/dossier/<D1> {reponses:['v2'], problematique:'Nouvelle formulation'}",
+      "etapes": [
+        "Poster une 1re fois",
+        "Poster une 2e fois avec d'autres valeurs",
+        "Relire via GET"
+      ],
+      "attendu": "200 {ok:true} ; une seule ligne par dossier (ON CONFLICT(dossier_id) DO UPDATE) ; GET renvoie les dernières valeurs et maj_le actualisé.",
+      "technique": "transition d'état (upsert) + non-régression",
+      "tracabilite": "problematisation — POST /api/collab/problematisation/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-037",
+      "titre": "Problématisation POST : champs absents -> persistance de valeurs vides (pas de 400)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Accompagné Amine, dossier D1, feature active.",
+      "donnees": "POST /api/collab/problematisation/dossier/<D1> {} (corps vide)",
+      "etapes": [
+        "Poster un corps vide",
+        "Relire via GET"
+      ],
+      "attendu": "200 {ok:true} ; reponses==[] (non tableau -> []), problematique=='' (String(undefined||'')) ; aucun rejet 400, le endpoint tolère l'absence.",
+      "technique": "partition d'équivalence (entrée manquante tolérée)",
+      "tracabilite": "problematisation — POST /api/collab/problematisation/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-038",
+      "titre": "Problématisation POST : reponses non-tableau normalisé à []",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Accompagné Amine, dossier D1, feature active.",
+      "donnees": "POST /api/collab/problematisation/dossier/<D1> {reponses:'pas un tableau', problematique:42}",
+      "etapes": [
+        "Poster reponses sous forme de chaîne et problematique numérique",
+        "Relire via GET"
+      ],
+      "attendu": "200 ; reponses==[] (Array.isArray false), problematique=='42' (coercition String). Robustesse aux types.",
+      "technique": "partition d'équivalence (type invalide -> coercition/repli)",
+      "tracabilite": "problematisation — POST /api/collab/problematisation/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-039",
+      "titre": "Problématisation POST : dossier non possédé -> 404",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Accompagné Léa ; dossier D1 d'Amine.",
+      "donnees": "POST /api/collab/problematisation/dossier/<D1> en tant que Léa.",
+      "etapes": [
+        "Poster sur le dossier d'autrui"
+      ],
+      "attendu": "404 ; {error:'Parcours introuvable'} ; aucune écriture.",
+      "technique": "test basé sur les rôles (propriété) — accès horizontal",
+      "tracabilite": "problematisation — POST /api/collab/problematisation/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-040",
+      "titre": "Problématisation POST : 401 / 403 rôle / 403 feature",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "a) sans cookie ; b) accompagnateur ; c) accompagné sans feature.",
+      "donnees": "POST /api/collab/problematisation/dossier/<id> pour chaque cas.",
+      "etapes": [
+        "Poster sans session",
+        "Poster en accompagnateur",
+        "Poster en accompagné au plan limité"
+      ],
+      "attendu": "a) 401 ; b) 403 'Accès refusé' ; c) 403 'Fonctionnalité non disponible dans votre offre'.",
+      "technique": "table de décision (auth × rôle × feature)",
+      "tracabilite": "problematisation — POST /api/collab/problematisation/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-041",
+      "titre": "Problématisation suggerer (IA) : contrat de réponse",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné Amine, dossier D1, feature active. (Avec ou sans clé Claude.)",
+      "donnees": "POST /api/collab/problematisation/dossier/<D1>/suggerer {reponses:['terrain métier/technique','...','autonomie vs contrôle','utilité']}",
+      "etapes": [
+        "Poster les réponses guidées",
+        "Vérifier la structure de la réponse"
+      ],
+      "attendu": "200 ; {problematique:<string non vide>, sous_questions:<array, longueur 0..3>, source:'ia'|'heuristique'} ; sous_questions tronqué à 3 max. Ne pas figer le texte.",
+      "technique": "test du contrat (champs présents/typés, non-vacuité, gating)",
+      "tracabilite": "problematisation — POST /api/collab/problematisation/dossier/:id/suggerer"
+    },
+    {
+      "id": "TC-COLLAB-042",
+      "titre": "Problématisation suggerer : repli heuristique déterministe (IA indisponible)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "ANTHROPIC_API_KEY absente OU API renvoyant un texte sans JSON exploitable (callClaude=null -> extractJson=null).",
+      "donnees": "POST .../suggerer {reponses:['un cabinet de conseil','x','autonomie ↔ contrôle','y']}",
+      "etapes": [
+        "Forcer l'indisponibilité IA (clé absente)",
+        "Poster les réponses",
+        "Lire la réponse"
+      ],
+      "attendu": "200 ; source=='heuristique' ; problematique == 'Comment, dans un cabinet de conseil, concilier autonomie ↔ contrôle ?' (reponses[0] et reponses[2]) ; sous_questions == ['Quels éléments concrets illustrent cette tension ?','Quels leviers permettent de la dépasser ?'].",
+      "technique": "table de décision (IA OK / repli) + test du contrat sur le repli",
+      "tracabilite": "problematisation — POST /api/collab/problematisation/dossier/:id/suggerer (repli)"
+    },
+    {
+      "id": "TC-COLLAB-043",
+      "titre": "Problématisation suggerer : repli avec reponses vides -> libellés par défaut",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "IA indisponible ; reponses == [] ou indices manquants.",
+      "donnees": "reponses[0] et reponses[2] undefined.",
+      "etapes": [
+        "Appeler la branche heuristique avec un tableau de réponses vide"
+      ],
+      "attendu": "problematique == 'Comment, dans ton terrain professionnel, concilier les deux pôles en tension ?' (valeurs par défaut quand reponses[0]/reponses[2] sont vides).",
+      "technique": "valeurs limites (réponses absentes -> défauts) — test unitaire du repli",
+      "tracabilite": "problematisation — branche heuristique de POST .../suggerer"
+    },
+    {
+      "id": "TC-COLLAB-044",
+      "titre": "Problématisation suggerer : 404 dossier non possédé ; 401/403 accès",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "a) Léa sur dossier d'Amine ; b) sans cookie ; c) accompagnateur ; d) accompagné sans feature.",
+      "donnees": "POST .../dossier/<id>/suggerer pour chaque cas.",
+      "etapes": [
+        "Appeler avec un dossier d'autrui",
+        "Appeler sans session",
+        "Appeler en accompagnateur",
+        "Appeler en accompagné au plan limité"
+      ],
+      "attendu": "a) 404 'Parcours introuvable' ; b) 401 'Non authentifié' ; c) 403 'Accès refusé' ; d) 403 'Fonctionnalité non disponible dans votre offre'. (Le gating est vérifié AVANT tout appel IA.)",
+      "technique": "table de décision (auth × rôle × feature × propriété)",
+      "tracabilite": "problematisation — POST .../suggerer (requireAuth/Role/Feature + ownDossier)"
+    },
+    {
+      "id": "TC-COLLAB-045",
+      "titre": "extractJson : extraction du premier '{' au dernier '}' (unitaire)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Fonction helper extractJson de collaboration.ts.",
+      "donnees": "Entrées : 'préambule {\"problematique\":\"Q\",\"sous_questions\":[\"a\"]} fin' ; 'texte sans accolade' ; '{cassé' ; null.",
+      "etapes": [
+        "Appeler extractJson sur chaque entrée"
+      ],
+      "attendu": "1) objet {problematique:'Q', sous_questions:['a']} ; 2) null (pas d'accolade) ; 3) null (JSON.parse échoue, catch) ; 4) null (texte null).",
+      "technique": "partition d'équivalence + valeurs limites (test unitaire de parsing)",
+      "tracabilite": "problematisation/resume — fonction extractJson (collaboration.ts)"
+    },
+    {
+      "id": "TC-COLLAB-046",
+      "titre": "Résumé GET : état nominal (null si jamais généré)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné Amine, dossier D1, feature resume_parcours active.",
+      "donnees": "GET /api/collab/resume/dossier/<D1>",
+      "etapes": [
+        "Se connecter en Amine",
+        "Appeler le GET avant toute génération"
+      ],
+      "attendu": "200 ; {resume: null} si aucune génération, sinon {resume:{etat, faits[], prochaines_etapes[], source, genere_le}}.",
+      "technique": "test du contrat (forme de réponse, état initial)",
+      "tracabilite": "resume_parcours — GET /api/collab/resume/dossier/:id — ResumeParcoursCard.tsx"
+    },
+    {
+      "id": "TC-COLLAB-047",
+      "titre": "Résumé GET : dossier non possédé -> 404 ; 401/403 accès",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "a) Léa sur dossier d'Amine ; b) sans cookie ; c) accompagnateur ; d) accompagné sans feature resume_parcours.",
+      "donnees": "GET /api/collab/resume/dossier/<id> pour chaque cas.",
+      "etapes": [
+        "Appeler avec dossier d'autrui",
+        "sans session",
+        "en accompagnateur",
+        "en accompagné au plan limité"
+      ],
+      "attendu": "a) 404 'Parcours introuvable' ; b) 401 ; c) 403 'Accès refusé' ; d) 403 'Fonctionnalité non disponible dans votre offre'.",
+      "technique": "table de décision (auth × rôle × feature × propriété)",
+      "tracabilite": "resume_parcours — GET /api/collab/resume/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-048",
+      "titre": "Résumé POST (IA) : contrat de réponse + persistance",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné Amine, dossier D1 (a des sessions, CR publiés, actions), feature active.",
+      "donnees": "POST /api/collab/resume/dossier/<D1>",
+      "etapes": [
+        "Poster pour générer",
+        "Vérifier la forme",
+        "Relire via GET"
+      ],
+      "attendu": "200 ; {etat:<string non vide>, faits:<array>, prochaines_etapes:<array>, source:'ia'|'heuristique'} ; GET renvoie ensuite le même contenu + genere_le (persisté via upsert). Ne pas figer le texte.",
+      "technique": "test du contrat (champs typés, non-vacuité, persistance/relecture)",
+      "tracabilite": "resume_parcours — POST /api/collab/resume/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-049",
+      "titre": "Résumé POST : repli heuristique resumeFallback (IA indisponible)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "ANTHROPIC_API_KEY absente (callClaude=null) ; dossier D1 d'Amine avec phase max, CR publiés et actions seedés.",
+      "donnees": "POST /api/collab/resume/dossier/<D1>",
+      "etapes": [
+        "Forcer l'indisponibilité IA",
+        "Poster la génération",
+        "Lire la réponse"
+      ],
+      "attendu": "200 ; source=='heuristique' ; etat mentionne l'étape PHASES_FR[phaseMax], le nombre de CR publiés et d'actions faites ; faits[] contient l'état du questionnaire et des CR ; prochaines_etapes[] = jusqu'à 3 actions non 'fait' (ou ['Préparer le prochain entretien.'] si aucune).",
+      "technique": "table de décision (IA / repli) + test du contrat sur le repli",
+      "tracabilite": "resume_parcours — POST .../resume (resumeFallback)"
+    },
+    {
+      "id": "TC-COLLAB-050",
+      "titre": "resumeFallback : parcours non démarré (phaseMax < 0)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossier sans aucune session (MAX(phase_atteinte)=NULL -> phaseMax=-1), sans CR publié, sans action.",
+      "donnees": "resumeContexte renvoie {phaseMax:-1, nbCr:0, recap:null, actions:[]}.",
+      "etapes": [
+        "Appeler resumeFallback sur un dossier vierge"
+      ],
+      "attendu": "etat == 'Ton parcours vient de démarrer.' ; faits == ['Questionnaire initial à compléter.','Pas encore de compte rendu publié.'] ; prochaines_etapes == ['Préparer le prochain entretien.'].",
+      "technique": "valeurs limites (phaseMax=-1, listes vides) — test unitaire du repli",
+      "tracabilite": "resume_parcours — fonction resumeFallback"
+    },
+    {
+      "id": "TC-COLLAB-051",
+      "titre": "resumeFallback : agrégats actions (faites vs en cours) et troncature à 3",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Dossier avec 5 actions dont 2 'fait' et 4 non-'fait' (statuts variés a_faire/en_cours), phaseMax=2, nbCr=1.",
+      "donnees": "actions: [fait, a_faire×3, en_cours] ; recap renseigné.",
+      "etapes": [
+        "Appeler resumeFallback",
+        "Vérifier le décompte et la troncature"
+      ],
+      "attendu": "etat cite PHASES_FR[2]='Explorer l’expérience', '1 compte(s) rendu publié(s)', et le nombre d'actions réalisées (filtre statut=='fait') ; prochaines_etapes = 3 premières actions non-'fait' (slice(0,3)) ; faits[0] = 'Ton questionnaire initial est posé.' car recap présent.",
+      "technique": "partition d'équivalence (statut fait/non-fait) + valeurs limites (troncature 3)",
+      "tracabilite": "resume_parcours — resumeFallback / PHASES_FR"
+    },
+    {
+      "id": "TC-COLLAB-052",
+      "titre": "Résumé POST : ré-génération met à jour (upsert, une seule ligne)",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Un résumé existe déjà pour D1.",
+      "donnees": "POST /api/collab/resume/dossier/<D1> (2e appel)",
+      "etapes": [
+        "Générer une 1re fois",
+        "Re-générer",
+        "Relire via GET"
+      ],
+      "attendu": "200 ; ON CONFLICT(dossier_id) DO UPDATE : une seule ligne en base, genere_le actualisé, contenu remplacé (pas de doublon).",
+      "technique": "transition d'état (upsert) + non-régression",
+      "tracabilite": "resume_parcours — POST /api/collab/resume/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-053",
+      "titre": "Résumé POST : dossier non possédé -> 404 ; 401/403 accès",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "a) Léa sur dossier d'Amine ; b) sans cookie ; c) accompagnateur ; d) accompagné sans feature.",
+      "donnees": "POST /api/collab/resume/dossier/<id> pour chaque cas.",
+      "etapes": [
+        "Appeler avec dossier d'autrui",
+        "sans session",
+        "en accompagnateur",
+        "en accompagné au plan limité"
+      ],
+      "attendu": "a) 404 'Parcours introuvable' ; b) 401 'Non authentifié' ; c) 403 'Accès refusé' ; d) 403 'Fonctionnalité non disponible dans votre offre'.",
+      "technique": "table de décision (auth × rôle × feature × propriété)",
+      "tracabilite": "resume_parcours — POST /api/collab/resume/dossier/:id"
+    },
+    {
+      "id": "TC-COLLAB-054",
+      "titre": "UI Mutualisation : partager une ressource et la voir dans la bibliothèque",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur Mohamed connecté (BoussoleDemo2026), feature mutualisation active.",
+      "donnees": "Page /mutualisation ; formulaire {Titre:'Mon astuce', Type:'Astuce', Contenu:'...'}.",
+      "etapes": [
+        "Ouvrir le tableau de bord",
+        "Cliquer '🤝 Mutualisation'",
+        "Remplir le formulaire 'Partager une ressource'",
+        "Cliquer 'Partager'"
+      ],
+      "attendu": "Message 'Ressource partagée ✓' ; la ressource apparaît dans 'Bibliothèque partagée', marquée 'par moi', avec les boutons Rendre public / Supprimer ; le compteur (n) s'incrémente.",
+      "technique": "test bout-en-bout basé sur les rôles (accompagnateur)",
+      "tracabilite": "mutualisation — page Mutualisation.tsx (POST+GET /collab/ressources)"
+    },
+    {
+      "id": "TC-COLLAB-055",
+      "titre": "UI Mutualisation : rendre public, copier le lien, ouvrir en navigation privée",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagnateur connecté, propriétaire d'une ressource interne.",
+      "donnees": "Ressource 'Mon astuce' ; action 'Rendre public' puis ouverture du lien /ressource/<token>.",
+      "etapes": [
+        "Cliquer '🌐 Rendre public' sur sa ressource",
+        "Récupérer le lien copié (message 'Lien public copié : ...')",
+        "Ouvrir l'URL dans une session non authentifiée"
+      ],
+      "attendu": "Le badge '🌐 public' apparaît ; la page RessourcePublique affiche titre, type, contenu et 'Partagé par <auteur>' SANS authentification ; le bouton '🔗 Copier le lien' est disponible.",
+      "technique": "test bout-en-bout (transition interne->public + lien public anonyme)",
+      "tracabilite": "mutualisation — Mutualisation.tsx + RessourcePublique.tsx"
+    },
+    {
+      "id": "TC-COLLAB-056",
+      "titre": "UI Mutualisation : actions limitées aux ressources 'mienne'",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Bibliothèque contenant des ressources de Mohamed et de Camille ; connecté en Mohamed.",
+      "donnees": "Page /mutualisation.",
+      "etapes": [
+        "Observer une ressource d'un autre auteur (ex. Camille)",
+        "Observer une de ses propres ressources"
+      ],
+      "attendu": "Les ressources d'autrui affichent 'par <auteur>' sans boutons Rendre public/Copier/Supprimer (rendus uniquement si r.mienne) ; ses propres ressources affichent 'par moi' avec les actions.",
+      "technique": "test basé sur les rôles (propriété) au niveau UI",
+      "tracabilite": "mutualisation — Mutualisation.tsx (flag mienne)"
+    },
+    {
+      "id": "TC-COLLAB-057",
+      "titre": "UI Mutualisation : suppression avec confirmation",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur propriétaire d'une ressource.",
+      "donnees": "Bouton 'Supprimer' sur une ressource 'mienne'.",
+      "etapes": [
+        "Cliquer 'Supprimer'",
+        "Confirmer la fenêtre window.confirm"
+      ],
+      "attendu": "Après confirmation, la ressource disparaît de la liste (rechargement) ; si annulation, rien ne change.",
+      "technique": "test bout-en-bout (chemin nominal + annulation)",
+      "tracabilite": "mutualisation — Mutualisation.tsx (DELETE /collab/ressources/:id)"
+    },
+    {
+      "id": "TC-COLLAB-058",
+      "titre": "UI Mutualisation : entrée masquée si feature absente",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Accompagnateur dont le plan n'inclut pas 'mutualisation'.",
+      "donnees": "Tableau de bord.",
+      "etapes": [
+        "Se connecter avec un plan sans mutualisation",
+        "Observer le tableau de bord"
+      ],
+      "attendu": "Le lien '🤝 Mutualisation' n'est pas affiché (mutualisationActive=false) ; un accès direct à /mutualisation aboutit à des appels API 403.",
+      "technique": "test basé sur les rôles + gating de feature (UI)",
+      "tracabilite": "mutualisation — Dashboard.tsx (mutualisationActive) + App.tsx route"
+    },
+    {
+      "id": "TC-COLLAB-059",
+      "titre": "UI Problématisation : parcours guidé puis suggestion IA puis enregistrement",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné Amine connecté, dossier D1, feature problematisation active.",
+      "donnees": "Carte '🎯 Ma problématique' sur la page du parcours.",
+      "etapes": [
+        "Déplier 'Construire ma problématique'",
+        "Renseigner les 4 réponses guidées",
+        "Cliquer '✨ Proposer une problématique (IA)'",
+        "Ajuster le texte proposé",
+        "Cliquer 'Enregistrer'"
+      ],
+      "attendu": "Après IA : message 'Proposition générée — à toi de l’ajuster.', champ problématique pré-rempli, éventuelles sous-questions listées ; après Enregistrer : 'Enregistré ✓' ; au rechargement, la problématique enregistrée s'affiche en italique (mode réduit).",
+      "technique": "test bout-en-bout basé sur les rôles (accompagné) + contrat IA",
+      "tracabilite": "problematisation — ProblematisationCard.tsx (GET/POST/suggerer)"
+    },
+    {
+      "id": "TC-COLLAB-060",
+      "titre": "UI Problématisation : carte masquée si feature absente",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Accompagné dont le plan n'inclut pas 'problematisation'.",
+      "donnees": "Page du parcours.",
+      "etapes": [
+        "Se connecter avec un plan sans problematisation",
+        "Ouvrir le parcours"
+      ],
+      "attendu": "La carte '🎯 Ma problématique' n'est pas rendue (useFeature('problematisation') faux -> return null) ; aucun appel /collab/problematisation n'est émis.",
+      "technique": "gating de feature (UI)",
+      "tracabilite": "problematisation — ProblematisationCard.tsx (useFeature)"
+    },
+    {
+      "id": "TC-COLLAB-061",
+      "titre": "UI Résumé : générer puis mettre à jour 'Où j'en suis'",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Accompagné Amine connecté, dossier D1, feature resume_parcours active.",
+      "donnees": "Carte '🧭 Où j’en suis'.",
+      "etapes": [
+        "Cliquer '✨ Faire le point'",
+        "Observer le résumé",
+        "Cliquer '↻ Mettre à jour'"
+      ],
+      "attendu": "Pendant l'appel le bouton affiche 'Analyse…' ; le résumé montre etat, une liste 'faits' et 'Mes prochaines étapes' (➡️) ; après mise à jour le contenu est régénéré ; au rechargement le dernier résumé persiste (GET).",
+      "technique": "test bout-en-bout basé sur les rôles (accompagné) + contrat IA",
+      "tracabilite": "resume_parcours — ResumeParcoursCard.tsx (GET/POST)"
+    },
+    {
+      "id": "TC-COLLAB-062",
+      "titre": "UI Résumé : carte masquée si feature absente",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "basse",
+      "preconditions": "Accompagné dont le plan n'inclut pas 'resume_parcours'.",
+      "donnees": "Page du parcours.",
+      "etapes": [
+        "Se connecter avec un plan sans resume_parcours",
+        "Ouvrir le parcours"
+      ],
+      "attendu": "La carte '🧭 Où j’en suis' n'est pas rendue (useFeature faux -> return null) ; aucun appel /collab/resume n'est émis.",
+      "technique": "gating de feature (UI)",
+      "tracabilite": "resume_parcours — ResumeParcoursCard.tsx (useFeature)"
+    },
+    {
+      "id": "TC-COLLAB-063",
+      "titre": "UI Ressource publique : token invalide affiche un message d'erreur convivial",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Aucune session ; token inexistant ou ressource repassée en interne.",
+      "donnees": "Navigation vers /ressource/token-invalide.",
+      "etapes": [
+        "Ouvrir l'URL publique avec un token erroné, déconnecté"
+      ],
+      "attendu": "La page affiche 'Cette ressource n’existe pas ou n’est plus partagée publiquement.' (catch sur 404) et propose le lien 'Découvrir Boussole' ; aucune redirection vers la connexion (route publique).",
+      "technique": "test bout-en-bout (chemin d'erreur, route hors-auth)",
+      "tracabilite": "(public) RessourcePublique.tsx — GET /collab/ressources/public/:token"
+    },
+    {
+      "id": "TC-COLLAB-064",
+      "titre": "Sécurité : injection SQL inopérante via token public (paramétrage)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Aucune.",
+      "donnees": "GET /api/collab/ressources/public/' OR '1'='1 (token avec charge SQL).",
+      "etapes": [
+        "Appeler le lien public avec une charge d'injection dans le token"
+      ],
+      "attendu": "404 'Ressource introuvable ou non publique' ; les requêtes utilisent des paramètres liés (prepare/get), pas de concaténation : aucune ressource n'est divulguée.",
+      "technique": "partition d'équivalence (entrée malveillante) — test de robustesse",
+      "tracabilite": "(public) GET /api/collab/ressources/public/:token"
+    }
+  ]
+}

@@ -1,0 +1,1279 @@
+{
+  "domaine": "actnotif",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/actions/mine",
+      "role": "accompagne",
+      "feature": "plan_action",
+      "summary": "Liste les actions du dossier le plus récent de l'accompagné connecté + l'id du dossier (pour ajout/réordonnancement)."
+    },
+    {
+      "method": "GET",
+      "path": "/api/actions",
+      "role": "accompagnateur",
+      "feature": "plan_action",
+      "summary": "Liste les actions d'un dossier (query dossierId) appartenant à l'accompagnateur connecté, triées par ordre puis id."
+    },
+    {
+      "method": "POST",
+      "path": "/api/actions",
+      "role": "accompagnateur|accompagne",
+      "feature": "plan_action",
+      "summary": "Ajoute une action à un dossier accessible (accompagnateur OU accompagné du dossier). Calcule ordre = MAX(ordre)+1."
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/actions/:id",
+      "role": "accompagnateur|accompagne",
+      "feature": "plan_action",
+      "summary": "Modifie partiellement une action (libelle, statut, priorite, echeance, critere, details, rappel_le). Toute modif de rappel_le ré-arme rappel_envoye=0."
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/actions/:id",
+      "role": "accompagnateur|accompagne",
+      "feature": "plan_action",
+      "summary": "Supprime une action d'un dossier accessible à l'utilisateur."
+    },
+    {
+      "method": "POST",
+      "path": "/api/actions/reorder",
+      "role": "accompagnateur|accompagne",
+      "feature": "plan_action",
+      "summary": "Réordonne les actions d'un dossier (glisser-déposer) ; transaction qui renumérote de façon contiguë sans collision."
+    },
+    {
+      "method": "GET",
+      "path": "/api/tags",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Liste distincte des tags utilisés sur les dossiers de l'accompagnateur connecté (pour le filtre)."
+    },
+    {
+      "method": "POST",
+      "path": "/api/tags/dossier/:dossierId",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Ajoute un tag (nom trim+minuscule) à un dossier de l'accompagnateur ; crée le tag s'il n'existe pas ; liaison idempotente (INSERT OR IGNORE)."
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/tags/dossier/:dossierId/:tagId",
+      "role": "accompagnateur",
+      "feature": "—",
+      "summary": "Retire un tag d'un dossier de l'accompagnateur (supprime la liaison dossier_tags)."
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications",
+      "role": "accompagnateur|accompagne|admin",
+      "feature": "—",
+      "summary": "Déclenche sweepDueReminders() puis renvoie les 30 dernières notifications de l'utilisateur + le compte de non lues (nonLues)."
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/lues",
+      "role": "accompagnateur|accompagne|admin",
+      "feature": "—",
+      "summary": "Marque toutes les notifications de l'utilisateur comme lues (lu=1)."
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-ACT-001",
+      "titre": "GET /actions/mine — nominal : l'accompagné récupère ses actions et le dossierId",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné (afrit_mohamed@yahoo.fr) ayant au moins un dossier avec actions.",
+      "donnees": "Cookie de session accompagné. GET /api/actions/mine",
+      "etapes": [
+        "Se connecter en accompagné",
+        "Appeler GET /api/actions/mine"
+      ],
+      "attendu": "200. Corps { actions: [...], dossierId: <number> }. Chaque action expose id, libelle, echeance, critere, details, priorite, statut, rappel_le, cree_le, ordre. Actions triées par ordre ASC puis id ASC.",
+      "technique": "Test du contrat ; test basé sur les rôles",
+      "tracabilite": "plan_action — GET /api/actions/mine"
+    },
+    {
+      "id": "TC-ACT-002",
+      "titre": "GET /actions/mine — accompagné sans dossier : liste vide et dossierId null",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Compte accompagné sans aucun dossier (compte fraîchement créé).",
+      "donnees": "Cookie accompagné sans dossier. GET /api/actions/mine",
+      "etapes": [
+        "Se connecter en accompagné sans dossier",
+        "Appeler GET /api/actions/mine"
+      ],
+      "attendu": "200. Corps { actions: [], dossierId: null }.",
+      "technique": "Partition d'équivalence (classe : utilisateur sans dossier) ; valeurs limites (0 dossier)",
+      "tracabilite": "plan_action — GET /api/actions/mine"
+    },
+    {
+      "id": "TC-ACT-003",
+      "titre": "GET /actions/mine — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie de session.",
+      "donnees": "Sans cookie boussole_token. GET /api/actions/mine",
+      "etapes": [
+        "Appeler GET /api/actions/mine sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "plan_action — GET /api/actions/mine (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-004",
+      "titre": "GET /actions/mine — 403 mauvais rôle (accompagnateur)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur (elafrit.mohamed@gmail.com).",
+      "donnees": "Cookie accompagnateur. GET /api/actions/mine",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Appeler GET /api/actions/mine"
+      ],
+      "attendu": "403 { error: 'Accès refusé' } (requireRole('accompagne')).",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "plan_action — GET /api/actions/mine (requireRole accompagne)"
+    },
+    {
+      "id": "TC-ACT-005",
+      "titre": "GET /actions/mine — 403 mauvais rôle (admin)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en admin (mohamed@elafrit.com).",
+      "donnees": "Cookie admin. GET /api/actions/mine",
+      "etapes": [
+        "Se connecter en admin",
+        "Appeler GET /api/actions/mine"
+      ],
+      "attendu": "403 { error: 'Accès refusé' }.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "plan_action — GET /api/actions/mine (requireRole accompagne)"
+    },
+    {
+      "id": "TC-ACT-006",
+      "titre": "GET /actions — nominal : l'accompagnateur liste les actions de son dossier",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire du dossier ciblé.",
+      "donnees": "GET /api/actions?dossierId=<id détenu>",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Identifier un dossierId détenu",
+        "Appeler GET /api/actions?dossierId=<id>"
+      ],
+      "attendu": "200. Corps { actions: [...] } trié par ordre ASC puis id ASC ; chaque action avec les 10 colonnes COLS.",
+      "technique": "Test du contrat ; test basé sur les rôles",
+      "tracabilite": "plan_action — GET /api/actions"
+    },
+    {
+      "id": "TC-ACT-007",
+      "titre": "GET /actions — 404 dossier non détenu par l'accompagnateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur (Camille) ; dossierId appartenant à un AUTRE accompagnateur (Mohamed).",
+      "donnees": "GET /api/actions?dossierId=<id d'un autre accompagnateur>",
+      "etapes": [
+        "Se connecter en accompagnateur Camille",
+        "Appeler GET /api/actions?dossierId=<dossier de Mohamed>"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' }.",
+      "technique": "Test basé sur les rôles (non-propriétaire) ; partition d'équivalence",
+      "tracabilite": "plan_action — GET /api/actions (ownership accompagnateur_id)"
+    },
+    {
+      "id": "TC-ACT-008",
+      "titre": "GET /actions — 404 dossierId inexistant ou manquant (NaN)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur.",
+      "donnees": "GET /api/actions (sans dossierId → Number(undefined)=NaN) et GET /api/actions?dossierId=999999",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "Appeler GET /api/actions sans param",
+        "Appeler GET /api/actions?dossierId=999999"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } dans les deux cas (aucune correspondance owns).",
+      "technique": "Valeurs limites (NaN / id inexistant) ; partition d'équivalence (invalide)",
+      "tracabilite": "plan_action — GET /api/actions"
+    },
+    {
+      "id": "TC-ACT-009",
+      "titre": "GET /actions — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/actions?dossierId=1 sans cookie",
+      "etapes": [
+        "Appeler GET /api/actions?dossierId=1 sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "plan_action — GET /api/actions (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-010",
+      "titre": "GET /actions — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "Cookie accompagné. GET /api/actions?dossierId=<son dossier>",
+      "etapes": [
+        "Se connecter en accompagné",
+        "Appeler GET /api/actions?dossierId=<son dossier>"
+      ],
+      "attendu": "403 { error: 'Accès refusé' } (requireRole('accompagnateur')).",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "plan_action — GET /api/actions (requireRole accompagnateur)"
+    },
+    {
+      "id": "TC-ACT-011",
+      "titre": "POST /actions — nominal : l'accompagnateur ajoute une action complète",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire du dossier.",
+      "donnees": "POST /api/actions { dossierId, libelle:'Préparer le pitch', echeance:'2026-07-01', critere:'Pitch prêt', details:'…', priorite:'haute', rappel_le:'2026-06-30' }",
+      "etapes": [
+        "Se connecter en accompagnateur",
+        "POST /api/actions avec tous les champs valides",
+        "GET /api/actions?dossierId=<id> pour relire"
+      ],
+      "attendu": "201 { id: <number> }. À la relecture, l'action existe avec les valeurs envoyées et ordre = MAX(ordre précédent)+1 (1 si dossier vide).",
+      "technique": "Test du contrat ; persistance/relecture",
+      "tracabilite": "plan_action — POST /api/actions"
+    },
+    {
+      "id": "TC-ACT-012",
+      "titre": "POST /actions — nominal : l'accompagné ajoute une action dans SON dossier (libellé seul)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné, dossierId = celui retourné par /actions/mine.",
+      "donnees": "POST /api/actions { dossierId:<mine>, libelle:'Réviser le mémoire' }",
+      "etapes": [
+        "Se connecter en accompagné",
+        "Récupérer dossierId via /actions/mine",
+        "POST /api/actions { dossierId, libelle }"
+      ],
+      "attendu": "201 { id }. Champs optionnels non fournis stockés à null ; statut par défaut 'a_faire'.",
+      "technique": "Test du contrat ; test basé sur les rôles (accompagné autorisé sur son dossier)",
+      "tracabilite": "plan_action — POST /api/actions"
+    },
+    {
+      "id": "TC-ACT-013",
+      "titre": "POST /actions — 400 libellé manquant ou vide (après trim)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire du dossier.",
+      "donnees": "POST /api/actions { dossierId, libelle:'   ' } puis { dossierId } sans libelle",
+      "etapes": [
+        "Se connecter",
+        "POST avec libelle composé d'espaces",
+        "POST sans champ libelle"
+      ],
+      "attendu": "400 { error: 'Libellé requis' } dans les deux cas (opt() renvoie null).",
+      "technique": "Valeurs limites (chaîne vide / espaces) ; partition d'équivalence (invalide)",
+      "tracabilite": "plan_action — POST /api/actions"
+    },
+    {
+      "id": "TC-ACT-014",
+      "titre": "POST /actions — 400 priorité hors énumération",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur propriétaire du dossier.",
+      "donnees": "POST /api/actions { dossierId, libelle:'X', priorite:'urgente' }",
+      "etapes": [
+        "Se connecter",
+        "POST avec priorite='urgente' (hors haute/moyenne/basse)"
+      ],
+      "attendu": "400 { error: 'Priorité invalide' }.",
+      "technique": "Partition d'équivalence (priorité invalide) ; table de décision (libellé valide + priorité invalide)",
+      "tracabilite": "plan_action — POST /api/actions"
+    },
+    {
+      "id": "TC-ACT-015",
+      "titre": "POST /actions — priorité vide/espaces acceptée (normalisée à null)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Connecté en accompagnateur propriétaire du dossier.",
+      "donnees": "POST /api/actions { dossierId, libelle:'X', priorite:'  ' }",
+      "etapes": [
+        "Se connecter",
+        "POST avec priorite composée d'espaces",
+        "Relire l'action"
+      ],
+      "attendu": "201 ; priorite stockée à null (opt() neutralise, pas d'erreur car prio est falsy donc non testé contre PRIORITES).",
+      "technique": "Valeurs limites (espaces) ; partition d'équivalence (valeur frontière acceptée)",
+      "tracabilite": "plan_action — POST /api/actions"
+    },
+    {
+      "id": "TC-ACT-016",
+      "titre": "POST /actions — 404 dossier non accessible à l'utilisateur",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné A ; dossierId appartenant à un autre accompagné/accompagnateur.",
+      "donnees": "POST /api/actions { dossierId:<dossier d'autrui>, libelle:'X' }",
+      "etapes": [
+        "Se connecter en accompagné A",
+        "POST avec un dossierId ne référençant ni accompagnateur_id ni accompagne_id = A"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } (dossierForUser échoue avant validation du libellé).",
+      "technique": "Test basé sur les rôles (non-propriétaire) ; partition d'équivalence",
+      "tracabilite": "plan_action — POST /api/actions (dossierForUser)"
+    },
+    {
+      "id": "TC-ACT-017",
+      "titre": "POST /actions — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "POST /api/actions { dossierId:1, libelle:'X' } sans cookie",
+      "etapes": [
+        "POST /api/actions sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "plan_action — POST /api/actions (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-018",
+      "titre": "POST /actions — ordre = MAX(ordre)+1 sur ajouts successifs",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur ; dossier avec une action d'ordre N existant.",
+      "donnees": "Deux POST consécutifs sur le même dossier.",
+      "etapes": [
+        "POST action A",
+        "POST action B",
+        "GET /api/actions?dossierId=<id>"
+      ],
+      "attendu": "Les nouvelles actions reçoivent des ordres strictement croissants et contigus à partir de MAX(ordre)+1 ; tri stable de la liste.",
+      "technique": "Valeurs limites (incrément d'ordre) ; test du contrat",
+      "tracabilite": "plan_action — POST /api/actions (ordre)"
+    },
+    {
+      "id": "TC-ACT-019",
+      "titre": "PATCH /actions/:id — nominal : changement de statut valide",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté propriétaire (accompagnateur ou accompagné) d'une action existante.",
+      "donnees": "PATCH /api/actions/<id> { statut:'en_cours' }",
+      "etapes": [
+        "Se connecter",
+        "PATCH avec statut='en_cours'",
+        "Relire l'action"
+      ],
+      "attendu": "200 { ok: true } ; à la relecture statut='en_cours'.",
+      "technique": "Partition d'équivalence (statut valide) ; persistance/relecture",
+      "tracabilite": "plan_action — PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-020",
+      "titre": "PATCH /actions/:id — 400 statut hors énumération",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté propriétaire d'une action existante.",
+      "donnees": "PATCH /api/actions/<id> { statut:'termine' }",
+      "etapes": [
+        "PATCH avec statut='termine' (hors a_faire/en_cours/fait)"
+      ],
+      "attendu": "400 { error: 'Statut invalide' }.",
+      "technique": "Partition d'équivalence (statut invalide) ; valeurs limites (juste hors ensemble)",
+      "tracabilite": "plan_action — PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-021",
+      "titre": "PATCH /actions/:id — 400 libellé fourni mais vide",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté propriétaire d'une action existante.",
+      "donnees": "PATCH /api/actions/<id> { libelle:'   ' }",
+      "etapes": [
+        "PATCH avec libelle composé d'espaces"
+      ],
+      "attendu": "400 { error: 'Libellé vide' } (b.libelle != null mais opt() → null).",
+      "technique": "Valeurs limites (chaîne d'espaces) ; partition d'équivalence",
+      "tracabilite": "plan_action — PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-022",
+      "titre": "PATCH /actions/:id — 400 priorité invalide (non vide)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté propriétaire d'une action existante.",
+      "donnees": "PATCH /api/actions/<id> { priorite:'critique' }",
+      "etapes": [
+        "PATCH avec priorite='critique'"
+      ],
+      "attendu": "400 { error: 'Priorité invalide' }.",
+      "technique": "Partition d'équivalence (priorité invalide)",
+      "tracabilite": "plan_action — PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-023",
+      "titre": "PATCH /actions/:id — priorité explicitement vidée (null) acceptée",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Connecté propriétaire d'une action ayant une priorité 'haute'.",
+      "donnees": "PATCH /api/actions/<id> { priorite:'' }",
+      "etapes": [
+        "PATCH avec priorite='' (chaîne vide)",
+        "Relire l'action"
+      ],
+      "attendu": "200 { ok: true } ; priorite remise à null (opt() → null, prio falsy donc non rejeté).",
+      "technique": "Valeurs limites (effacement) ; table de décision (priorite défini=true, valeur falsy)",
+      "tracabilite": "plan_action — PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-024",
+      "titre": "PATCH /actions/:id — corps vide : 200 ok sans modification (sets.length===0)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Connecté propriétaire d'une action existante.",
+      "donnees": "PATCH /api/actions/<id> {} (aucun champ)",
+      "etapes": [
+        "PATCH avec corps {} ",
+        "Relire l'action"
+      ],
+      "attendu": "200 { ok: true } ; action inchangée (aucune requête UPDATE émise).",
+      "technique": "Valeurs limites (0 champ) ; partition d'équivalence (no-op)",
+      "tracabilite": "plan_action — PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-025",
+      "titre": "PATCH /actions/:id — modif de rappel_le ré-arme rappel_envoye=0",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté propriétaire d'une action dont rappel_envoye=1 (rappel déjà notifié).",
+      "donnees": "PATCH /api/actions/<id> { rappel_le:'<date future>' }",
+      "etapes": [
+        "Préparer une action avec rappel_envoye=1",
+        "PATCH avec un nouveau rappel_le",
+        "Atteindre/forcer la date puis GET /api/notifications"
+      ],
+      "attendu": "200 { ok: true } ; rappel_envoye repassé à 0 (clause SET rappel_envoye=0), de sorte qu'une nouvelle notification pourra être générée à échéance.",
+      "technique": "Table de décision (rappel_le défini → réarmement) ; test du contrat",
+      "tracabilite": "plan_action — PATCH /api/actions/:id (rappel_envoye=0)"
+    },
+    {
+      "id": "TC-ACT-026",
+      "titre": "PATCH /actions/:id — mise à jour multi-champs partielle",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté propriétaire d'une action.",
+      "donnees": "PATCH /api/actions/<id> { libelle:'Maj', echeance:'2026-08-01', critere:'OK', details:'note' }",
+      "etapes": [
+        "PATCH avec plusieurs champs valides",
+        "Relire l'action"
+      ],
+      "attendu": "200 { ok: true } ; tous les champs fournis mis à jour, les autres inchangés.",
+      "technique": "Test du contrat ; persistance/relecture",
+      "tracabilite": "plan_action — PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-027",
+      "titre": "PATCH /actions/:id — 404 action d'un dossier non accessible",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en utilisateur A ; action appartenant au dossier d'un autre utilisateur.",
+      "donnees": "PATCH /api/actions/<id d'autrui> { statut:'fait' }",
+      "etapes": [
+        "Se connecter en A",
+        "PATCH une action dont le dossier n'a ni accompagnateur_id ni accompagne_id = A"
+      ],
+      "attendu": "404 { error: 'Action introuvable' } (actionForUser échoue).",
+      "technique": "Test basé sur les rôles (non-propriétaire)",
+      "tracabilite": "plan_action — PATCH /api/actions/:id (actionForUser)"
+    },
+    {
+      "id": "TC-ACT-028",
+      "titre": "PATCH /actions/:id — 404 action inexistante",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en utilisateur authentifié.",
+      "donnees": "PATCH /api/actions/999999 { statut:'fait' }",
+      "etapes": [
+        "PATCH sur un id d'action inexistant"
+      ],
+      "attendu": "404 { error: 'Action introuvable' }.",
+      "technique": "Partition d'équivalence (id inexistant) ; valeurs limites",
+      "tracabilite": "plan_action — PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-029",
+      "titre": "PATCH /actions/:id — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "PATCH /api/actions/1 { statut:'fait' } sans cookie",
+      "etapes": [
+        "PATCH sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "plan_action — PATCH /api/actions/:id (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-030",
+      "titre": "DELETE /actions/:id — nominal : suppression d'une action accessible",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté propriétaire d'une action existante.",
+      "donnees": "DELETE /api/actions/<id>",
+      "etapes": [
+        "Créer une action",
+        "DELETE /api/actions/<id>",
+        "GET /api/actions(... ) pour vérifier l'absence"
+      ],
+      "attendu": "200 { ok: true } ; l'action n'apparaît plus dans la liste.",
+      "technique": "Test du contrat ; persistance/relecture",
+      "tracabilite": "plan_action — DELETE /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-031",
+      "titre": "DELETE /actions/:id — 404 action d'un dossier non accessible",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en utilisateur A ; action d'un autre utilisateur.",
+      "donnees": "DELETE /api/actions/<id d'autrui>",
+      "etapes": [
+        "Se connecter en A",
+        "DELETE une action d'un dossier non lié à A"
+      ],
+      "attendu": "404 { error: 'Action introuvable' } ; aucune suppression effectuée.",
+      "technique": "Test basé sur les rôles (non-propriétaire)",
+      "tracabilite": "plan_action — DELETE /api/actions/:id (actionForUser)"
+    },
+    {
+      "id": "TC-ACT-032",
+      "titre": "DELETE /actions/:id — 404 action inexistante",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté authentifié.",
+      "donnees": "DELETE /api/actions/999999",
+      "etapes": [
+        "DELETE sur id inexistant"
+      ],
+      "attendu": "404 { error: 'Action introuvable' }.",
+      "technique": "Partition d'équivalence (id inexistant)",
+      "tracabilite": "plan_action — DELETE /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-033",
+      "titre": "DELETE /actions/:id — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "DELETE /api/actions/1 sans cookie",
+      "etapes": [
+        "DELETE sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "plan_action — DELETE /api/actions/:id (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-034",
+      "titre": "POST /actions/reorder — nominal : réordonnancement complet d'un dossier",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté propriétaire d'un dossier avec >=3 actions [A,B,C].",
+      "donnees": "POST /api/actions/reorder { dossierId, ids:[C.id, A.id, B.id] }",
+      "etapes": [
+        "Lister les actions",
+        "POST reorder avec un ordre inversé",
+        "Relire la liste"
+      ],
+      "attendu": "200 { ok: true } ; à la relecture l'ordre suit la liste fournie (ordre 0,1,2…) ; tri ASC cohérent.",
+      "technique": "Test du contrat ; persistance/relecture",
+      "tracabilite": "plan_action — POST /api/actions/reorder"
+    },
+    {
+      "id": "TC-ACT-035",
+      "titre": "POST /actions/reorder — liste partielle : actions absentes renumérotées à la suite sans collision",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté propriétaire d'un dossier avec actions [A,B,C,D].",
+      "donnees": "POST /api/actions/reorder { dossierId, ids:[B.id, A.id] } (C et D omis)",
+      "etapes": [
+        "POST reorder avec seulement 2 des 4 ids",
+        "Relire la liste triée par ordre"
+      ],
+      "attendu": "200 { ok: true } ; B=0, A=1 puis C et D renumérotés à partir de 2 dans leur ordre courant ; ordres contigus, aucune collision/duplication.",
+      "technique": "Valeurs limites (sous-ensemble) ; test du contrat (renumérotation contiguë)",
+      "tracabilite": "plan_action — POST /api/actions/reorder (renumérotation du reste)"
+    },
+    {
+      "id": "TC-ACT-036",
+      "titre": "POST /actions/reorder — ids contenant un id d'un autre dossier : ignoré (clause dossier_id)",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté propriétaire du dossier D1 ; un id d'action appartient à D2 (autre dossier du même user).",
+      "donnees": "POST /api/actions/reorder { dossierId:D1, ids:[actionD1.id, actionD2.id] }",
+      "etapes": [
+        "POST reorder mélangeant un id d'un autre dossier",
+        "Relire D1 et D2"
+      ],
+      "attendu": "200 { ok: true } ; seules les actions de D1 sont mises à jour (UPDATE ... AND dossier_id=D1) ; l'action de D2 n'est pas déplacée vers D1.",
+      "technique": "Partition d'équivalence (id hors dossier) ; test du contrat (isolation par dossier)",
+      "tracabilite": "plan_action — POST /api/actions/reorder (WHERE dossier_id)"
+    },
+    {
+      "id": "TC-ACT-037",
+      "titre": "POST /actions/reorder — 400 ids non-tableau",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté propriétaire du dossier.",
+      "donnees": "POST /api/actions/reorder { dossierId, ids:'abc' } et { dossierId } sans ids",
+      "etapes": [
+        "POST reorder avec ids string",
+        "POST reorder sans ids"
+      ],
+      "attendu": "400 { error: 'Ordre invalide' } (Array.isArray(ids) faux).",
+      "technique": "Partition d'équivalence (type invalide) ; valeurs limites",
+      "tracabilite": "plan_action — POST /api/actions/reorder"
+    },
+    {
+      "id": "TC-ACT-038",
+      "titre": "POST /actions/reorder — ids tableau vide : 200 sans modification d'ordre des actions existantes",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Connecté propriétaire d'un dossier avec actions.",
+      "donnees": "POST /api/actions/reorder { dossierId, ids:[] }",
+      "etapes": [
+        "POST reorder avec ids=[]",
+        "Relire la liste"
+      ],
+      "attendu": "200 { ok: true } ; toutes les actions renumérotées à partir de 0 dans leur ordre courant (rest renuméroté), aucune collision.",
+      "technique": "Valeurs limites (tableau vide) ; test du contrat",
+      "tracabilite": "plan_action — POST /api/actions/reorder"
+    },
+    {
+      "id": "TC-ACT-039",
+      "titre": "POST /actions/reorder — 404 dossier non accessible",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en A ; dossierId d'un autre utilisateur.",
+      "donnees": "POST /api/actions/reorder { dossierId:<autrui>, ids:[1] }",
+      "etapes": [
+        "POST reorder sur un dossier non lié à A"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } (dossierForUser échoue avant le contrôle ids).",
+      "technique": "Test basé sur les rôles (non-propriétaire)",
+      "tracabilite": "plan_action — POST /api/actions/reorder (dossierForUser)"
+    },
+    {
+      "id": "TC-ACT-040",
+      "titre": "POST /actions/reorder — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "POST /api/actions/reorder { dossierId:1, ids:[1] } sans cookie",
+      "etapes": [
+        "POST reorder sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "plan_action — POST /api/actions/reorder (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-041",
+      "titre": "Unitaire — opt() nettoie le texte (trim → null si vide)",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Fonction opt(v) de actions.ts isolable.",
+      "donnees": "Entrées : null, undefined, '', '   ', '  abc  ', 42",
+      "etapes": [
+        "Appeler opt(null)",
+        "opt(undefined)",
+        "opt('')",
+        "opt('   ')",
+        "opt('  abc  ')",
+        "opt(42)"
+      ],
+      "attendu": "null pour null/undefined/''/'   ' ; 'abc' pour '  abc  ' ; '42' pour 42 (String + trim).",
+      "technique": "Partition d'équivalence (null/vide/non vide) ; valeurs limites (espaces) ; test unitaire de repli déterministe",
+      "tracabilite": "plan_action — actions.ts opt()"
+    },
+    {
+      "id": "TC-ACT-042",
+      "titre": "Unitaire — sweepDueReminders() idempotent : un seul couple de notifications par rappel dû",
+      "niveau": "unitaire",
+      "type": "non-regression",
+      "priorite": "haute",
+      "preconditions": "Action avec rappel_le <= aujourd'hui et rappel_envoye=0, dossier liant un accompagné et un accompagnateur.",
+      "donnees": "Appeler sweepDueReminders() deux fois de suite.",
+      "etapes": [
+        "Préparer l'action due",
+        "Invoquer sweepDueReminders()",
+        "Invoquer à nouveau sweepDueReminders()",
+        "Compter les notifications créées"
+      ],
+      "attendu": "Exactement 2 notifications créées au total (1 accompagné + 1 accompagnateur) au 1er passage ; 0 nouvelle au 2e (markRappelSent.changes!==1 → continue). rappel_envoye=1.",
+      "technique": "Test unitaire de repli déterministe ; test du contrat (idempotence)",
+      "tracabilite": "— notifications.ts sweepDueReminders()"
+    },
+    {
+      "id": "TC-ACT-043",
+      "titre": "Unitaire — sweepDueReminders() : seuil de date (échéance future ignorée, passée déclenchée)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Deux actions : rappel_le hier (due) et rappel_le demain (non due), rappel_envoye=0.",
+      "donnees": "date('now','localtime') comme borne.",
+      "etapes": [
+        "Préparer action passée et action future",
+        "Invoquer sweepDueReminders()",
+        "Vérifier les notifications et les drapeaux"
+      ],
+      "attendu": "Seule l'action dont rappel_le <= aujourd'hui génère des notifications et passe rappel_envoye=1 ; l'action future reste rappel_envoye=0 sans notification.",
+      "technique": "Valeurs limites (hier/aujourd'hui/demain) ; partition d'équivalence (dû / non dû)",
+      "tracabilite": "— notifications.ts sweepDueReminders() (rappel_le <= date now)"
+    },
+    {
+      "id": "TC-ACT-044",
+      "titre": "Unitaire — sweepDueReminders() : texte de notification avec et sans échéance",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Action due avec echeance renseignée, et une autre due sans echeance.",
+      "donnees": "libelle='Pitch', echeance='2026-06-10' vs echeance=null.",
+      "etapes": [
+        "Invoquer sweepDueReminders()",
+        "Lire le texte des notifications créées"
+      ],
+      "attendu": "Avec échéance : « Rappel : « Pitch » — échéance le 2026-06-10. » ; sans échéance : « Rappel : « Pitch ». » (segment échéance omis). Vérifier la présence du libellé, non figer le reste.",
+      "technique": "Table de décision (echeance présente/absente) ; test du contrat",
+      "tracabilite": "— notifications.ts sweepDueReminders() (composition du texte)"
+    },
+    {
+      "id": "TC-ACT-045",
+      "titre": "GET /notifications — nominal : liste + nonLues, déclenche le balayage des rappels",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté (accompagné ou accompagnateur) avec un rappel d'action arrivé à échéance non encore notifié.",
+      "donnees": "GET /api/notifications",
+      "etapes": [
+        "Préparer une action avec rappel_le échu et rappel_envoye=0",
+        "GET /api/notifications"
+      ],
+      "attendu": "200 { notifications:[{id, texte, lu, cree_le}...], nonLues:<number> } ; <=30 entrées triées par cree_le DESC ; la notification du rappel apparaît (sweep exécuté en amont) et nonLues>=1.",
+      "technique": "Test du contrat ; persistance/relecture (effet du sweep)",
+      "tracabilite": "— GET /api/notifications"
+    },
+    {
+      "id": "TC-ACT-046",
+      "titre": "GET /notifications — isolement par utilisateur (on ne voit que les siennes)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Deux utilisateurs distincts ayant chacun des notifications.",
+      "donnees": "GET /api/notifications connecté en user A puis en user B.",
+      "etapes": [
+        "GET en A",
+        "GET en B",
+        "Comparer les jeux de notifications"
+      ],
+      "attendu": "Chaque réponse ne contient que les notifications dont user_id = utilisateur connecté ; aucune fuite d'un utilisateur à l'autre.",
+      "technique": "Test basé sur les rôles (cloisonnement par utilisateur) ; partition d'équivalence",
+      "tracabilite": "— GET /api/notifications (WHERE user_id)"
+    },
+    {
+      "id": "TC-ACT-047",
+      "titre": "GET /notifications — limite à 30 entrées les plus récentes",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Utilisateur avec plus de 30 notifications.",
+      "donnees": "GET /api/notifications.",
+      "etapes": [
+        "Créer >30 notifications pour l'utilisateur",
+        "GET /api/notifications"
+      ],
+      "attendu": "Le tableau notifications contient exactement 30 éléments (LIMIT 30), triés cree_le DESC ; nonLues reflète le total réel de non lues (sans limite).",
+      "technique": "Valeurs limites (30/31) ; test du contrat",
+      "tracabilite": "— GET /api/notifications (LIMIT 30)"
+    },
+    {
+      "id": "TC-ACT-048",
+      "titre": "GET /notifications — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/notifications sans cookie.",
+      "etapes": [
+        "GET /api/notifications sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "— GET /api/notifications (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-049",
+      "titre": "POST /notifications/lues — nominal : marque toutes les notifications comme lues",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté avec au moins une notification non lue.",
+      "donnees": "POST /api/notifications/lues.",
+      "etapes": [
+        "GET /api/notifications (nonLues>0)",
+        "POST /api/notifications/lues",
+        "GET /api/notifications de nouveau"
+      ],
+      "attendu": "200 { ok: true } ; au GET suivant nonLues=0 et toutes les notifications ont lu=1.",
+      "technique": "Test du contrat ; persistance/relecture",
+      "tracabilite": "— POST /api/notifications/lues"
+    },
+    {
+      "id": "TC-ACT-050",
+      "titre": "POST /notifications/lues — n'affecte que l'utilisateur courant",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Deux utilisateurs A et B chacun avec des non lues.",
+      "donnees": "POST /api/notifications/lues connecté en A.",
+      "etapes": [
+        "A appelle /lues",
+        "B fait GET /api/notifications"
+      ],
+      "attendu": "200 pour A ; les notifications de B restent inchangées (nonLues de B inchangé). UPDATE limité à user_id=A.",
+      "technique": "Test basé sur les rôles (cloisonnement) ; partition d'équivalence",
+      "tracabilite": "— POST /api/notifications/lues (WHERE user_id)"
+    },
+    {
+      "id": "TC-ACT-051",
+      "titre": "POST /notifications/lues — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "POST /api/notifications/lues sans cookie.",
+      "etapes": [
+        "POST /api/notifications/lues sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "— POST /api/notifications/lues (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-052",
+      "titre": "GET /tags — nominal : tags distincts des dossiers de l'accompagnateur",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur ayant taggé au moins un dossier.",
+      "donnees": "GET /api/tags.",
+      "etapes": [
+        "Ajouter quelques tags à ses dossiers",
+        "GET /api/tags"
+      ],
+      "attendu": "200 { tags:[{id, nom}...] } ; tags distincts (DISTINCT), triés par nom, limités aux dossiers dont accompagnateur_id = utilisateur.",
+      "technique": "Test du contrat ; test basé sur les rôles",
+      "tracabilite": "— GET /api/tags"
+    },
+    {
+      "id": "TC-ACT-053",
+      "titre": "GET /tags — accompagnateur sans tag : liste vide",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Accompagnateur dont aucun dossier n'a de tag.",
+      "donnees": "GET /api/tags.",
+      "etapes": [
+        "GET /api/tags sans tags posés"
+      ],
+      "attendu": "200 { tags: [] }.",
+      "technique": "Valeurs limites (0 tag) ; partition d'équivalence",
+      "tracabilite": "— GET /api/tags"
+    },
+    {
+      "id": "TC-ACT-054",
+      "titre": "GET /tags — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "GET /api/tags.",
+      "etapes": [
+        "Se connecter en accompagné",
+        "GET /api/tags"
+      ],
+      "attendu": "403 { error: 'Accès refusé' } (requireRole('accompagnateur')).",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "— GET /api/tags (requireRole accompagnateur)"
+    },
+    {
+      "id": "TC-ACT-055",
+      "titre": "GET /tags — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "GET /api/tags sans cookie.",
+      "etapes": [
+        "GET /api/tags sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "— GET /api/tags (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-056",
+      "titre": "POST /tags/dossier/:dossierId — nominal : crée et associe un tag (normalisé en minuscules)",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire du dossier.",
+      "donnees": "POST /api/tags/dossier/<id> { nom:'  Alternance  ' }",
+      "etapes": [
+        "POST avec nom comportant majuscules et espaces",
+        "GET /api/tags pour relire"
+      ],
+      "attendu": "201 { id:<number>, nom:'alternance' } ; le tag apparaît en minuscules trimées et est lié au dossier.",
+      "technique": "Test du contrat ; valeurs limites (espaces/casse) ; persistance/relecture",
+      "tracabilite": "— POST /api/tags/dossier/:dossierId"
+    },
+    {
+      "id": "TC-ACT-057",
+      "titre": "POST /tags/dossier/:dossierId — idempotence : réutilise un tag existant, pas de doublon de liaison",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur ; tag 'alternance' déjà lié au dossier.",
+      "donnees": "POST /api/tags/dossier/<id> { nom:'alternance' } (2e fois)",
+      "etapes": [
+        "POST 'alternance' une 1re fois",
+        "POST 'alternance' une 2e fois",
+        "GET /api/tags"
+      ],
+      "attendu": "201 renvoyant le même id de tag ; la table dossier_tags ne contient qu'une seule liaison (INSERT OR IGNORE), pas de doublon ni de nouveau tag (nom UNIQUE).",
+      "technique": "Test du contrat (idempotence) ; partition d'équivalence (existant vs nouveau)",
+      "tracabilite": "— POST /api/tags/dossier/:dossierId (INSERT OR IGNORE)"
+    },
+    {
+      "id": "TC-ACT-058",
+      "titre": "POST /tags/dossier/:dossierId — 400 nom vide après trim",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur propriétaire du dossier.",
+      "donnees": "POST /api/tags/dossier/<id> { nom:'   ' } et POST sans nom",
+      "etapes": [
+        "POST avec nom composé d'espaces",
+        "POST sans champ nom"
+      ],
+      "attendu": "400 { error: 'Données invalides' } (nom falsy).",
+      "technique": "Valeurs limites (chaîne vide/espaces) ; partition d'équivalence (invalide)",
+      "tracabilite": "— POST /api/tags/dossier/:dossierId"
+    },
+    {
+      "id": "TC-ACT-059",
+      "titre": "POST /tags/dossier/:dossierId — 400 dossier non détenu (même message que validation)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur Camille ; dossierId appartenant à Mohamed.",
+      "donnees": "POST /api/tags/dossier/<dossier de Mohamed> { nom:'test' }",
+      "etapes": [
+        "Se connecter Camille",
+        "POST tag sur un dossier d'un autre accompagnateur"
+      ],
+      "attendu": "400 { error: 'Données invalides' } (ownsDossier faux → condition combinée renvoie 400 ; aucun tag/liaison créés).",
+      "technique": "Test basé sur les rôles (non-propriétaire) ; table de décision (ownsDossier x nom)",
+      "tracabilite": "— POST /api/tags/dossier/:dossierId (ownsDossier)"
+    },
+    {
+      "id": "TC-ACT-060",
+      "titre": "POST /tags/dossier/:dossierId — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "POST /api/tags/dossier/<id> { nom:'x' }",
+      "etapes": [
+        "Se connecter en accompagné",
+        "POST tag"
+      ],
+      "attendu": "403 { error: 'Accès refusé' } (requireRole('accompagnateur')).",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "— POST /api/tags/dossier/:dossierId (requireRole accompagnateur)"
+    },
+    {
+      "id": "TC-ACT-061",
+      "titre": "POST /tags/dossier/:dossierId — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "POST /api/tags/dossier/1 { nom:'x' } sans cookie.",
+      "etapes": [
+        "POST tag sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "— POST /api/tags/dossier/:dossierId (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-062",
+      "titre": "DELETE /tags/dossier/:dossierId/:tagId — nominal : retire la liaison tag-dossier",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur ; dossier détenu lié au tag.",
+      "donnees": "DELETE /api/tags/dossier/<id>/<tagId>",
+      "etapes": [
+        "Lier un tag",
+        "DELETE la liaison",
+        "GET /api/tags / relire le dossier"
+      ],
+      "attendu": "200 { ok: true } ; la liaison dossier_tags est supprimée ; si plus aucun dossier n'utilise le tag, il disparaît du GET /tags.",
+      "technique": "Test du contrat ; persistance/relecture",
+      "tracabilite": "— DELETE /api/tags/dossier/:dossierId/:tagId"
+    },
+    {
+      "id": "TC-ACT-063",
+      "titre": "DELETE /tags/dossier/:dossierId/:tagId — 404 dossier non détenu",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur ; dossierId appartenant à un autre accompagnateur.",
+      "donnees": "DELETE /api/tags/dossier/<dossier d'autrui>/<tagId>",
+      "etapes": [
+        "DELETE liaison sur un dossier non détenu"
+      ],
+      "attendu": "404 { error: 'Dossier introuvable' } (ownsDossier faux) ; aucune suppression.",
+      "technique": "Test basé sur les rôles (non-propriétaire)",
+      "tracabilite": "— DELETE /api/tags/dossier/:dossierId/:tagId (ownsDossier)"
+    },
+    {
+      "id": "TC-ACT-064",
+      "titre": "DELETE /tags/dossier/:dossierId/:tagId — liaison inexistante : 200 idempotent",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "basse",
+      "preconditions": "Connecté en accompagnateur propriétaire du dossier ; tagId non lié (ou inexistant).",
+      "donnees": "DELETE /api/tags/dossier/<id détenu>/999999",
+      "etapes": [
+        "DELETE une liaison inexistante sur un dossier détenu"
+      ],
+      "attendu": "200 { ok: true } (DELETE sans correspondance ne fait rien) ; aucune erreur.",
+      "technique": "Valeurs limites (liaison absente) ; partition d'équivalence (no-op)",
+      "tracabilite": "— DELETE /api/tags/dossier/:dossierId/:tagId"
+    },
+    {
+      "id": "TC-ACT-065",
+      "titre": "DELETE /tags/dossier/:dossierId/:tagId — 403 mauvais rôle (accompagné)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagné.",
+      "donnees": "DELETE /api/tags/dossier/1/1.",
+      "etapes": [
+        "Se connecter en accompagné",
+        "DELETE liaison"
+      ],
+      "attendu": "403 { error: 'Accès refusé' } (requireRole('accompagnateur')).",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "— DELETE /api/tags/dossier/:dossierId/:tagId (requireRole accompagnateur)"
+    },
+    {
+      "id": "TC-ACT-066",
+      "titre": "DELETE /tags/dossier/:dossierId/:tagId — 401 non authentifié",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucun cookie.",
+      "donnees": "DELETE /api/tags/dossier/1/1 sans cookie.",
+      "etapes": [
+        "DELETE liaison sans cookie"
+      ],
+      "attendu": "401 { error: 'Non authentifié' }.",
+      "technique": "Test basé sur les rôles (anonyme)",
+      "tracabilite": "— DELETE /api/tags/dossier/:dossierId/:tagId (requireAuth)"
+    },
+    {
+      "id": "TC-ACT-067",
+      "titre": "UI — Accompagnateur : ajouter une action depuis la page Plan d'action",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur (elafrit.mohamed@gmail.com), sur /plan-action/<dossierId> d'un dossier détenu.",
+      "donnees": "Libellé='Préparer le pitch', Échéance='2026-07-01', Critère='Pitch prêt'.",
+      "etapes": [
+        "Ouvrir la page Plan d'action du dossier",
+        "Saisir libellé/échéance/critère",
+        "Cliquer 'Ajouter'"
+      ],
+      "attendu": "L'action apparaît dans la liste sous le formulaire ; les champs du formulaire sont réinitialisés ; un POST /api/actions a été émis (201).",
+      "technique": "Test de bout en bout basé sur les rôles ; test du contrat (UI→API)",
+      "tracabilite": "plan_action — PlanAction.tsx / POST /api/actions"
+    },
+    {
+      "id": "TC-ACT-068",
+      "titre": "UI — Accompagnateur : changer le statut d'une action via le sélecteur",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Sur /plan-action/<dossierId> avec au moins une action 'a_faire'.",
+      "donnees": "Sélectionner 'Fait' dans le menu de statut d'une action.",
+      "etapes": [
+        "Ouvrir le sélecteur de statut d'une action",
+        "Choisir 'Fait'"
+      ],
+      "attendu": "PATCH /api/actions/<id> {statut:'fait'} émis ; l'action prend le style 'statut-fait' (opacité réduite) après rechargement.",
+      "technique": "Test de bout en bout ; partition d'équivalence (statut)",
+      "tracabilite": "plan_action — ActionList.tsx / PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-069",
+      "titre": "UI — Accompagné : ajouter, dicter et réordonner ses actions (Mon plan d'action)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagné (afrit_mohamed@yahoo.fr) avec un dossier ; page /mon-plan-action.",
+      "donnees": "Ajout d'une action puis glisser-déposer de la poignée ⠿ (ou flèches ↑/↓).",
+      "etapes": [
+        "Ouvrir Mon plan d'action",
+        "Saisir une action et cliquer 'Ajouter'",
+        "Glisser la poignée ⠿ d'une action vers le haut",
+        "Vérifier l'ordre après rechargement"
+      ],
+      "attendu": "L'action est créée (POST /api/actions) ; après glisser, POST /api/actions/reorder est émis et le nouvel ordre persiste au rechargement ; la réorganisation au clavier (↑/↓) fonctionne aussi.",
+      "technique": "Test de bout en bout basé sur les rôles ; test du contrat (reorder)",
+      "tracabilite": "plan_action — MonPlanAction.tsx + ActionList.tsx / POST /api/actions, /api/actions/reorder"
+    },
+    {
+      "id": "TC-ACT-070",
+      "titre": "UI — Accompagné : éditer une action (priorité, échéance, rappel) via la modale de détail",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Sur /mon-plan-action avec au moins une action ; ouverture de ActionDetailModal au clic sur l'action.",
+      "donnees": "Priorité='Haute', Échéance='2026-07-01', Rappel='2026-06-30', Indicateur='Pitch prêt', Notes='…'.",
+      "etapes": [
+        "Cliquer une action pour ouvrir le détail",
+        "Renseigner priorité/échéance/rappel/indicateur/notes",
+        "Cliquer 'Enregistrer'"
+      ],
+      "attendu": "PATCH /api/actions/<id> émis avec ces champs ; la modale se ferme ; la liste se recharge en montrant la pastille de priorité, l'échéance et la cloche 🔔 du rappel.",
+      "technique": "Test de bout en bout ; test du contrat (UI→API) ; table de décision (champs affichés)",
+      "tracabilite": "plan_action — ActionDetailModal.tsx / PATCH /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-071",
+      "titre": "UI — Modale de détail : validation du libellé obligatoire et suppression confirmée",
+      "niveau": "ui",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "ActionDetailModal ouverte sur une action existante.",
+      "donnees": "Vider le libellé puis Enregistrer ; puis cliquer 'Supprimer' et confirmer.",
+      "etapes": [
+        "Effacer le champ libellé",
+        "Cliquer 'Enregistrer'",
+        "Observer le message d'erreur",
+        "Cliquer '🗑 Supprimer' et confirmer la boîte de dialogue"
+      ],
+      "attendu": "À l'enregistrement vide : message 'Le libellé est obligatoire.' et aucun PATCH. À la suppression confirmée : DELETE /api/actions/<id> émis, la modale se ferme et l'action disparaît de la liste.",
+      "technique": "Test de bout en bout ; valeurs limites (libellé vide) ; test du contrat (suppression)",
+      "tracabilite": "plan_action — ActionDetailModal.tsx / PATCH+DELETE /api/actions/:id"
+    },
+    {
+      "id": "TC-ACT-072",
+      "titre": "UI — Accompagnateur : ajouter/retirer un tag et filtrer le tableau de bord",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en accompagnateur sur /dashboard avec au moins un dossier.",
+      "donnees": "Ajouter le tag 'Prioritaire' sur un dossier, puis filtrer, puis le retirer.",
+      "etapes": [
+        "Saisir 'Prioritaire' dans le champ tag d'un dossier et valider",
+        "Sélectionner 'prioritaire' dans 'Filtrer par tag'",
+        "Retirer le tag du dossier"
+      ],
+      "attendu": "POST /api/tags/dossier/<id> (tag affiché en minuscules) ; le filtre 'Filtrer par tag' liste le tag (GET /api/tags) et ne montre que les dossiers correspondants ; le retrait émet DELETE et le tag disparaît du dossier.",
+      "technique": "Test de bout en bout basé sur les rôles ; test du contrat (UI→API)",
+      "tracabilite": "— Dashboard.tsx / GET+POST+DELETE /api/tags"
+    },
+    {
+      "id": "TC-ACT-073",
+      "titre": "UI — Cloche de notifications : badge non lues, ouverture, marquage lu",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté (accompagné ou accompagnateur) avec au moins une notification non lue (ex. rappel d'action échu).",
+      "donnees": "Cloche 🔔 dans la barre ; clic pour ouvrir le menu.",
+      "etapes": [
+        "Observer le badge de non lues sur la cloche",
+        "Cliquer la cloche pour ouvrir le menu",
+        "Vérifier la liste et l'absence de badge ensuite"
+      ],
+      "attendu": "Le badge affiche le nombre de non lues (GET /api/notifications) ; à l'ouverture, POST /api/notifications/lues est émis, le badge disparaît (unread=0) ; les notifications s'affichent avec texte et date ; menu vide → 'Aucune notification.'.",
+      "technique": "Test de bout en bout ; test du contrat (UI→API) ; table de décision (non lues>0)",
+      "tracabilite": "— NotificationsBell.tsx / GET /api/notifications + POST /api/notifications/lues"
+    },
+    {
+      "id": "TC-ACT-074",
+      "titre": "Bout-en-bout — rappel d'action : échéance atteinte → notification in-app pour accompagné ET accompagnateur",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Dossier liant l'accompagné Amine et l'accompagnateur Mohamed ; une action avec rappel_le = aujourd'hui ou passé, rappel_envoye=0.",
+      "donnees": "Action 'Préparer le pitch' rappel_le échu.",
+      "etapes": [
+        "Définir un rappel échu via la modale de détail",
+        "Ouvrir la cloche de notifications côté accompagné",
+        "Se connecter côté accompagnateur et ouvrir la cloche"
+      ],
+      "attendu": "À la consultation des notifications (sweepDueReminders), une notification de rappel apparaît côté accompagné ET côté accompagnateur ; un seul exemplaire chacun (idempotence) même après rechargements répétés.",
+      "technique": "Test de bout en bout ; test du contrat (effet du sweep) ; non-régression (idempotence)",
+      "tracabilite": "plan_action — ActionDetailModal.tsx → sweepDueReminders → NotificationsBell.tsx"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "boussole-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Batterie de tests de non-régression (ISTQB) — Boussole",
+  "type": "module",
+  "scripts": {
+    "test:unit": "vitest run unit",
+    "test:api": "vitest run api",
+    "test:ui": "playwright test",
+    "report": "node scripts/report.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "vitest": "^2.1.0"
+  }
+}

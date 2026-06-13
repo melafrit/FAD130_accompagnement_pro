@@ -1,0 +1,437 @@
+{
+  "domaine": "adopt",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/adoption/falc",
+      "summary": "Reformule un texte (ou du HTML nettoyé) en FALC (Facile À Lire et à Comprendre) via Claude, avec repli déterministe falcFallback si l'IA est indisponible. Réponse { texte, source }.",
+      "role": "authentifié + feature 'falc'",
+      "feature": "falc"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-ADOPT-001",
+      "titre": "FALC nominal : reformulation d'un texte brut renvoie 200 avec texte non vide",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté en tant qu'accompagne (afrit_mohamed@yahoo.fr) sans plan (accès à 'falc') ; clé ANTHROPIC_API_KEY configurée sur la stack.",
+      "donnees": "Body JSON { \"texte\": \"L'accompagnement vise à développer l'autonomie réflexive de la personne accompagnée dans la rédaction de son mémoire professionnel.\" }",
+      "etapes": [
+        "POST /api/adoption/falc avec le cookie de session et le body texte",
+        "Lire le corps de la réponse"
+      ],
+      "attendu": "HTTP 200 ; corps = objet JSON contenant les champs 'texte' (string non vide) et 'source' (string) ; quand l'IA répond, source='ia'. Ne pas figer le contenu textuel.",
+      "technique": "Test du contrat",
+      "tracabilite": "feature falc — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-002",
+      "titre": "FALC nominal via champ 'html' : le HTML est accepté et nettoyé",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté accompagne avec accès 'falc'.",
+      "donnees": "Body { \"html\": \"<h2>Bilan</h2><p>Vous avez bien progress&eacute;.</p><ul><li>Point 1</li></ul>\" }",
+      "etapes": [
+        "POST /api/adoption/falc avec le body html",
+        "Inspecter la réponse"
+      ],
+      "attendu": "HTTP 200 ; 'texte' présent et non vide ; aucune balise HTML (<...>) ni entité (&...;) résiduelle dans le texte renvoyé (preuve indirecte que strip() a été appliqué en amont).",
+      "technique": "Test du contrat",
+      "tracabilite": "feature falc — POST /api/adoption/falc (strip + champ html)"
+    },
+    {
+      "id": "TC-ADOPT-003",
+      "titre": "FALC : priorité du champ 'texte' sur 'html' quand les deux sont fournis",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté accompagne avec accès 'falc'.",
+      "donnees": "Body { \"texte\": \"Phrase issue de texte.\", \"html\": \"<p>Phrase issue de html.</p>\" }",
+      "etapes": [
+        "POST /api/adoption/falc avec texte ET html",
+        "Vérifier la réponse"
+      ],
+      "attendu": "HTTP 200 ; le traitement repose sur la valeur de 'texte' (req.body.texte ?? req.body.html), pas sur 'html'. Réponse { texte, source } valide.",
+      "technique": "Table de décision",
+      "tracabilite": "feature falc — POST /api/adoption/falc (texte ?? html)"
+    },
+    {
+      "id": "TC-ADOPT-004",
+      "titre": "FALC repli heuristique : sans clé IA, source='heuristique' et puces générées",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Stack démarrée SANS ANTHROPIC_API_KEY (ou clé invalide entraînant !res.ok) ; connecté accompagne avec accès 'falc'.",
+      "donnees": "Body { \"texte\": \"Première idée. Deuxième idée importante. Troisième idée à retenir.\" }",
+      "etapes": [
+        "POST /api/adoption/falc",
+        "Lire texte et source"
+      ],
+      "attendu": "HTTP 200 ; source='heuristique' ; 'texte' = liste à puces (lignes préfixées par '• ') correspondant aux phrases découpées par falcFallback.",
+      "technique": "Test du contrat (repli)",
+      "tracabilite": "feature falc — POST /api/adoption/falc (repli falcFallback)"
+    },
+    {
+      "id": "TC-ADOPT-005",
+      "titre": "FALC validation : texte vide (chaîne vide) renvoie 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté accompagne avec accès 'falc'.",
+      "donnees": "Body { \"texte\": \"\" }",
+      "etapes": [
+        "POST /api/adoption/falc avec texte vide",
+        "Lire le statut et le corps"
+      ],
+      "attendu": "HTTP 400 ; corps { error: 'Texte vide' }.",
+      "technique": "Valeurs limites / partition d'équivalence (classe invalide)",
+      "tracabilite": "feature falc — POST /api/adoption/falc (if (!texte))"
+    },
+    {
+      "id": "TC-ADOPT-006",
+      "titre": "FALC validation : body absent / aucun champ texte ni html renvoie 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "haute",
+      "preconditions": "Connecté accompagne avec accès 'falc'.",
+      "donnees": "Body {} (objet vide) ; et variante sans body du tout",
+      "etapes": [
+        "POST /api/adoption/falc avec {}",
+        "POST /api/adoption/falc sans body"
+      ],
+      "attendu": "HTTP 400 ; { error: 'Texte vide' } dans les deux cas (req.body?.texte ?? req.body?.html ?? '' → chaîne vide après strip).",
+      "technique": "Partition d'équivalence (entrée manquante)",
+      "tracabilite": "feature falc — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-007",
+      "titre": "FALC validation : HTML/whitespace uniquement réduit à vide → 400",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Connecté accompagne avec accès 'falc'.",
+      "donnees": "Body { \"html\": \"<br>   <span> &nbsp; </span>\\n\\t\" }",
+      "etapes": [
+        "POST /api/adoption/falc avec du HTML sans contenu textuel",
+        "Lire le statut"
+      ],
+      "attendu": "HTTP 400 ; { error: 'Texte vide' } : strip() ne laisse que des espaces puis trim() → chaîne vide.",
+      "technique": "Valeurs limites (frontière vide après nettoyage)",
+      "tracabilite": "feature falc — POST /api/adoption/falc (strip → '')"
+    },
+    {
+      "id": "TC-ADOPT-008",
+      "titre": "FALC : troncature à 4000 caractères pour l'appel IA",
+      "niveau": "api",
+      "type": "fonctionnel",
+      "priorite": "basse",
+      "preconditions": "Connecté accompagne avec accès 'falc' ; clé IA présente.",
+      "donnees": "Body texte de >4000 caractères (ex. 6000 caractères de phrases valides)",
+      "etapes": [
+        "POST /api/adoption/falc avec un texte très long",
+        "Vérifier que la requête aboutit"
+      ],
+      "attendu": "HTTP 200 ; réponse { texte, source } valide ; pas d'erreur 413/500 (le code applique texte.slice(0,4000) avant l'appel Claude).",
+      "technique": "Valeurs limites (borne supérieure de longueur)",
+      "tracabilite": "feature falc — POST /api/adoption/falc (slice(0,4000))"
+    },
+    {
+      "id": "TC-ADOPT-009",
+      "titre": "FALC : type de champ non-string coercé par String()",
+      "niveau": "api",
+      "type": "validation",
+      "priorite": "basse",
+      "preconditions": "Connecté accompagne avec accès 'falc'.",
+      "donnees": "Body { \"texte\": 12345 } (nombre) puis { \"texte\": [\"a\",\"b\"] }",
+      "etapes": [
+        "POST /api/adoption/falc avec texte numérique",
+        "POST avec texte tableau"
+      ],
+      "attendu": "HTTP 200 si la valeur coercée par String() donne un texte non vide (ex. '12345'), sinon 400 ; pas de crash 500. Comportement cohérent avec String(req.body.texte).",
+      "technique": "Partition d'équivalence (types d'entrée)",
+      "tracabilite": "feature falc — POST /api/adoption/falc (String(...))"
+    },
+    {
+      "id": "TC-ADOPT-010",
+      "titre": "FALC contrôle d'accès : non authentifié → 401",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Aucune session (pas de cookie boussole_token).",
+      "donnees": "Body { \"texte\": \"Texte de test.\" }",
+      "etapes": [
+        "POST /api/adoption/falc sans cookie d'authentification",
+        "Lire le statut"
+      ],
+      "attendu": "HTTP 401 ; { error: 'Non authentifié' } (requireAuth bloque avant requireFeature).",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-011",
+      "titre": "FALC contrôle d'accès : cookie/token invalide → 401 session invalide",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Envoyer un cookie boussole_token falsifié/expiré.",
+      "donnees": "Cookie boussole_token=eyJ.invalide.signature ; body { \"texte\": \"x.\" }",
+      "etapes": [
+        "POST /api/adoption/falc avec un JWT invalide",
+        "Lire le statut"
+      ],
+      "attendu": "HTTP 401 ; { error: 'Session invalide' } (jwt.verify échoue dans requireAuth).",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-012",
+      "titre": "FALC gating : utilisateur sur plan sans 'falc' → 403",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Un compte affecté à un plan dont la liste de features NE contient PAS 'falc' (ex. plan Découverte/socle si falc absent, ou plan créé sans 'falc'). Connecté avec ce compte.",
+      "donnees": "Body { \"texte\": \"Texte de test.\" }",
+      "etapes": [
+        "POST /api/adoption/falc avec une session valide mais sans la feature falc dans le plan",
+        "Lire le statut et le corps"
+      ],
+      "attendu": "HTTP 403 ; { error: 'Fonctionnalité non disponible dans votre offre' } (requireFeature('falc') bloque).",
+      "technique": "Test basé sur les rôles / requireFeature",
+      "tracabilite": "requireFeature('falc') — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-013",
+      "titre": "FALC gating positif : compte sans plan a accès (aucun plan = tout activé)",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Compte démo sans plan affecté (ex. accompagne Amine) — userFeatures renvoie ALL_FEATURE_KEYS.",
+      "donnees": "Body { \"texte\": \"Texte de test.\" }",
+      "etapes": [
+        "POST /api/adoption/falc avec ce compte",
+        "Lire le statut"
+      ],
+      "attendu": "HTTP 200 (la feature 'falc' est implicitement accordée car userFeatures renvoie toutes les clés quand u.plan_id est nul).",
+      "technique": "Test basé sur les rôles (cas par défaut)",
+      "tracabilite": "requireFeature('falc') / userFeatures — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-014",
+      "titre": "FALC gating positif : plan Pro (toutes features) a accès",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Compte affecté au plan Pro qui inclut 'falc'.",
+      "donnees": "Body { \"texte\": \"Texte de test.\" }",
+      "etapes": [
+        "POST /api/adoption/falc avec un compte sur plan Pro",
+        "Lire le statut"
+      ],
+      "attendu": "HTTP 200 ; réponse { texte, source } valide.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireFeature('falc') — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-015",
+      "titre": "FALC accès multi-rôles : accompagnateur et admin (sans plan) peuvent appeler",
+      "niveau": "api",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté en accompagnateur (camille.laurent@boussole.demo) puis en admin (mohamed@elafrit.com), comptes sans plan restreint.",
+      "donnees": "Body { \"texte\": \"Texte de test.\" }",
+      "etapes": [
+        "POST /api/adoption/falc en accompagnateur",
+        "POST /api/adoption/falc en admin"
+      ],
+      "attendu": "HTTP 200 dans les deux cas : l'endpoint n'impose pas de rôle précis (requireAuth + requireFeature seulement), aucun requireRole.",
+      "technique": "Test basé sur les rôles",
+      "tracabilite": "requireAuth + requireFeature('falc') — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-016",
+      "titre": "falcFallback unitaire : découpe en phrases et formate en puces (max 12)",
+      "niveau": "unitaire",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Test unitaire sur la fonction falcFallback(texte) de adoption.ts.",
+      "donnees": "Texte de 15 phrases séparées par '. ' / '! ' / '? '",
+      "etapes": [
+        "Appeler falcFallback avec le texte",
+        "Compter les lignes et vérifier le préfixe"
+      ],
+      "attendu": "Au plus 12 lignes (slice(0,12)) ; chaque ligne préfixée par '• ' ; lignes jointes par '\\n' ; les phrases ≤3 caractères sont éliminées (filter length>3).",
+      "technique": "Valeurs limites (12) + partition d'équivalence",
+      "tracabilite": "adoption.ts — falcFallback()"
+    },
+    {
+      "id": "TC-ADOPT-017",
+      "titre": "falcFallback unitaire : phrases courtes (≤3 car.) filtrées et trim appliqué",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Test unitaire sur falcFallback.",
+      "donnees": "Texte 'A. Ok. Voici une phrase complète.' (segments 'A' et 'Ok' ont ≤3 caractères)",
+      "etapes": [
+        "Appeler falcFallback('A. Ok. Voici une phrase complète.')",
+        "Inspecter les puces produites"
+      ],
+      "attendu": "Seule la phrase >3 caractères est conservée ('• Voici une phrase complète.') ; les segments 'A' et 'Ok' (longueur ≤3) sont écartés.",
+      "technique": "Valeurs limites (frontière length>3)",
+      "tracabilite": "adoption.ts — falcFallback() (filter p.length>3)"
+    },
+    {
+      "id": "TC-ADOPT-018",
+      "titre": "strip unitaire : retire balises, entités et normalise les espaces",
+      "niveau": "unitaire",
+      "type": "validation",
+      "priorite": "moyenne",
+      "preconditions": "Test unitaire sur strip(html) de adoption.ts.",
+      "donnees": "'<p>Bonjour&nbsp;&amp;  bienvenue</p>\\n\\t<b>ici</b>'",
+      "etapes": [
+        "Appeler strip(...)",
+        "Comparer la sortie"
+      ],
+      "attendu": "Sortie sans balises ni entités, espaces multiples réduits à un seul, trim aux extrémités (ex. 'Bonjour bienvenue ici'). Entrée null/undefined → chaîne vide (html || '').",
+      "technique": "Partition d'équivalence (sanitize)",
+      "tracabilite": "adoption.ts — strip()"
+    },
+    {
+      "id": "TC-ADOPT-019",
+      "titre": "FALC robustesse : panne IA (timeout/exception) bascule sur le repli sans 500",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Clé IA présente mais l'appel Claude échoue (réseau coupé / réponse non-ok / exception) — callClaude renvoie null.",
+      "donnees": "Body { \"texte\": \"Une phrase. Une autre phrase.\" }",
+      "etapes": [
+        "Simuler l'indisponibilité de l'API Claude",
+        "POST /api/adoption/falc"
+      ],
+      "attendu": "HTTP 200 (pas de 500) ; source='heuristique' ; texte = repli falcFallback. Le try/catch de callClaude absorbe l'erreur.",
+      "technique": "Test du contrat (résilience)",
+      "tracabilite": "feature falc — POST /api/adoption/falc (callClaude → null → fallback)"
+    },
+    {
+      "id": "TC-ADOPT-020",
+      "titre": "FALC non-régression : la forme { texte, source } reste stable",
+      "niveau": "api",
+      "type": "non-regression",
+      "priorite": "moyenne",
+      "preconditions": "Connecté accompagne avec accès 'falc'.",
+      "donnees": "Body { \"texte\": \"Phrase de référence pour le contrat.\" }",
+      "etapes": [
+        "POST /api/adoption/falc",
+        "Valider le schéma de la réponse"
+      ],
+      "attendu": "HTTP 200 ; le corps contient exactement les clés 'texte' (string) et 'source' (valeur dans {'ia','heuristique'}) ; aucune fuite d'autres champs sensibles.",
+      "technique": "Test du contrat",
+      "tracabilite": "feature falc — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-021",
+      "titre": "UI FALC : le bouton 'Facile à lire' affiche une version simplifiée",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Connecté accompagne avec feature 'falc' active ; sur une page affichant un contenu (ex. compte rendu / synthèse) où FalcButton est rendu.",
+      "donnees": "Compte démo afrit_mohamed@yahoo.fr / BoussoleDemo2026",
+      "etapes": [
+        "Ouvrir http://localhost:8080 et se connecter",
+        "Naviguer vers un contenu doté du bouton '📖 Facile à lire'",
+        "Cliquer sur le bouton",
+        "Observer le panneau qui s'ouvre"
+      ],
+      "attendu": "Pendant le chargement le label devient '…' et le bouton est désactivé ; ensuite un encart 'Version facile à lire et à comprendre' s'affiche (aria-expanded passe à true) avec le texte reformulé ligne par ligne ; un second clic referme le panneau.",
+      "technique": "Test bout-en-bout basé sur les rôles",
+      "tracabilite": "FalcButton.tsx — POST /api/adoption/falc"
+    },
+    {
+      "id": "TC-ADOPT-022",
+      "titre": "UI FALC : le bouton est masqué quand la feature 'falc' n'est pas active",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "haute",
+      "preconditions": "Connecté avec un compte dont le plan n'inclut PAS 'falc'.",
+      "donnees": "Compte sur plan sans falc",
+      "etapes": [
+        "Se connecter",
+        "Ouvrir une page contenant normalement FalcButton",
+        "Vérifier la présence du bouton"
+      ],
+      "attendu": "Le bouton '📖 Facile à lire' n'est pas rendu (useFeature('falc') false → return null) ; aucun appel à /adoption/falc déclenchable.",
+      "technique": "Test basé sur les rôles (gating UI)",
+      "tracabilite": "FalcButton.tsx — useFeature('falc')"
+    },
+    {
+      "id": "TC-ADOPT-023",
+      "titre": "UI FALC : la bascule mode lecture (FalcToggle) modifie l'interface et persiste",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Connecté avec feature 'falc' active ; FalcToggle présent dans la barre.",
+      "donnees": "Compte démo accompagne",
+      "etapes": [
+        "Cliquer sur le bouton de bascule '📘/📖'",
+        "Observer l'attribut data-falc sur <html> et l'aspect (texte plus grand/aéré)",
+        "Recharger la page"
+      ],
+      "attendu": "L'attribut data-falc de documentElement passe à 'on' (aria-pressed=true, icône 📖) ; la valeur est persistée dans localStorage('falc') ; après rechargement l'état est conservé. Masqué si feature 'falc' absente.",
+      "technique": "Test bout-en-bout (état persistant)",
+      "tracabilite": "FalcToggle.tsx — data-falc / localStorage"
+    },
+    {
+      "id": "TC-ADOPT-024",
+      "titre": "UI Onboarding : la visite guidée se lance à la première connexion selon le rôle",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "haute",
+      "preconditions": "Feature 'onboarding' active ; localStorage 'boussole_onboarding_<role>' absent (première venue).",
+      "donnees": "Connexion accompagne (Amine) puis accompagnateur (Camille) puis admin (Mohamed)",
+      "etapes": [
+        "Vider localStorage de la clé boussole_onboarding_<role>",
+        "Se connecter",
+        "Observer le lancement automatique du tour"
+      ],
+      "attendu": "Le modal OnboardingTour s'ouvre automatiquement avec les étapes propres au rôle (accompagne=4 étapes, accompagnateur=4, admin=1) ; la clé localStorage boussole_onboarding_<role> est posée à '1' pour éviter un relancement automatique ultérieur.",
+      "technique": "Test bout-en-bout basé sur les rôles",
+      "tracabilite": "OnboardingManager.tsx / OnboardingTour.tsx — feature onboarding"
+    },
+    {
+      "id": "TC-ADOPT-025",
+      "titre": "UI Onboarding : navigation des étapes, surlignage de cible, fermeture (Passer/Échap/Terminer)",
+      "niveau": "ui",
+      "type": "fonctionnel",
+      "priorite": "moyenne",
+      "preconditions": "Feature 'onboarding' active ; tour ouvert (auto ou via le bouton flottant '?').",
+      "donnees": "Connexion accompagne",
+      "etapes": [
+        "Cliquer sur le bouton flottant '?' pour relancer le tour",
+        "Parcourir Suivant → / ← Précédent",
+        "Vérifier le surlignage de l'élément data-tour='espace'",
+        "Fermer via 'Passer', via la touche Échap, puis arriver à 'Terminer'"
+      ],
+      "attendu": "Le compteur 'Étape i / N' évolue ; un encadré met en valeur l'élément ciblé par selector quand il existe ; 'Précédent' apparaît à partir de l'étape 2 ; le dernier bouton affiche 'Terminer' et ferme le tour ; 'Passer' et la touche Échap ferment immédiatement.",
+      "technique": "Test bout-en-bout (parcours / table de décision étapes)",
+      "tracabilite": "OnboardingTour.tsx / OnboardingManager.tsx — bouton fab + Escape"
+    },
+    {
+      "id": "TC-ADOPT-026",
+      "titre": "UI Onboarding : masqué et non relancé quand la feature 'onboarding' est absente",
+      "niveau": "ui",
+      "type": "acces",
+      "priorite": "moyenne",
+      "preconditions": "Connecté avec un compte dont le plan n'inclut PAS 'onboarding'.",
+      "donnees": "Compte sur plan sans onboarding",
+      "etapes": [
+        "Se connecter",
+        "Observer l'absence du tour et du bouton flottant '?'"
+      ],
+      "attendu": "Ni le tour automatique ni le bouton flottant ne s'affichent (useFeature('onboarding') false → return null dans OnboardingManager).",
+      "technique": "Test basé sur les rôles (gating UI)",
+      "tracabilite": "OnboardingManager.tsx — useFeature('onboarding')"
+    }
+  ]
+}

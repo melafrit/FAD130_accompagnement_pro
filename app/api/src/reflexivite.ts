@@ -38,7 +38,7 @@ async function callClaude(system: string, user: string, maxTokens = 1600): Promi
     return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text || '').join('') || null
   } catch { return null }
 }
-function extractJson<T>(text: string | null): T | null {
+export function extractJson<T>(text: string | null): T | null {
   if (!text) return null
   const a = text.indexOf('{'), b = text.lastIndexOf('}')
   if (a < 0 || b < 0) return null
@@ -65,7 +65,7 @@ function bilanContexte(accId: number): { scores: { indicateur: string; moy: numb
   return { scores, nbDossiers, nbEntretiens, miroirs }
 }
 
-function bilanFallback(accId: number): Bilan {
+export function bilanFallback(accId: number): Bilan {
   const { scores, nbDossiers, nbEntretiens } = bilanContexte(accId)
   const top = scores.slice(0, 3)
   const bottom = [...scores].reverse().slice(0, 3)
@@ -119,7 +119,7 @@ router.get('/coach/phase/:phase', requireAuth, requireRole('accompagnateur'), re
 
 const OPEN_RE = /^(quel|quelle|comment|qu['’ ]|raconte|en quoi|pourquoi|à quoi|que pense|qu'attends|si tout|décris|parle-moi|dis-moi|qu'est|peux-tu)/i
 const FERME_RE = /\b(est-ce que|as-tu|avez-vous|veux-tu|penses-tu|crois-tu|tu as|il faut|tu dois|tu devrais)\b/i
-function analyseQuestionFallback(q: string): { type: string; ouverte: boolean; remarque: string; reformulation: string | null } {
+export function analyseQuestionFallback(q: string): { type: string; ouverte: boolean; remarque: string; reformulation: string | null } {
   const t = q.trim()
   const ouverte = OPEN_RE.test(t) && !FERME_RE.test(t)
   if (ouverte) return { type: 'ouverte', ouverte: true, remarque: 'Question ouverte et peu inductive : elle laisse la personne explorer.', reformulation: null }
@@ -151,7 +151,7 @@ const DEBRIEF_QUESTIONS = [
   'Un moment de doute, de gêne ou de bascule ?',
   'Ma vigilance / mon intention pour la prochaine fois ?',
 ]
-function sessionTraces(sid: number): string {
+export function sessionTraces(sid: number): string {
   const ques = db.prepare('SELECT phase, texte, reponse FROM questions_entretien WHERE session_id=? ORDER BY id').all(sid) as { phase: string; texte: string; reponse: string | null }[]
   const notes = db.prepare('SELECT phase, texte_reponse FROM reponses WHERE session_id=? ORDER BY phase').all(sid) as { phase: string; texte_reponse: string | null }[]
   const parts: string[] = []
@@ -205,7 +205,7 @@ router.post('/debriefing/session/:sid/suggerer', requireAuth, requireRole('accom
 //  4. Auto-confrontation / replay annoté
 // ====================================================================================
 interface Moment { ref: string; phase: number; titre: string; question: string; reponse: string; annotation: string }
-function momentsDeSession(sid: number): Moment[] {
+export function momentsDeSession(sid: number): Moment[] {
   const ques = db.prepare('SELECT id, phase, texte, reponse FROM questions_entretien WHERE session_id=? ORDER BY id').all(sid) as { id: number; phase: string; texte: string; reponse: string | null }[]
   return ques.map((q) => {
     const ph = PHASES.find((p) => p.id === Number(q.phase))

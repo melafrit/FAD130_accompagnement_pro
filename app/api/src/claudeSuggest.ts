@@ -19,7 +19,7 @@ const SYSTEM =
   "non-jugement ; distinguer demande/besoin/décision ; responsabilité des moyens, pas du résultat ; " +
   "viser l'autonomie. Tu proposes, tu ne décides pas."
 
-function extractJson(text: string): string {
+export function extractJson(text: string): string {
   const a = text.indexOf('{')
   const b = text.lastIndexOf('}')
   return a >= 0 && b > a ? text.slice(a, b + 1) : text

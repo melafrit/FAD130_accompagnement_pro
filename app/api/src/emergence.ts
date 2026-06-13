@@ -76,7 +76,7 @@ function sessionContext(sid: number): string {
 
 // ---------- Banque de questions personnalisée (par dossier) ----------
 const phasesList = PHASES.map((p) => `${p.id} = ${p.titre}`).join(' ; ')
-function fallbackBanque(dossierId: number): Record<string, string[]> {
+export function fallbackBanque(dossierId: number): Record<string, string[]> {
   const nom = (db.prepare('SELECT u.prenom FROM dossiers d JOIN users u ON u.id=d.accompagne_id WHERE d.id=?').get(dossierId) as { prenom: string | null } | undefined)?.prenom || 'la personne'
   return {
     '0': [`${nom}, qu'est-ce qui t'amène précisément aujourd'hui ?`],
@@ -130,7 +130,7 @@ router.patch('/dossier/:did/fil-rouge/partage', requireAuth, requireRole('accomp
 })
 
 // ---------- Moments-clés (par entretien, partageable) ----------
-function fallbackMoments(sid: number) {
+export function fallbackMoments(sid: number) {
   const q = db.prepare('SELECT reponse FROM questions_entretien WHERE session_id=? AND reponse IS NOT NULL AND TRIM(reponse)<>\'\' ORDER BY id LIMIT 2').all(sid) as { reponse: string }[]
   return { moments: q.map((x) => ({ verbatim: x.reponse.slice(0, 160), pourquoi: 'Passage potentiellement pivot de l\'entretien.' })) }
 }

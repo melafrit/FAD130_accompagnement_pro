@@ -11,7 +11,7 @@ function getUser(req: Request): AuthedUser {
 }
 
 /** Accompagnateur rattaché à un accompagné (via lien) ou, à défaut, l'accompagnateur par défaut. */
-function findAccompagnateurFor(accompagneId: number): number | null {
+export function findAccompagnateurFor(accompagneId: number): number | null {
   const lien = db
     .prepare("SELECT accompagnateur_id AS id FROM liens_accompagnement WHERE accompagne_id=? AND statut='actif' ORDER BY id LIMIT 1")
     .get(accompagneId) as { id: number } | undefined
@@ -20,7 +20,7 @@ function findAccompagnateurFor(accompagneId: number): number | null {
   return def ? def.id : null
 }
 
-function formatFr(iso: string): string {
+export function formatFr(iso: string): string {
   const [d, t] = iso.split('T')
   const [y, m, day] = (d || '').split('-')
   return `${day}/${m}/${y} à ${(t || '').slice(0, 5)}`
@@ -163,14 +163,14 @@ router.get('/mine', requireAuth, requireRole('accompagne'), (req: Request, res: 
 })
 
 // === Export iCalendar (.ics) d'un rendez-vous ===
-function icsStamp(iso: string): string {
+export function icsStamp(iso: string): string {
   const m = String(iso).match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/)
   return m ? `${m[1]}${m[2]}${m[3]}T${m[4]}${m[5]}${m[6] || '00'}` : ''
 }
-function icsEscape(s: string): string {
+export function icsEscape(s: string): string {
   return String(s || '').replace(/([\\,;])/g, '\\$1').replace(/\r?\n/g, '\\n')
 }
-function icsNowUtc(): string {
+export function icsNowUtc(): string {
   return new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
 }
 
