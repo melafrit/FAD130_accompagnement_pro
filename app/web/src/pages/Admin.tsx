@@ -109,14 +109,14 @@ export default function Admin() {
                 <td>{u.email}</td>
                 <td>{[u.prenom, u.nom].filter(Boolean).join(' ') || '—'}</td>
                 <td>
-                  <select value={u.role} onChange={(e) => setRole(u.id, e.target.value)}>
+                  <select value={u.role} onChange={(e) => setRole(u.id, e.target.value)} aria-label={`Rôle de ${u.email}`}>
                     <option value="accompagne">Accompagné</option>
                     <option value="accompagnateur">Accompagnateur</option>
                     <option value="admin">Admin</option>
                   </select>
                 </td>
                 <td>
-                  <select value={u.plan_id ?? ''} onChange={(e) => setPlan(u.id, e.target.value)} title="Niveau maximum si aucun plan">
+                  <select value={u.plan_id ?? ''} onChange={(e) => setPlan(u.id, e.target.value)} aria-label={`Abonnement de ${u.email}`} title="Niveau maximum si aucun plan">
                     <option value="">Niveau max</option>
                     {plans.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
                   </select>

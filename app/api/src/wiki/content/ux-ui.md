@@ -16,7 +16,7 @@ Ce dossier décrit l'expérience et l'interface réellement implémentées dans 
 |---|---|---|
 | **Clarté** | Mise en page sobre (`.page`, `.card`), largeur de lecture bornée (`--maxw: 80vw`, `max-width: 60ch` sur les paragraphes longs), hiérarchie de titres explicite, vocabulaire métier en français. | Développé |
 | **Posture juste** | L'IA *seconde* sans décider : co-pilote d'entretien, miroir réflexif, coach de posture sont des aides consultatives ; l'accompagnateur reste maître. Chaque IA a un **repli déterministe** : jamais d'écran cassé. | Développé |
-| **Accessibilité (RGAA 4.1)** | Lien d'évitement, repères ARIA (header/nav/main/footer), `aria-label` sur boutons-icônes, `role="img"` sur graphiques, focus visible, `prefers-reduced-motion`. Déclaration d'accessibilité publiée (`/accessibilite`). | Partiel (auto-évaluation, voir §8) |
+| **Accessibilité (RGAA 4.1)** | Lien d'évitement, repères ARIA (header/nav/main/footer), `aria-label` sur boutons-icônes, `role="img"` sur graphiques, focus visible, `prefers-reduced-motion`. Déclaration d'accessibilité publiée (`/accessibilite`) + **audit automatisé axe-core** (WCAG 2.1 AA) en CI. | Audité (voir §8) |
 | **FALC (Facile À Lire et à Comprendre)** | Bascule globale `FalcToggle` dans l'en-tête + `FalcButton` contextuels ; feature `falc`. Simplifie le rendu textuel des contenus longs. | Développé |
 | **Dark mode** | Thème sombre par inversion de tokens (`[data-theme="dark"]`), bascule `ThemeToggle` conditionnée à la feature `dark_mode`, préférence persistée. | Développé |
 | **Mobile / responsive** | Layout fluide (`clamp()`, grilles `auto-fit minmax()`), bascule pleine largeur sous 900 px, grilles de phases en colonne unique sous 560 px. | Développé |
@@ -220,7 +220,9 @@ flowchart TD
 
 ## 8. Accessibilité (RGAA 4.1)
 
-État déclaré : **partiellement conforme**, auto-évaluation (non audité par un tiers), déclaration publiée le 13 juin 2026 sur `/accessibilite`.
+État déclaré : **partiellement conforme**, déclaration publiée le 13 juin 2026 sur `/accessibilite`. Depuis, un **audit automatisé est intégré à la batterie de tests** : `app/tests/ui/accessibility.spec.ts` exécute **axe-core** (référentiel **WCAG 2.1 niveau AA**, socle du RGAA) sur 9 pages clés (accueil, connexion, inscription, méthode, présentation, accessibilité, espace accompagnateur, administration, wiki admin) et **échoue sur toute violation d'impact critique ou sérieux**. Cas `TC-A11Y-001..012`, rejoués à chaque push par la CI.
+
+Corrections issues de cet audit : couleur de texte **sauge foncée** (`--sauge-texte`, contraste ≥ 4,5:1) pour les libellés ; **`aria-label`** sur les `<select>` de rôle/abonnement ; **contraste du mode sombre** corrigé pour les contrôles de formulaire, badges et boutons d'action destructive.
 
 | Critère | Implémentation vérifiée | Statut |
 |---|---|---|
@@ -229,7 +231,7 @@ flowchart TD
 | Boutons-icônes étiquetés | `aria-label` sur la marque, les bascules, la cloche, les graphiques. | Développé |
 | Graphiques décrits | Boussole et jauges en `role="img"` + libellé. | Développé |
 | Focus visible | `outline: 2px solid var(--sauge)` sur les champs au focus. | Développé |
-| Contrastes | Palette AA en clair et sombre ; information jamais portée par la seule couleur. | Développé (auto-évalué) |
+| Contrastes | Palette AA en clair et sombre ; information jamais portée par la seule couleur. | **Développé + audité (axe-core)** |
 | Mouvement réduit | `prefers-reduced-motion` respecté (CSS + `useTypewriter` + `Gauge`). | Développé |
 | Langue | `lang="fr"` déclarée. | Développé |
 | **Éditeur riche TipTap** | Pas encore de revue d'accessibilité complète. | **Partiel — point d'attention** |

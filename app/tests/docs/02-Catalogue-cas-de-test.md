@@ -1,6 +1,6 @@
 # Catalogue de cas de test — Boussole
 
-> Généré automatiquement à partir de la conception ISTQB. 1247 cas de test sur 24 domaines.
+> Généré automatiquement à partir de la conception ISTQB. 1256 cas de test sur 25 domaines.
 > Identifiant : BOUSSOLE-CAT-001 · Voir le plan : [01-Plan-de-test.md](01-Plan-de-test.md) · La matrice : [03-Matrice-tracabilite.md](03-Matrice-tracabilite.md)
 
 ## Domaine AUTH — 69 cas
@@ -19067,4 +19067,150 @@
 - **Résultat attendu :** Anonyme -> HTTP 401 ; admin -> HTTP 200 avec { recent: tableau, byPath: tableau }.
 - **Traçabilité :** GET /api/metrics/errors
 - **Automatisation :** ✅ api/observability.test.ts
+
+## Domaine A11Y — 9 cas
+
+### TC-A11Y-001 — Accessibilité : / (accueil) sans violation critique/sérieuse (axe WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
+
+- **Préconditions :** Aucune (page publique).
+- **Données :** Page / (accueil).
+- **Étapes :**
+  1. Ouvrir la page.
+  2. Naviguer vers / (accueil) et attendre le chargement.
+  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
+- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
+- **Traçabilité :** UI / (accueil) — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
+
+### TC-A11Y-002 — Accessibilité : /connexion sans violation critique/sérieuse (axe WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
+
+- **Préconditions :** Aucune (page publique).
+- **Données :** Page /connexion.
+- **Étapes :**
+  1. Ouvrir la page.
+  2. Naviguer vers /connexion et attendre le chargement.
+  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
+- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
+- **Traçabilité :** UI /connexion — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
+
+### TC-A11Y-003 — Accessibilité : /inscription sans violation critique/sérieuse (axe WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
+
+- **Préconditions :** Aucune (page publique).
+- **Données :** Page /inscription.
+- **Étapes :**
+  1. Ouvrir la page.
+  2. Naviguer vers /inscription et attendre le chargement.
+  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
+- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
+- **Traçabilité :** UI /inscription — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
+
+### TC-A11Y-004 — Accessibilité : /methode sans violation critique/sérieuse (axe WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
+
+- **Préconditions :** Aucune (page publique).
+- **Données :** Page /methode.
+- **Étapes :**
+  1. Ouvrir la page.
+  2. Naviguer vers /methode et attendre le chargement.
+  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
+- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
+- **Traçabilité :** UI /methode — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
+
+### TC-A11Y-005 — Accessibilité : /presentation sans violation critique/sérieuse (axe WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
+
+- **Préconditions :** Aucune (page publique).
+- **Données :** Page /presentation.
+- **Étapes :**
+  1. Ouvrir la page.
+  2. Naviguer vers /presentation et attendre le chargement.
+  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
+- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
+- **Traçabilité :** UI /presentation — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
+
+### TC-A11Y-006 — Accessibilité : /accessibilite sans violation critique/sérieuse (axe WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
+
+- **Préconditions :** Aucune (page publique).
+- **Données :** Page /accessibilite.
+- **Étapes :**
+  1. Ouvrir la page.
+  2. Naviguer vers /accessibilite et attendre le chargement.
+  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
+- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
+- **Traçabilité :** UI /accessibilite — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
+
+### TC-A11Y-010 — Accessibilité : /espace sans violation critique/sérieuse (axe WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
+
+- **Préconditions :** Session accompagnateur.
+- **Données :** Page /espace.
+- **Étapes :**
+  1. Se connecter (accompagnateur).
+  2. Naviguer vers /espace et attendre le chargement.
+  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
+- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
+- **Traçabilité :** UI /espace — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
+
+### TC-A11Y-011 — Accessibilité : /admin sans violation critique/sérieuse (axe WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
+
+- **Préconditions :** Session admin.
+- **Données :** Page /admin.
+- **Étapes :**
+  1. Se connecter (admin).
+  2. Naviguer vers /admin et attendre le chargement.
+  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
+- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
+- **Traçabilité :** UI /admin — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
+
+### TC-A11Y-012 — Accessibilité : /admin/wiki sans violation critique/sérieuse (axe WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
+
+- **Préconditions :** Session admin.
+- **Données :** Page /admin/wiki.
+- **Étapes :**
+  1. Se connecter (admin).
+  2. Naviguer vers /admin/wiki et attendre le chargement.
+  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
+- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
+- **Traçabilité :** UI /admin/wiki — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
 

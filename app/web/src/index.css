@@ -2,7 +2,9 @@
   /* Palette « apaisant & confiance » */
   --bleu-profond: #16324f;   /* bleu nuit "boussole" */
   --bleu: #2f5d7c;
-  --sauge: #7c9a85;          /* vert sauge */
+  --sauge: #7c9a85;          /* vert sauge (accents, bordures, fonds) */
+  --sauge-texte: #4a6c54;    /* vert sauge foncé pour le TEXTE (contraste AA ≥ 4.5:1 sur fond clair) */
+  --danger: #b3261e;         /* rouge d'action destructive (contraste AA sur fond clair) */
   --sauge-clair: #e7eee8;
   --sable: #f5efe4;          /* fond chaud */
   --sable-2: #faf6ee;
@@ -21,6 +23,8 @@
   --bleu-profond: #a9cdeb;
   --bleu: #86b4d8;
   --sauge: #7fa489;
+  --sauge-texte: #9cc3a7;    /* vert clair pour le texte sur fond sombre (contraste AA) */
+  --danger: #f0928a;         /* rouge clair lisible sur fond sombre (contraste AA) */
   --sauge-clair: #243227;
   --sable: #0f1a24;
   --sable-2: #16212c;
@@ -83,10 +87,10 @@ a { color: var(--bleu); }
 .hero { text-align: center; margin-bottom: 40px; }
 .kicker {
   text-transform: uppercase; letter-spacing: 1.5px; font-size: 12px; font-weight: 700;
-  color: var(--sauge); margin: 0 0 12px;
+  color: var(--sauge-texte); margin: 0 0 12px;
 }
 .hero h1 { font-size: clamp(28px, 5vw, 46px); line-height: 1.15; margin: 0 auto 16px; max-width: 18ch; color: var(--bleu-profond); }
-.accent { color: var(--sauge); }
+.accent { color: var(--sauge-texte); }
 .lead { font-size: clamp(16px, 2.2vw, 19px); color: var(--texte-doux); max-width: 60ch; margin: 0 auto; }
 
 /* Cards */
@@ -186,6 +190,13 @@ a { color: var(--bleu); }
 .obs-msg { color: #5a3030; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
 .obs-bypath { margin-top: 12px; font-size: 13px; color: #4a5560; }
 
+/* ===== Accessibilité (RGAA) : badges et contrôles lisibles dans les deux thèmes ===== */
+.pill { display: inline-block; background: var(--sauge-clair); color: var(--texte); border-radius: 999px; padding: 2px 9px; font-weight: 600; }
+[data-theme="dark"] select,
+[data-theme="dark"] input,
+[data-theme="dark"] textarea { background-color: #16212c; color: #e6edf3; border-color: #34404d; }
+[data-theme="dark"] select option { background-color: #16212c; color: #e6edf3; }
+
 /* Navigation : utilisateur connecté */
 .nav-user { color: var(--texte-doux); font-size: 14px; }
 button.btn-ghost { background: transparent; cursor: pointer; font-family: inherit; }
@@ -257,17 +268,17 @@ button.btn-ghost { background: transparent; cursor: pointer; font-family: inheri
 }
 
 /* Page Présentation (support de l'oral) */
-.pres-critere { color: var(--sauge); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; margin: 0 0 10px; }
+.pres-critere { color: var(--sauge-texte); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; margin: 0 0 10px; }
 .pres-accroche { font-size: clamp(15px, 2.1vw, 19px); line-height: 1.5; color: var(--bleu-profond); font-style: italic; border-left: 4px solid var(--sauge); padding: 4px 0 4px 16px; margin: 6px 0 18px; }
 .presentation h4 { color: var(--bleu-profond); font-size: 15px; margin: 20px 0 8px; }
 .matrice { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 6px 0 10px; }
 .matrice-cell { border: 1px solid var(--bordure); border-left-width: 4px; border-radius: 12px; padding: 11px 14px; background: var(--blanc); }
 .matrice-cell .mc-label { display: block; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
 .matrice-cell .mc-text { font-size: 14px; color: var(--texte-doux); }
-.matrice-cell.attention { border-left-color: #2f80c9; } .matrice-cell.attention .mc-label { color: #2f80c9; }
+.matrice-cell.attention { border-left-color: #2f80c9; } .matrice-cell.attention .mc-label { color: #2366a3; }
 .matrice-cell.autorise { border-left-color: #1b7a43; } .matrice-cell.autorise .mc-label { color: #1b7a43; }
 .matrice-cell.interdit { border-left-color: #b3261e; } .matrice-cell.interdit .mc-label { color: #b3261e; }
-.matrice-cell.pasencore { border-left-color: #b8860b; } .matrice-cell.pasencore .mc-label { color: #b8860b; }
+.matrice-cell.pasencore { border-left-color: #b8860b; } .matrice-cell.pasencore .mc-label { color: #8a6300; }
 .pres-pourquoi-btn { margin: 0 0 12px; }
 .pres-pourquoi { background: var(--sauge-clair); border: 1px solid #d6e2d9; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--texte); margin: 0 0 14px; }
 .pres-meta { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--bordure); }
@@ -724,7 +735,7 @@ html[data-falc="on"] .btn { padding: 10px 16px; }
 .entretien-nav-right { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
 /* Méthode — présentation interactive */
-.methode .hint { color: var(--sauge); font-size: 13px; font-style: italic; margin: 0 0 10px; }
+.methode .hint { color: var(--sauge-texte); font-size: 13px; font-style: italic; margin: 0 0 10px; }
 .triptyque { display: flex; align-items: stretch; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 18px 0 28px; }
 .tri-block { background: var(--bleu-profond); color: var(--sable); border-radius: 14px; padding: 14px 22px; font-weight: 800; font-size: 17px; text-align: center; display: flex; flex-direction: column; }
 .tri-block span { font-weight: 500; font-size: 12px; opacity: 0.85; margin-top: 2px; }

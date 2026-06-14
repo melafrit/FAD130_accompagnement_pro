@@ -22032,6 +22032,166 @@
         }
       ],
       "areaKey": "obs"
+    },
+    {
+      "area": "Accessibilité (RGAA / WCAG 2.1 AA) — audit automatisé axe-core",
+      "endpoints": [],
+      "cases": [
+        {
+          "id": "TC-A11Y-001",
+          "titre": "Accessibilité : / (accueil) sans violation critique/sérieuse (axe WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "moyenne",
+          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
+          "preconditions": "Aucune (page publique).",
+          "donnees": "Page / (accueil).",
+          "etapes": [
+            "Ouvrir la page.",
+            "Naviguer vers / (accueil) et attendre le chargement.",
+            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
+          ],
+          "attendu": "Aucune violation d impact « critical » ou « serious ».",
+          "tracabilite": "UI / (accueil) — accessibilité"
+        },
+        {
+          "id": "TC-A11Y-002",
+          "titre": "Accessibilité : /connexion sans violation critique/sérieuse (axe WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "moyenne",
+          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
+          "preconditions": "Aucune (page publique).",
+          "donnees": "Page /connexion.",
+          "etapes": [
+            "Ouvrir la page.",
+            "Naviguer vers /connexion et attendre le chargement.",
+            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
+          ],
+          "attendu": "Aucune violation d impact « critical » ou « serious ».",
+          "tracabilite": "UI /connexion — accessibilité"
+        },
+        {
+          "id": "TC-A11Y-003",
+          "titre": "Accessibilité : /inscription sans violation critique/sérieuse (axe WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "moyenne",
+          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
+          "preconditions": "Aucune (page publique).",
+          "donnees": "Page /inscription.",
+          "etapes": [
+            "Ouvrir la page.",
+            "Naviguer vers /inscription et attendre le chargement.",
+            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
+          ],
+          "attendu": "Aucune violation d impact « critical » ou « serious ».",
+          "tracabilite": "UI /inscription — accessibilité"
+        },
+        {
+          "id": "TC-A11Y-004",
+          "titre": "Accessibilité : /methode sans violation critique/sérieuse (axe WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "moyenne",
+          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
+          "preconditions": "Aucune (page publique).",
+          "donnees": "Page /methode.",
+          "etapes": [
+            "Ouvrir la page.",
+            "Naviguer vers /methode et attendre le chargement.",
+            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
+          ],
+          "attendu": "Aucune violation d impact « critical » ou « serious ».",
+          "tracabilite": "UI /methode — accessibilité"
+        },
+        {
+          "id": "TC-A11Y-005",
+          "titre": "Accessibilité : /presentation sans violation critique/sérieuse (axe WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "moyenne",
+          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
+          "preconditions": "Aucune (page publique).",
+          "donnees": "Page /presentation.",
+          "etapes": [
+            "Ouvrir la page.",
+            "Naviguer vers /presentation et attendre le chargement.",
+            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
+          ],
+          "attendu": "Aucune violation d impact « critical » ou « serious ».",
+          "tracabilite": "UI /presentation — accessibilité"
+        },
+        {
+          "id": "TC-A11Y-006",
+          "titre": "Accessibilité : /accessibilite sans violation critique/sérieuse (axe WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "moyenne",
+          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
+          "preconditions": "Aucune (page publique).",
+          "donnees": "Page /accessibilite.",
+          "etapes": [
+            "Ouvrir la page.",
+            "Naviguer vers /accessibilite et attendre le chargement.",
+            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
+          ],
+          "attendu": "Aucune violation d impact « critical » ou « serious ».",
+          "tracabilite": "UI /accessibilite — accessibilité"
+        },
+        {
+          "id": "TC-A11Y-010",
+          "titre": "Accessibilité : /espace sans violation critique/sérieuse (axe WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "moyenne",
+          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
+          "preconditions": "Session accompagnateur.",
+          "donnees": "Page /espace.",
+          "etapes": [
+            "Se connecter (accompagnateur).",
+            "Naviguer vers /espace et attendre le chargement.",
+            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
+          ],
+          "attendu": "Aucune violation d impact « critical » ou « serious ».",
+          "tracabilite": "UI /espace — accessibilité"
+        },
+        {
+          "id": "TC-A11Y-011",
+          "titre": "Accessibilité : /admin sans violation critique/sérieuse (axe WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "moyenne",
+          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
+          "preconditions": "Session admin.",
+          "donnees": "Page /admin.",
+          "etapes": [
+            "Se connecter (admin).",
+            "Naviguer vers /admin et attendre le chargement.",
+            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
+          ],
+          "attendu": "Aucune violation d impact « critical » ou « serious ».",
+          "tracabilite": "UI /admin — accessibilité"
+        },
+        {
+          "id": "TC-A11Y-012",
+          "titre": "Accessibilité : /admin/wiki sans violation critique/sérieuse (axe WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "moyenne",
+          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
+          "preconditions": "Session admin.",
+          "donnees": "Page /admin/wiki.",
+          "etapes": [
+            "Se connecter (admin).",
+            "Naviguer vers /admin/wiki et attendre le chargement.",
+            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
+          ],
+          "attendu": "Aucune violation d impact « critical » ou « serious ».",
+          "tracabilite": "UI /admin/wiki — accessibilité"
+        }
+      ],
+      "areaKey": "a11y"
     }
   ]
 }

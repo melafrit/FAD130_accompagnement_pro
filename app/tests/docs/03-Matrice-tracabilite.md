@@ -1,6 +1,6 @@
 # Matrice de traçabilité — Boussole
 
-> Identifiant : BOUSSOLE-MAT-001 · 1247 cas · 1052 automatisés (84%).
+> Identifiant : BOUSSOLE-MAT-001 · 1256 cas · 1061 automatisés (84%).
 > Régénérée à chaque exécution (un cas est « automatisé » dès que son ID apparaît dans le code de test).
 
 ## Synthèse de couverture par domaine
@@ -31,7 +31,8 @@
 | SECU | 4 | 4 | 100% |
 | CSRF | 4 | 4 | 100% |
 | OBS | 6 | 6 | 100% |
-| **Total** | **1247** | **1052** | **84%** |
+| A11Y | 9 | 9 | 100% |
+| **Total** | **1256** | **1061** | **84%** |
 
 ## Détail (cas ↔ fonctionnalité/endpoint ↔ test automatisé)
 
@@ -1284,3 +1285,12 @@
 | TC-OBS-010 | Unitaire | moyenne | module api/src/observability — fonction metrics() | ✅ unit/observability.test.ts |
 | TC-OBS-011 | Unitaire | moyenne | module api/src/observability — fonction reportError() / journal error_log | ✅ unit/observability.test.ts |
 | TC-OBS-004 | API | moyenne | GET /api/metrics/errors | ✅ api/observability.test.ts |
+| TC-A11Y-001 | UI | moyenne | UI / (accueil) — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-A11Y-002 | UI | moyenne | UI /connexion — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-A11Y-003 | UI | moyenne | UI /inscription — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-A11Y-004 | UI | moyenne | UI /methode — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-A11Y-005 | UI | moyenne | UI /presentation — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-A11Y-006 | UI | moyenne | UI /accessibilite — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-A11Y-010 | UI | moyenne | UI /espace — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-A11Y-011 | UI | moyenne | UI /admin — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-A11Y-012 | UI | moyenne | UI /admin/wiki — accessibilité | ✅ ui/accessibility.spec.ts |

@@ -11,6 +11,7 @@
     "report": "node scripts/report.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.48.0",
     "vitest": "^2.1.0"
   }

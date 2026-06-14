@@ -102,7 +102,7 @@ export default function PlansManager({ onChange }: { onChange?: () => void }) {
                 type="button"
                 onClick={() => setOpen(isOpen ? null : plan.id)}
                 aria-expanded={isOpen}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: '1.05rem' }}>{plan.nom}</strong>
