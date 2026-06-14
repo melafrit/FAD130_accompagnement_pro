@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express'
 import { requireAuth } from './auth'
-import { requireFeature } from './features'
+import { getFlag } from './settings'
 import { recordDependency } from './depStatus'
 
 // Adoption & accessibilité :
@@ -35,7 +35,13 @@ export function falcFallback(texte: string): string {
   return phrases.slice(0, 12).map((p) => `• ${p}`).join('\n')
 }
 
-router.post('/falc', requireAuth, requireFeature('falc'), async (req: Request, res: Response) => {
+router.post('/falc', requireAuth, async (req: Request, res: Response) => {
+  // Le mode FALC est piloté par un réglage GLOBAL admin (et non plus par le plan d'abonnement) :
+  // désactivé par défaut pour tout le monde, activable par l'administrateur.
+  if (!getFlag('falc_enabled')) {
+    res.status(403).json({ error: 'Le mode « facile à lire » n’est pas activé.' })
+    return
+  }
   const texte = strip(String(req.body?.texte ?? req.body?.html ?? ''))
   if (!texte) { res.status(400).json({ error: 'Texte vide' }); return }
   const system =

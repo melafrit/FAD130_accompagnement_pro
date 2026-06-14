@@ -463,6 +463,14 @@ db.exec(`
     depuis       TEXT NOT NULL DEFAULT (datetime('now')),
     dernier_mail TEXT
   );
+
+  -- Réglages globaux administrables (bascules transversales : FALC, multilingue…),
+  -- indépendants des plans. Absence d'entrée = valeur par défaut (OFF), gérée côté code.
+  CREATE TABLE IF NOT EXISTS settings (
+    cle    TEXT PRIMARY KEY,
+    valeur TEXT NOT NULL,
+    maj_le TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `)
 // ---------------------------------------------------------------------------
 // Migrations versionnées (PRAGMA user_version). Exécutées APRÈS tous les CREATE TABLE ci-dessus,

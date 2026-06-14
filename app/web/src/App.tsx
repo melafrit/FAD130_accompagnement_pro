@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Link, NavLink, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { FeaturesProvider, useFeature } from './features/FeaturesContext'
+import { SettingsProvider, useFlag } from './settings/SettingsContext'
 // Pages publiques / légères / fréquentes : chargées d'emblée (eager) pour un premier rendu rapide.
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -54,6 +55,7 @@ const WikiPublic = lazy(() => import('./pages/wiki/WikiPublic'))
 function Header() {
   const { user } = useAuth()
   const darkMode = useFeature('dark_mode')
+  const multilingue = useFlag('multilingue')
   const { t } = useTranslation()
   return (
     <header className="header">
@@ -68,7 +70,7 @@ function Header() {
         {user && <NavLink to="/espace" data-tour="espace">{t('nav.space')}</NavLink>}
         <FalcToggle />
         {darkMode && <ThemeToggle />}
-        <LanguageSwitcher />
+        {multilingue && <LanguageSwitcher />}
         {user && <NotificationsBell />}
         <AuthMenu />
       </nav>
@@ -110,6 +112,7 @@ export default function App() {
   return (
     <AuthProvider>
       <FeaturesProvider>
+      <SettingsProvider>
       <div className="app">
         <a className="skip-link" href="#main">Aller au contenu</a>
         <Header />
@@ -162,6 +165,7 @@ export default function App() {
         <Footer />
         <OnboardingManager />
       </div>
+      </SettingsProvider>
       </FeaturesProvider>
     </AuthProvider>
   )

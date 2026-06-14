@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useFeature } from '../features/FeaturesContext'
+import { useFlag } from '../settings/SettingsContext'
 
 // Bascule du mode FALC « facile à lire » sur l'interface (texte plus grand, plus aéré, meilleur contraste).
+// Visible uniquement si l'admin a activé le réglage global « FALC » (désactivé par défaut pour tous).
 export default function FalcToggle() {
-  const actif = useFeature('falc')
+  const actif = useFlag('falc')
   const [on, setOn] = useState(() => document.documentElement.getAttribute('data-falc') === 'on')
   if (!actif) return null
 

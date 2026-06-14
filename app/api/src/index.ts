@@ -34,6 +34,7 @@ import { csrfIssue, csrfProtect } from './csrf'
 import { scheduleBackups } from './backups'
 import { requestLogger, errorHandler, metrics, recentErrors, errorsByPath, logger } from './observability'
 import { healthStatus, businessKpis, evaluateAndAlert, captureDailySnapshot } from './monitoring'
+import { publicFlags } from './settings'
 import { requireAuth, requireRole } from './auth'
 import { seed } from './seed'
 
@@ -152,6 +153,8 @@ app.get('/api/context', (_req, res) => {
       "Aider l'accompagnateur à poser les bonnes questions et à tenir une posture juste, " +
       "avec l'appui de l'IA, puis produire un compte rendu structuré avec plan d'action.",
     publicCible: ['accompagnateurs', 'personnes accompagnées (étudiants, alternants)'],
+    // Drapeaux globaux (réglés par l'admin) : conditionnent l'affichage de bascules transversales.
+    flags: publicFlags(),
   })
 })
 

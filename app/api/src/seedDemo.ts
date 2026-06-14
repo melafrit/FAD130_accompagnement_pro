@@ -211,6 +211,8 @@ export async function seedDemoData(ids: DemoIds): Promise<void> {
     db.prepare("DELETE FROM plans WHERE nom NOT IN ('Découverte','Essentiel','Pro')").run()
     db.prepare("DELETE FROM users WHERE email LIKE '%@boussole.test' OR email LIKE 'rgpd.%@boussole.demo' OR email LIKE 'test-%'").run()
     ;[...accompagnes, ...accompagnateurs].forEach((id) => db.prepare('UPDATE users SET plan_id=NULL WHERE id=?').run(id))
+    // Réglages globaux remis à leur défaut (désactivés) : la démo redémarre toujours FALC/multilingue OFF.
+    db.prepare("DELETE FROM settings WHERE cle IN ('falc_enabled','multilingue_enabled')").run()
   })()
 
   // D1 — Amine + Mohamed — dossier VITRINE complet (en cours)

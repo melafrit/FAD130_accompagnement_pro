@@ -5,6 +5,7 @@ import { makeToken, expiryHours } from './util'
 import { sendEmail, resetEmail } from './mailer'
 import { FEATURES, ALL_FEATURE_KEYS, sanitizeKeys } from './features'
 import { BUILTIN_PLAN_NAMES } from './seed'
+import { allSettings, setFlag, SETTING_KEYS } from './settings'
 import { processEffacement, retentionEligibles, anonymizeUser, deleteUser } from './ethique'
 
 const router = Router()
@@ -31,6 +32,20 @@ router.get('/users', requireAuth, requireRole('admin'), (_req: Request, res: Res
 // Registre des fonctionnalités activables (pour construire les plans côté admin)
 router.get('/features', requireAuth, requireRole('admin'), (_req: Request, res: Response) => {
   res.json({ features: FEATURES, all: ALL_FEATURE_KEYS })
+})
+
+// Réglages généraux globaux (bascules transversales : FALC, multilingue…)
+router.get('/settings', requireAuth, requireRole('admin'), (_req: Request, res: Response) => {
+  res.json({ settings: allSettings() })
+})
+
+// Mise à jour d'un ou plusieurs réglages (corps : { falc_enabled?: bool, multilingue_enabled?: bool })
+router.patch('/settings', requireAuth, requireRole('admin'), (req: Request, res: Response) => {
+  const body = req.body || {}
+  for (const key of SETTING_KEYS) {
+    if (key in body) setFlag(key, body[key] === true || body[key] === '1' || body[key] === 1)
+  }
+  res.json({ settings: allSettings() })
 })
 
 // Liste des plans (avec le nombre d'utilisateurs rattachés)

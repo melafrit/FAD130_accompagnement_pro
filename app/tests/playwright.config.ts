@@ -4,6 +4,7 @@ import { defineConfig, devices } from '@playwright/test'
 // Exécution séquentielle (1 worker) : backend partagé, certains scénarios mutent des données.
 export default defineConfig({
   testDir: './ui',
+  globalSetup: './global-setup.ts', // active le réglage global FALC le temps de la session UI
   fullyParallel: false,
   workers: 1,
   retries: 0,

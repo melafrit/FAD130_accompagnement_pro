@@ -43,8 +43,12 @@ describe('adopt — POST /api/adoption/falc (FALC)', () => {
     camille = await asUser(DEMO.camille)
     admin = await asUser(DEMO.admin)
 
-    // Prépare un compte jetable affecté au plan « Découverte » (socle, SANS 'falc')
-    // pour le test de gating négatif (TC-ADOPT-012). On n'altère AUCUN compte démo.
+    // Le FALC est piloté par un réglage GLOBAL admin (désactivé par défaut). On l'active pour la
+    // durée de la suite afin d'exercer le comportement nominal ; remis à OFF en afterAll.
+    await admin.patch('/api/admin/settings', { falc_enabled: true })
+
+    // Compte jetable sur le plan « Découverte » : sert à prouver que le réglage GLOBAL prime sur
+    // le plan (un plan sans 'falc' obtient quand même 200 quand le réglage global est actif).
     const plansRes = await admin.get('/api/admin/plans')
     const decouverte = plansRes.json.plans.find((p: any) => p.nom === 'Découverte')
     if (decouverte) {
@@ -55,7 +59,8 @@ describe('adopt — POST /api/adoption/falc (FALC)', () => {
   })
 
   afterAll(async () => {
-    // Auto-nettoyage : suppression RGPD du compte jetable (idempotent).
+    // Remet le réglage global à son défaut (désactivé) pour ne pas polluer les autres suites / l'UI.
+    await admin.patch('/api/admin/settings', { falc_enabled: false })
     if (gateUser) await deleteTestUser(admin, gateUser)
   })
 
@@ -207,39 +212,34 @@ describe('adopt — POST /api/adoption/falc (FALC)', () => {
 
   // --- Contrôle d'accès : gating par feature (403 / 200) -----------------------------------
 
-  it('TC-ADOPT-012 — FALC gating négatif : plan « Découverte » (sans falc) → 403', async () => {
-    // Nécessite le plan « Découverte » seedé ; le compte jetable y est affecté en beforeAll.
-    expect(gateSession).not.toBeNull()
-    const r = await (gateSession as Session).post(ENDPOINT, { texte: 'Texte de test.' })
-    expect(r.status).toBe(403)
-    expect(r.json).toEqual({ error: 'Fonctionnalité non disponible dans votre offre' })
+  it('TC-ADOPT-012 — FALC gating négatif : réglage global désactivé → 403 pour tout le monde', async () => {
+    // Le FALC dépend du réglage GLOBAL admin. On le désactive le temps du test puis on le réactive.
+    await admin.patch('/api/admin/settings', { falc_enabled: false })
+    try {
+      const r = await amine.post(ENDPOINT, { texte: 'Texte de test.' })
+      expect(r.status).toBe(403)
+      expect(r.json.error).toMatch(/facile à lire/i)
+    } finally {
+      await admin.patch('/api/admin/settings', { falc_enabled: true })
+    }
   })
 
-  it('TC-ADOPT-013 — FALC gating positif : compte démo sans plan (Amine) → 200 (toutes features)', async () => {
-    // userFeatures renvoie ALL_FEATURE_KEYS quand u.plan_id est nul → falc accordé.
+  it('TC-ADOPT-013 — FALC gating positif : réglage global actif, compte sans plan (Amine) → 200', async () => {
     const r = await amine.post(ENDPOINT, { texte: 'Texte de test.' })
     expect(r.status).toBe(200)
     expectFalcShape(r.json)
   })
 
-  it('TC-ADOPT-014 — FALC gating positif : plan « Pro » (toutes features, falc inclus) → 200', async () => {
-    // Affecte temporairement un compte jetable au plan Pro, vérifie l'accès, puis le compte est
-    // supprimé en afterAll. On n'altère aucun compte démo.
-    const pro = (await admin.get('/api/admin/plans')).json.plans.find((p: any) => p.nom === 'Pro')
-    expect(pro).toBeTruthy()
-    const proUser = await createTestUser(admin, 'accompagne', 'adopt-pro')
-    try {
-      await admin.patch(`/api/admin/users/${proUser.id}`, { plan_id: pro.id })
-      const s = await asUser({ email: proUser.email, password: proUser.password })
-      const r = await s.post(ENDPOINT, { texte: 'Texte de test.' })
-      expect(r.status).toBe(200)
-      expectFalcShape(r.json)
-    } finally {
-      await deleteTestUser(admin, proUser)
-    }
+  it('TC-ADOPT-014 — FALC : le réglage global prime sur le plan (un plan « Découverte » sans falc → 200)', async () => {
+    // Le compte jetable est sur « Découverte » (plan sans la feature 'falc'). Comme le gating est
+    // désormais GLOBAL, il obtient quand même 200 quand le réglage est actif.
+    expect(gateSession).not.toBeNull()
+    const r = await (gateSession as Session).post(ENDPOINT, { texte: 'Texte de test.' })
+    expect(r.status).toBe(200)
+    expectFalcShape(r.json)
   })
 
-  it('TC-ADOPT-015 — FALC accès multi-rôles : accompagnateur et admin (sans plan) → 200', async () => {
+  it('TC-ADOPT-015 — FALC accès multi-rôles : accompagnateur et admin → 200', async () => {
     // L'endpoint n'impose pas de rôle (requireAuth + requireFeature seulement, pas de requireRole).
     const rAcc = await camille.post(ENDPOINT, { texte: 'Texte de test.' })
     expect(rAcc.status).toBe(200)

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { api } from '../lib/api'
-import { useFeature } from '../features/FeaturesContext'
+import { useFlag } from '../settings/SettingsContext'
 
 // Bouton « Facile à lire » : reformule un contenu en FALC (langage simple) via l'IA.
+// Visible uniquement si l'admin a activé le réglage global « FALC » (désactivé par défaut).
 export default function FalcButton({ html, label = 'Facile à lire' }: { html: string; label?: string }) {
-  const actif = useFeature('falc')
+  const actif = useFlag('falc')
   const [open, setOpen] = useState(false)
   const [texte, setTexte] = useState('')
   const [busy, setBusy] = useState(false)

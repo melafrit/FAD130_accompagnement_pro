@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import PlansManager from '../components/PlansManager'
+import SettingsPanel from '../components/SettingsPanel'
 import RgpdConsole from '../components/RgpdConsole'
 
 interface User {
@@ -168,6 +169,8 @@ export default function Admin() {
           </form>
         </div>
       </div>
+
+      <SettingsPanel />
 
       <PlansManager onChange={() => { void load(); void loadPlans() }} />
 
