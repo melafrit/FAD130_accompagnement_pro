@@ -1,22 +1,27 @@
 import { useEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
 
-let initialized = false
+let currentLevel: 'loose' | 'strict' | null = null
 let seq = 0
 
-/** Rend un diagramme Mermaid. Le contenu provient d'une page de wiki (rédigée par un admin = source de confiance). */
-export default function WikiMermaid({ code }: { code: string }) {
+/**
+ * Rend un diagramme Mermaid.
+ * `trusted` : pages d'administration (contenu rédigé par un admin = source de confiance) →
+ * securityLevel 'loose' (autorise <br/> et libellés HTML). Par défaut `false` (ex. page
+ * partagée publiquement, servie SANS authentification) → securityLevel 'strict' qui encode
+ * le HTML des libellés et désactive les interactions — durcissement de la surface publique.
+ * Tous les diagrammes d'une même page partagent le même contexte, donc pas de conflit de config.
+ */
+export default function WikiMermaid({ code, trusted = false }: { code: string; trusted?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
-    if (!initialized) {
-      // securityLevel 'loose' : autorise les sauts de ligne <br/> et les libellés HTML dans les
-      // diagrammes. Acceptable car le contenu du wiki est rédigé par des admins (source de confiance)
-      // et n'est rendu qu'à des admins.
-      mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default', fontFamily: 'inherit' })
-      initialized = true
+    const level: 'loose' | 'strict' = trusted ? 'loose' : 'strict'
+    if (currentLevel !== level) {
+      mermaid.initialize({ startOnLoad: false, securityLevel: level, theme: 'default', fontFamily: 'inherit' })
+      currentLevel = level
     }
     const id = `wikimmd-${++seq}`
     mermaid
@@ -31,7 +36,7 @@ export default function WikiMermaid({ code }: { code: string }) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e))
       })
     return () => { cancelled = true }
-  }, [code])
+  }, [code, trusted])
 
   if (error) {
     return (

@@ -103,13 +103,14 @@ router.get('/:id', requireAuth, requireRole('accompagnateur'), (req: Request, re
   const actions = db
     .prepare('SELECT id, libelle, echeance, critere, details, priorite, statut, rappel_le, cree_le, ordre FROM actions WHERE dossier_id=? ORDER BY ordre ASC, id ASC')
     .all(id)
-  const acc = owns(me.id, id)!.accompagne_id
+  // Isolation multi-parcours : on ne remonte QUE les RDV rattachés à CE dossier (et non
+  // tous les RDV de l'accompagné, qui peuvent concerner d'autres parcours/accompagnateurs).
   const rdvs = db
     .prepare(
       `SELECT r.id, c.debut, c.fin, r.statut FROM rdv r JOIN creneaux c ON c.id=r.creneau_id
-       WHERE r.accompagne_id=? ORDER BY c.debut`,
+       WHERE r.dossier_id=? ORDER BY c.debut`,
     )
-    .all(acc)
+    .all(id)
   const synthese_publiee = !!db.prepare('SELECT id FROM syntheses WHERE dossier_id=? AND publie=1 LIMIT 1').get(id)
   res.json({ dossier, questionnaire, sessions: sessionsAvecCR, synthese_publiee, actions, rdvs })
 })
@@ -149,9 +150,10 @@ router.get('/:id/synthese', requireAuth, requireRole('accompagnateur'), (req: Re
   const actions = db
     .prepare('SELECT libelle, echeance, critere, statut FROM actions WHERE dossier_id=? ORDER BY ordre ASC, id ASC')
     .all(id) as { libelle: string; echeance: string | null; critere: string | null; statut: string }[]
+  // Isolation multi-parcours : RDV de CE dossier uniquement (et non tous ceux de l'accompagné).
   const rdvs = db
-    .prepare('SELECT c.debut, c.fin, r.statut FROM rdv r JOIN creneaux c ON c.id=r.creneau_id WHERE r.accompagne_id=? ORDER BY c.debut')
-    .all(owned.accompagne_id) as { debut: string; fin: string; statut: string }[]
+    .prepare('SELECT c.debut, c.fin, r.statut FROM rdv r JOIN creneaux c ON c.id=r.creneau_id WHERE r.dossier_id=? ORDER BY c.debut')
+    .all(id) as { debut: string; fin: string; statut: string }[]
 
   res.json({
     titre: dossier.titre || 'Dossier d’accompagnement',

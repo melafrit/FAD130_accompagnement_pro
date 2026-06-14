@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { useFeature } from '../features/FeaturesContext'
+import HtmlContent from './HtmlContent'
 
 interface Impact {
   dossiers_actifs: number; dossiers_clotures: number; entretiens_total: number
@@ -79,8 +80,9 @@ export default function PilotageBoard() {
           </p>
           {msg && <p className="form-success" style={{ marginTop: 8 }}>{msg}</p>}
           {apercu && digest && (
-            <div style={{ marginTop: 12, padding: 14, border: '1px solid var(--border, #e5e7eb)', borderRadius: 10, background: 'var(--surface-2, #f8fafc)' }}
-              dangerouslySetInnerHTML={{ __html: digest.html }} />
+            <div style={{ marginTop: 12, padding: 14, border: '1px solid var(--border, #e5e7eb)', borderRadius: 10, background: 'var(--surface-2, #f8fafc)' }}>
+              <HtmlContent html={digest.html} />
+            </div>
           )}
         </section>
       )}

@@ -471,6 +471,22 @@ describe('PATCH /api/admin/plans/:id', () => {
     const list = await fetchPlans()
     expect(list.find((p: any) => p.id === id).nom).toBe(nomInitial)
   })
+
+  it("TC-LOT1-036 — plan socle protégé : PATCH/DELETE → 403, flag builtin exposé, plan intact", async () => {
+    const list = await fetchPlans()
+    const pro = list.find((p: any) => p.nom === 'Pro')
+    expect(pro).toBeDefined()
+    expect(pro.builtin).toBe(true)
+
+    expect((await admin.patch(`/api/admin/plans/${pro.id}`, { description: 'tentative' })).status).toBe(403)
+    expect((await admin.del(`/api/admin/plans/${pro.id}`)).status).toBe(403)
+
+    // Le plan socle reste présent et inchangé (mêmes fonctionnalités).
+    const after = await fetchPlans()
+    const proAfter = after.find((p: any) => p.nom === 'Pro')
+    expect(proAfter).toBeDefined()
+    expect(new Set(proAfter.features)).toEqual(new Set(pro.features))
+  })
 })
 
 // ---------------------------------------------------------------------------

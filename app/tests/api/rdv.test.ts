@@ -668,4 +668,30 @@ describe('RDV — créneaux, réservation, demandes, export ICS', () => {
       await deleteTestUser(admin, gateP)
     }
   })
+
+  it('TC-RDV-080 — isolation multi-parcours (anti-IDOR) : un dossier ne révèle QUE ses propres RDV', async () => {
+    // testP réserve un RDV sous chacun de ses deux parcours (accompagnateurs A et B distincts).
+    const slotA = futureSlot(80, '09:00', '09:45')
+    const cidA = await createCreneau(accA, slotA)
+    expect((await pSess.post('/api/rdv/reserver', { creneauId: cidA, dossierId: dossierP_A })).status).toBe(200)
+
+    const slotB = futureSlot(81, '14:00', '14:45')
+    const cidB = await createCreneau(accB, slotB)
+    expect((await pSess.post('/api/rdv/reserver', { creneauId: cidB, dossierId: dossierP_B })).status).toBe(200)
+
+    // accA consulte SON dossier (parcours A) : il voit le RDV de A, jamais celui de B (parcours
+    // d'accB) — sinon fuite inter-parcours d'un même accompagné (IDOR).
+    const detail = await accA.get(`/api/dossiers/${dossierP_A}`)
+    expect(detail.status).toBe(200)
+    const debuts = (detail.json.rdvs as { debut: string }[]).map((r) => r.debut)
+    expect(debuts).toContain(slotA.debut)
+    expect(debuts).not.toContain(slotB.debut)
+
+    // Même isolation dans la synthèse JSON du parcours A.
+    const synth = await accA.get(`/api/dossiers/${dossierP_A}/synthese`)
+    expect(synth.status).toBe(200)
+    const sDebuts = ((synth.json.rdvs as { debut: string }[] | undefined) || []).map((r) => r.debut)
+    expect(sDebuts).toContain(slotA.debut)
+    expect(sDebuts).not.toContain(slotB.debut)
+  })
 })

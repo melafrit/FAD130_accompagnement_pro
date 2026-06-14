@@ -39,7 +39,9 @@ export function syntheseData(dossierId: number): SyntheseData {
     reponses: (db.prepare('SELECT phase, texte_reponse FROM reponses WHERE session_id=? ORDER BY id').all(s.id) as { phase: string; texte_reponse: string }[]).map((r) => ({ phase: r.phase, texte: r.texte_reponse })),
   }))
   const actions = db.prepare('SELECT libelle, echeance, critere, statut FROM actions WHERE dossier_id=? ORDER BY ordre ASC, id ASC').all(dossierId) as { libelle: string; echeance: string | null; critere: string | null; statut: string }[]
-  const rdvs = db.prepare('SELECT c.debut, c.fin, r.statut FROM rdv r JOIN creneaux c ON c.id=r.creneau_id WHERE r.accompagne_id=? ORDER BY c.debut').all(dossier.accompagne_id) as { debut: string; fin: string; statut: string }[]
+  // Isolation multi-parcours : RDV de CE dossier uniquement (cf. dossier.ts). On ne mélange pas
+  // les RDV des autres parcours de l'accompagné dans la synthèse (qui peut être publiée).
+  const rdvs = db.prepare('SELECT c.debut, c.fin, r.statut FROM rdv r JOIN creneaux c ON c.id=r.creneau_id WHERE r.dossier_id=? ORDER BY c.debut').all(dossierId) as { debut: string; fin: string; statut: string }[]
   return {
     titre: dossier.titre || 'Parcours d’accompagnement',
     accompagne: dossier.accompagne_prenom || dossier.accompagne_email,

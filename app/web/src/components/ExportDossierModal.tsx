@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
+import HtmlContent from './HtmlContent'
 
 interface ExportData {
   dossier: { titre: string | null; statut: string; contexte: string | null; cree_le: string; accompagne: string }
@@ -50,7 +51,7 @@ export default function ExportDossierModal({ dossierId, onClose }: { dossierId: 
 
               {data.questionnaire && (<section><h2>Questionnaire initial</h2><p style={{ whiteSpace: 'pre-wrap' }}>{data.questionnaire}</p></section>)}
 
-              {data.synthese && (<section><h2>Synthèse du parcours</h2><div dangerouslySetInnerHTML={{ __html: data.synthese }} /></section>)}
+              {data.synthese && (<section><h2>Synthèse du parcours</h2><HtmlContent html={data.synthese} /></section>)}
 
               {data.comptes_rendus.length > 0 && (
                 <section>
@@ -58,7 +59,7 @@ export default function ExportDossierModal({ dossierId, onClose }: { dossierId: 
                   {data.comptes_rendus.map((cr, i) => (
                     <div key={i} style={{ marginBottom: 16 }}>
                       <h3>Entretien du {fdate(cr.date)}</h3>
-                      <div dangerouslySetInnerHTML={{ __html: cr.html }} />
+                      <HtmlContent html={cr.html} />
                     </div>
                   ))}
                 </section>

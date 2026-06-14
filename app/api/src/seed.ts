@@ -3,25 +3,38 @@ import { db } from './db'
 import { makeToken, expiryHours } from './util'
 import { sendEmail, resetEmail } from './mailer'
 import { seedDemoData } from './seedDemo'
-import { ALL_FEATURE_KEYS } from './features'
+import { ALL_FEATURE_KEYS, sanitizeKeys } from './features'
 
 type Role = 'admin' | 'accompagnateur' | 'accompagne'
 
+// Définition canonique des 3 plans socle (la source de vérité est le code).
+const SOCLE_KEYS = ['questionnaire', 'entretien', 'comptes_rendus', 'rdv', 'plan_action', 'synthese', 'auto_evaluation', 'multi_parcours']
+const ESSENTIEL_KEYS = [...SOCLE_KEYS, 'boussole', 'audio', 'dark_mode', 'meteo', 'journal', 'fil_rouge', 'moments_cles', 'resume_parcours', 'transparence']
+
+export const BUILTIN_PLANS = [
+  { nom: 'Découverte', description: 'Le socle de l’accompagnement : questionnaire, entretiens, comptes rendus, rendez-vous, plan d’action, synthèse.', features: SOCLE_KEYS },
+  { nom: 'Essentiel', description: 'Le socle enrichi du confort de lecture, du suivi émotionnel et des premières aides à l’émergence.', features: ESSENTIEL_KEYS },
+  { nom: 'Pro', description: 'L’offre complète : toutes les fonctionnalités, y compris l’IA avancée, le pilotage, la collaboration et les outils d’adoption.', features: ALL_FEATURE_KEYS },
+]
+
+/** Noms des plans socle — protégés contre l'édition/suppression via l'admin (cf. admin.ts). */
+export const BUILTIN_PLAN_NAMES = new Set(BUILTIN_PLANS.map((p) => p.nom))
+
 /**
- * Plans d'abonnement d'exemple, créés une seule fois (si aucun plan n'existe).
- * Par défaut, les utilisateurs n'ont AUCUN plan (plan_id NULL = niveau max, toutes les
- * fonctionnalités). Ces plans servent à l'admin pour restreindre certains comptes.
+ * Réaligne les 3 plans socle sur leur définition de code à CHAQUE démarrage (upsert par nom) :
+ * garantit que « Pro » contient TOUTES les clés du registre FEATURES même après ajout d'une
+ * fonctionnalité, et que Découverte/Essentiel restent fidèles à leur définition. Les plans
+ * personnalisés (admin) ne sont jamais touchés ; les clés obsolètes sont nettoyées (sanitizeKeys).
  */
 function seedPlans(): void {
-  const count = (db.prepare('SELECT COUNT(*) AS n FROM plans').get() as { n: number }).n
-  if (count > 0) return
-  const SOCLE = ['questionnaire', 'entretien', 'comptes_rendus', 'rdv', 'plan_action', 'synthese', 'auto_evaluation', 'multi_parcours']
-  const ESSENTIEL = [...SOCLE, 'boussole', 'audio', 'dark_mode', 'meteo', 'journal', 'fil_rouge', 'moments_cles', 'resume_parcours', 'transparence']
+  const exists = db.prepare('SELECT id FROM plans WHERE nom=?')
+  const upd = db.prepare('UPDATE plans SET description=?, features=? WHERE nom=?')
   const ins = db.prepare('INSERT INTO plans (nom, description, features) VALUES (?, ?, ?)')
-  ins.run('Découverte', 'Le socle de l’accompagnement : questionnaire, entretiens, comptes rendus, rendez-vous, plan d’action, synthèse.', JSON.stringify(SOCLE))
-  ins.run('Essentiel', 'Le socle enrichi du confort de lecture, du suivi émotionnel et des premières aides à l’émergence.', JSON.stringify(ESSENTIEL))
-  ins.run('Pro', 'L’offre complète : toutes les fonctionnalités, y compris l’IA avancée, le pilotage, la collaboration et les outils d’adoption.', JSON.stringify(ALL_FEATURE_KEYS))
-  console.log('[seed] Plans d’abonnement d’exemple créés : Découverte, Essentiel, Pro (utilisateurs au niveau max par défaut).')
+  for (const p of BUILTIN_PLANS) {
+    const features = JSON.stringify(sanitizeKeys(p.features))
+    if (exists.get(p.nom)) upd.run(p.description, features, p.nom)
+    else ins.run(p.nom, p.description, features)
+  }
 }
 
 /**

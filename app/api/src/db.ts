@@ -188,43 +188,10 @@ db.exec(`
   );
 `)
 
-// Migrations légères (ajout de colonnes si la base existe déjà)
-for (const stmt of [
-  "ALTER TABLE dossiers ADD COLUMN statut TEXT NOT NULL DEFAULT 'en_cours'",
-  'ALTER TABLE dossiers ADD COLUMN synthese TEXT',
-  'ALTER TABLE auto_evaluations ADD COLUMN analyse_questions TEXT',
-  'ALTER TABLE questions_entretien ADD COLUMN reponse TEXT',
-  // Plan d'action enrichi : description, priorité, ordre (glisser-déposer), suivi du rappel
-  'ALTER TABLE actions ADD COLUMN details TEXT',
-  'ALTER TABLE actions ADD COLUMN priorite TEXT',
-  'ALTER TABLE actions ADD COLUMN ordre INTEGER',
-  'ALTER TABLE actions ADD COLUMN rappel_envoye INTEGER NOT NULL DEFAULT 0',
-  // Compte rendu en HTML (remplace le .docx) : contenu éditable + origine de la version
-  'ALTER TABLE comptes_rendus ADD COLUMN contenu_html TEXT',
-  "ALTER TABLE comptes_rendus ADD COLUMN source TEXT NOT NULL DEFAULT 'ia'",
-  // Changement d'e-mail en attente de re-validation par l'utilisateur
-  'ALTER TABLE users ADD COLUMN email_pending TEXT',
-  // Adresse cible portée par le jeton de confirmation (lie le lien à l'adresse précise)
-  'ALTER TABLE tokens ADD COLUMN email_cible TEXT',
-  // Plan d'abonnement de l'utilisateur (NULL = niveau max, toutes fonctionnalités)
-  'ALTER TABLE users ADD COLUMN plan_id INTEGER',
-  // RGPD : compte anonymisé (les données personnelles ont été effacées sur place)
-  'ALTER TABLE users ADD COLUMN anonymise INTEGER NOT NULL DEFAULT 0',
-  // Traçabilité du traitement d'une demande d'effacement (anonymiser / supprimer)
-  'ALTER TABLE demandes_effacement ADD COLUMN traite_le TEXT',
-  'ALTER TABLE demandes_effacement ADD COLUMN action TEXT',
-  // Wiki : jeton de partage public en lecture seule (NULL = non partagé)
-  'ALTER TABLE wiki_pages ADD COLUMN public_token TEXT',
-  // 2FA TOTP (opt-in) : secret et activation par utilisateur
-  'ALTER TABLE users ADD COLUMN totp_secret TEXT',
-  'ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0',
-]) {
-  try {
-    db.exec(stmt)
-  } catch {
-    /* colonne déjà présente */
-  }
-}
+// NB : les migrations (colonnes additives + backfills de données) sont désormais regroupées dans
+// runMigrations(), exécutée À LA FIN de ce module — APRÈS tous les CREATE TABLE — et versionnée via
+// PRAGMA user_version. Cela corrige l'ancien défaut d'ordre (des ALTER sur des tables pas encore
+// créées) et évite de rejouer les migrations de données à chaque démarrage.
 
 // Discussion sur un compte rendu (accompagné ↔ accompagnateur) + notes privées de l'accompagnateur
 db.exec(`
@@ -497,9 +464,55 @@ db.exec(`
     dernier_mail TEXT
   );
 `)
-// Initialise l'ordre des actions héritées (avant le glisser-déposer) pour un tri déterministe
-try {
-  db.exec('UPDATE actions SET ordre = id WHERE ordre IS NULL')
-} catch {
-  /* table absente sur base toute neuve : le CREATE l'a déjà créée vide */
+// ---------------------------------------------------------------------------
+// Migrations versionnées (PRAGMA user_version). Exécutées APRÈS tous les CREATE TABLE ci-dessus,
+// donc chaque table existe forcément. Chaque palier est idempotent et n'est appliqué qu'une fois
+// (user_version mémorise le dernier palier), ce qui évite de rejouer les migrations de données.
+// Pour ajouter une migration : créer un nouveau palier `if (version < N)` puis `user_version = N`.
+// ---------------------------------------------------------------------------
+function addColumns(table: string, columns: string[]): void {
+  for (const col of columns) {
+    try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col}`) } catch { /* colonne déjà présente */ }
+  }
 }
+
+function runMigrations(): void {
+  const version = db.pragma('user_version', { simple: true }) as number
+
+  // Palier 1 — colonnes additives du schéma courant + backfills associés. Idempotent : sans effet
+  // si les colonnes existent déjà (bases à jour). Placé après les CREATE, il rattrape aussi les
+  // bases anciennes où demandes_effacement/wiki_pages auraient manqué (l'ancien ALTER, exécuté avant
+  // leur CREATE, échouait silencieusement).
+  if (version < 1) {
+    addColumns('dossiers', ["statut TEXT NOT NULL DEFAULT 'en_cours'", 'synthese TEXT'])
+    addColumns('auto_evaluations', ['analyse_questions TEXT'])
+    addColumns('questions_entretien', ['reponse TEXT'])
+    addColumns('actions', ['details TEXT', 'priorite TEXT', 'ordre INTEGER', 'rappel_envoye INTEGER NOT NULL DEFAULT 0'])
+    addColumns('comptes_rendus', ['contenu_html TEXT', "source TEXT NOT NULL DEFAULT 'ia'"])
+    addColumns('users', ['email_pending TEXT', 'plan_id INTEGER', 'anonymise INTEGER NOT NULL DEFAULT 0', 'totp_secret TEXT', 'totp_enabled INTEGER NOT NULL DEFAULT 0'])
+    addColumns('tokens', ['email_cible TEXT'])
+    addColumns('demandes_effacement', ['traite_le TEXT', 'action TEXT'])
+    addColumns('wiki_pages', ['public_token TEXT'])
+    // Ordre initial des actions héritées (avant le glisser-déposer), pour un tri déterministe.
+    try { db.exec('UPDATE actions SET ordre = id WHERE ordre IS NULL') } catch { /* ignore */ }
+    db.pragma('user_version = 1')
+  }
+
+  // Palier 2 — isolation des RDV par parcours (sécurité IDOR). Rattache les RDV hérités (dossier_id
+  // NULL) au dossier « par défaut » de l'accompagné chez l'accompagnateur du créneau, afin qu'ils
+  // restent visibles dans le bon parcours après le passage au filtrage strict par dossier_id.
+  if (version < 2) {
+    db.exec(`
+      UPDATE rdv SET dossier_id = (
+        SELECT d.id FROM dossiers d
+        JOIN creneaux c ON c.id = rdv.creneau_id
+        WHERE d.accompagne_id = rdv.accompagne_id AND d.accompagnateur_id = c.accompagnateur_id
+        ORDER BY d.id LIMIT 1
+      )
+      WHERE dossier_id IS NULL
+    `)
+    db.pragma('user_version = 2')
+  }
+}
+
+runMigrations()

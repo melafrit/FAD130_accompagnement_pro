@@ -1,6 +1,8 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Link, NavLink, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { FeaturesProvider, useFeature } from './features/FeaturesContext'
+// Pages publiques / légères / fréquentes : chargées d'emblée (eager) pour un premier rendu rapide.
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -13,29 +15,10 @@ import Confidentialite from './pages/Confidentialite'
 import Methode from './pages/Methode'
 import Presentation from './pages/Presentation'
 import Accessibilite from './pages/Accessibilite'
-import Espace from './pages/Espace'
-import NouveauParcours from './pages/NouveauParcours'
-import ParcoursDetail from './pages/ParcoursDetail'
-import Questionnaire from './pages/Questionnaire'
-import Creneaux from './pages/Creneaux'
-import RendezVous from './pages/RendezVous'
-import Entretien from './pages/Entretien'
-import ComptesRendus from './pages/ComptesRendus'
-import Dashboard from './pages/Dashboard'
-import BilanPratique from './pages/BilanPratique'
-import Mutualisation from './pages/Mutualisation'
 import RessourcePublique from './pages/RessourcePublique'
-import Dossier from './pages/Dossier'
-import AutoEvaluation from './pages/AutoEvaluation'
-import PlanAction from './pages/PlanAction'
-import MonPlanAction from './pages/MonPlanAction'
-import Admin from './pages/Admin'
-import Supervision from './pages/Supervision'
-import WikiLayout from './pages/wiki/WikiLayout'
-import WikiHome from './pages/wiki/WikiHome'
-import WikiPage from './pages/wiki/WikiPage'
-import WikiPublic from './pages/wiki/WikiPublic'
+import Espace from './pages/Espace'
 import Profil from './pages/Profil'
+// Layout (présent sur toutes les routes) : eager.
 import NotificationsBell from './components/NotificationsBell'
 import AuthMenu from './components/AuthMenu'
 import ThemeToggle from './components/ThemeToggle'
@@ -44,6 +27,29 @@ import OnboardingManager from './components/OnboardingManager'
 import LanguageSwitcher from './components/LanguageSwitcher'
 import Protected from './components/Protected'
 import { useTranslation } from 'react-i18next'
+
+// Pages lourdes ou rarement visitées (derrière authentification) : code-splitting à la demande.
+// Sort notamment l'éditeur riche (Tiptap) et Mermaid du bundle initial.
+const NouveauParcours = lazy(() => import('./pages/NouveauParcours'))
+const ParcoursDetail = lazy(() => import('./pages/ParcoursDetail'))
+const Questionnaire = lazy(() => import('./pages/Questionnaire'))
+const Creneaux = lazy(() => import('./pages/Creneaux'))
+const RendezVous = lazy(() => import('./pages/RendezVous'))
+const Entretien = lazy(() => import('./pages/Entretien'))
+const ComptesRendus = lazy(() => import('./pages/ComptesRendus'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const BilanPratique = lazy(() => import('./pages/BilanPratique'))
+const Mutualisation = lazy(() => import('./pages/Mutualisation'))
+const Dossier = lazy(() => import('./pages/Dossier'))
+const AutoEvaluation = lazy(() => import('./pages/AutoEvaluation'))
+const PlanAction = lazy(() => import('./pages/PlanAction'))
+const MonPlanAction = lazy(() => import('./pages/MonPlanAction'))
+const Admin = lazy(() => import('./pages/Admin'))
+const Supervision = lazy(() => import('./pages/Supervision'))
+const WikiLayout = lazy(() => import('./pages/wiki/WikiLayout'))
+const WikiHome = lazy(() => import('./pages/wiki/WikiHome'))
+const WikiPage = lazy(() => import('./pages/wiki/WikiPage'))
+const WikiPublic = lazy(() => import('./pages/wiki/WikiPublic'))
 
 function Header() {
   const { user } = useAuth()
@@ -108,6 +114,7 @@ export default function App() {
         <a className="skip-link" href="#main">Aller au contenu</a>
         <Header />
         <main className="main" id="main">
+          <Suspense fallback={<div className="page" aria-live="polite" aria-busy="true">Chargement…</div>}>
           <Routes>
             <Route path="/" element={<Home />} />
             {/* Wiki partagé publiquement en lecture seule (accès par jeton, sans authentification) */}
@@ -150,6 +157,7 @@ export default function App() {
               <Route path=":slug" element={<WikiPage />} />
             </Route>
           </Routes>
+          </Suspense>
         </main>
         <Footer />
         <OnboardingManager />

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 
 interface Feature { key: string; label: string; categorie: string }
-interface Plan { id: number; nom: string; description: string | null; features: string[]; nb_users: number }
+interface Plan { id: number; nom: string; description: string | null; features: string[]; nb_users: number; builtin?: boolean }
 
 export default function PlansManager({ onChange }: { onChange?: () => void }) {
   const [features, setFeatures] = useState<Feature[]>([])
@@ -114,15 +114,20 @@ export default function PlansManager({ onChange }: { onChange?: () => void }) {
 
               {isOpen && (
                 <div style={{ padding: '0 18px 18px', borderTop: '1px solid var(--border, #e5e7eb)' }}>
+                  {plan.builtin && (
+                    <p className="muted" style={{ marginTop: 14 }}>
+                      🔒 <strong>Plan socle géré par l’application</strong> — son nom et ses fonctionnalités sont réalignés automatiquement et ne sont ni modifiables ni supprimables. Utilise « Dupliquer » pour créer une variante personnalisable.
+                    </p>
+                  )}
                   <div className="field-row" style={{ marginTop: 14 }}>
                     <label className="field" style={{ flex: 1 }}>
                       <span>Nom du plan</span>
-                      <input value={plan.nom} onChange={(e) => patchLocal(plan.id, { nom: e.target.value })} />
+                      <input value={plan.nom} disabled={plan.builtin} onChange={(e) => patchLocal(plan.id, { nom: e.target.value })} />
                     </label>
                   </div>
                   <label className="field">
                     <span>Description</span>
-                    <textarea rows={2} value={plan.description ?? ''} onChange={(e) => patchLocal(plan.id, { description: e.target.value })} />
+                    <textarea rows={2} disabled={plan.builtin} value={plan.description ?? ''} onChange={(e) => patchLocal(plan.id, { description: e.target.value })} />
                   </label>
 
                   <div style={{ marginTop: 8 }}>
@@ -133,14 +138,14 @@ export default function PlansManager({ onChange }: { onChange?: () => void }) {
                         <fieldset key={cat} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 10, padding: '10px 14px', marginBottom: 10 }}>
                           <legend style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px' }}>
                             <strong>{cat}</strong>
-                            <button type="button" className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: '.78rem' }} onClick={() => toggleCat(plan, cat, !allOn)}>
+                            <button type="button" className="btn btn-ghost" disabled={plan.builtin} style={{ padding: '2px 8px', fontSize: '.78rem' }} onClick={() => toggleCat(plan, cat, !allOn)}>
                               {allOn ? 'Tout décocher' : 'Tout cocher'}
                             </button>
                           </legend>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '4px 16px' }}>
                             {catFeatures.map((f) => (
-                              <label key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={plan.features.includes(f.key)} onChange={() => toggle(plan, f.key)} />
+                              <label key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', cursor: plan.builtin ? 'default' : 'pointer' }}>
+                                <input type="checkbox" disabled={plan.builtin} checked={plan.features.includes(f.key)} onChange={() => toggle(plan, f.key)} />
                                 <span>{f.label}</span>
                               </label>
                             ))}
@@ -151,9 +156,9 @@ export default function PlansManager({ onChange }: { onChange?: () => void }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6 }}>
-                    <button className="btn btn-primary" onClick={() => void save(plan)}>Enregistrer</button>
+                    {!plan.builtin && <button className="btn btn-primary" onClick={() => void save(plan)}>Enregistrer</button>}
                     <button className="btn btn-ghost" onClick={() => void duplicate(plan.id)}>Dupliquer</button>
-                    <button className="btn btn-ghost" style={{ marginLeft: 'auto', color: 'var(--danger, #b91c1c)' }} onClick={() => void remove(plan)}>Supprimer</button>
+                    {!plan.builtin && <button className="btn btn-ghost" style={{ marginLeft: 'auto', color: 'var(--danger, #b91c1c)' }} onClick={() => void remove(plan)}>Supprimer</button>}
                   </div>
                 </div>
               )}

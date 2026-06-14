@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express'
 import { spawn } from 'node:child_process'
+import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { db } from './db'
@@ -211,7 +212,9 @@ function asciiName(slug: string, ext: string): string {
 function runPandoc(markdown: string, args: string[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     let child
-    try { child = spawn('pandoc', args) } catch (e) { reject(e); return }
+    // cwd = répertoire temporaire inscriptible : le moteur PDF (wkhtmltopdf) fait écrire à pandoc
+    // des fichiers temporaires dans son CWD ; sous un compte non-root, /app n'est pas inscriptible.
+    try { child = spawn('pandoc', args, { cwd: tmpdir() }) } catch (e) { reject(e); return }
     const out: Buffer[] = []
     const err: Buffer[] = []
     child.on('error', reject) // pandoc absent du PATH

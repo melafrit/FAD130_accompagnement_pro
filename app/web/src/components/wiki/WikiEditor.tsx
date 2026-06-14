@@ -78,7 +78,7 @@ export default function WikiEditor({ page, onSaved, onCancel }: { page: WikiFull
         <div className="wiki-editor-pane">
           <p className="wiki-editor-label">Aperçu</p>
           <div className="wiki-editor-preview">
-            <WikiMarkdown markdown={md} />
+            <WikiMarkdown markdown={md} trusted />
           </div>
         </div>
       </div>

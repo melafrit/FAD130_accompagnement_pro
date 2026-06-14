@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
+import DOMPurify from 'dompurify'
 import { useFeature } from '../features/FeaturesContext'
 
 // Lecture vocale d'un contenu HTML via la synthèse vocale du navigateur (gratuit, hors-ligne).
 function htmlToText(html: string): string {
+  // Défense : on assainit AVANT d'écrire dans innerHTML — sans cela, un nœud détaché contenant
+  // p.ex. <img onerror=…> pourrait déclencher du code. On ne lit ensuite que le texte.
+  const clean = DOMPurify.sanitize(html || '', { USE_PROFILES: { html: true } })
   const div = document.createElement('div')
-  div.innerHTML = html || ''
+  div.innerHTML = clean
   return (div.textContent || '').replace(/\s+/g, ' ').trim()
 }
 

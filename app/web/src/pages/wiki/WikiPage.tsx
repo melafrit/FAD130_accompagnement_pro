@@ -79,7 +79,7 @@ export default function WikiPage() {
         <>
           <div className="wiki-article-body">
             <div className="wiki-article-content" ref={contentRef}>
-              <WikiMarkdown markdown={page.contenu_md} />
+              <WikiMarkdown markdown={page.contenu_md} trusted />
             </div>
             <WikiToc containerRef={contentRef} markdown={page.contenu_md} />
           </div>

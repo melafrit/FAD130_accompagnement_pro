@@ -1,4 +1,5 @@
 import './env'
+import { validateEnv, corsOrigin } from './startup' // valide la config (fail-fast en prod) avant tout le reste
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -36,10 +37,14 @@ import { healthStatus, businessKpis, evaluateAndAlert, captureDailySnapshot } fr
 import { requireAuth, requireRole } from './auth'
 import { seed } from './seed'
 
+// Fail-fast : en production, refuse de démarrer si la config de sécurité est incorrecte
+// (JWT_SECRET faible, CSRF/rate-limit désactivés, origines CORS absentes/non HTTPS).
+validateEnv()
+
 const app = express()
 app.use(requestLogger) // logs structurés (pino) + compteurs de requêtes
 app.use(helmet(helmetConfig))
-app.use(cors({ origin: true, credentials: true }))
+app.use(cors({ origin: corsOrigin, credentials: true })) // allowlist (ALLOWED_ORIGINS/APP_URL), plus localhost en dev
 app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
 app.use(globalLimiter) // garde-fou global anti-abus (désactivé si RATE_LIMIT_DISABLED=1)

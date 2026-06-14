@@ -21,8 +21,10 @@ function childText(children: ReactNode): string {
   return ''
 }
 
-/** Rendu Markdown du wiki : tableaux GFM, coloration de code, diagrammes Mermaid, liens internes par slug. */
-export default function WikiMarkdown({ markdown }: { markdown: string }) {
+/** Rendu Markdown du wiki : tableaux GFM, coloration de code, diagrammes Mermaid, liens internes par slug.
+ *  `trusted` : true sur les surfaces admin (rendu Mermaid en 'loose'). Par défaut false → 'strict'
+ *  (la page partagée publiquement ne passe pas `trusted`). */
+export default function WikiMarkdown({ markdown, trusted = false }: { markdown: string; trusted?: boolean }) {
   const nav = useNavigate()
   return (
     <div className="wiki-content">
@@ -33,7 +35,7 @@ export default function WikiMarkdown({ markdown }: { markdown: string }) {
           // Les blocs ```mermaid sont rendus en SVG ; les autres blocs gardent leur <pre> (coloré).
           pre({ children, ...props }) {
             if (childClassName(children).includes('language-mermaid')) {
-              return <WikiMermaid code={childText(children).trim()} />
+              return <WikiMermaid code={childText(children).trim()} trusted={trusted} />
             }
             return <pre {...props}>{children}</pre>
           },

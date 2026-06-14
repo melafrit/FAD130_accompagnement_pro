@@ -4,6 +4,7 @@ import { requireAuth, requireRole } from './auth'
 import { makeToken, expiryHours } from './util'
 import { sendEmail, resetEmail } from './mailer'
 import { FEATURES, ALL_FEATURE_KEYS, sanitizeKeys } from './features'
+import { BUILTIN_PLAN_NAMES } from './seed'
 import { processEffacement, retentionEligibles, anonymizeUser, deleteUser } from './ethique'
 
 const router = Router()
@@ -40,8 +41,9 @@ router.get('/plans', requireAuth, requireRole('admin'), (_req: Request, res: Res
               (SELECT COUNT(*) FROM users u WHERE u.plan_id = p.id) AS nb_users
        FROM plans p ORDER BY p.cree_le ASC`,
     )
-    .all() as Array<{ features: string }>
-  const plans = rows.map((p) => ({ ...p, features: sanitizeKeys(safeParse(p.features)) }))
+    .all() as Array<{ nom: string; features: string }>
+  // `builtin` : plan socle géré par l'application (non modifiable / non supprimable).
+  const plans = rows.map((p) => ({ ...p, features: sanitizeKeys(safeParse(p.features)), builtin: BUILTIN_PLAN_NAMES.has(p.nom) }))
   res.json({ plans })
 })
 
@@ -63,8 +65,14 @@ router.post('/plans', requireAuth, requireRole('admin'), (req: Request, res: Res
 // Modifier un plan (nom, description, fonctionnalités)
 router.patch('/plans/:id', requireAuth, requireRole('admin'), (req: Request, res: Response) => {
   const id = Number(req.params.id)
-  if (!db.prepare('SELECT id FROM plans WHERE id=?').get(id)) {
+  const existing = db.prepare('SELECT nom FROM plans WHERE id=?').get(id) as { nom: string } | undefined
+  if (!existing) {
     res.status(404).json({ error: 'Plan introuvable' })
+    return
+  }
+  // Les plans socle (Découverte/Essentiel/Pro) sont gérés par le code (réalignés au démarrage) : non modifiables.
+  if (BUILTIN_PLAN_NAMES.has(existing.nom)) {
+    res.status(403).json({ error: 'Ce plan est un plan socle, géré par l’application : il ne peut pas être modifié.' })
     return
   }
   const { nom, description, features } = req.body || {}
@@ -99,8 +107,14 @@ router.post('/plans/:id/duplication', requireAuth, requireRole('admin'), (req: R
 // Supprimer un plan (les utilisateurs rattachés repassent au niveau max)
 router.delete('/plans/:id', requireAuth, requireRole('admin'), (req: Request, res: Response) => {
   const id = Number(req.params.id)
-  if (!db.prepare('SELECT id FROM plans WHERE id=?').get(id)) {
+  const existing = db.prepare('SELECT nom FROM plans WHERE id=?').get(id) as { nom: string } | undefined
+  if (!existing) {
     res.status(404).json({ error: 'Plan introuvable' })
+    return
+  }
+  // Plans socle protégés (cf. PATCH) : non supprimables.
+  if (BUILTIN_PLAN_NAMES.has(existing.nom)) {
+    res.status(403).json({ error: 'Ce plan est un plan socle, géré par l’application : il ne peut pas être supprimé.' })
     return
   }
   db.prepare('UPDATE users SET plan_id=NULL WHERE plan_id=?').run(id)
