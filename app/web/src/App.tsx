@@ -39,11 +39,14 @@ import AuthMenu from './components/AuthMenu'
 import ThemeToggle from './components/ThemeToggle'
 import FalcToggle from './components/FalcToggle'
 import OnboardingManager from './components/OnboardingManager'
+import LanguageSwitcher from './components/LanguageSwitcher'
 import Protected from './components/Protected'
+import { useTranslation } from 'react-i18next'
 
 function Header() {
   const { user } = useAuth()
   const darkMode = useFeature('dark_mode')
+  const { t } = useTranslation()
   return (
     <header className="header">
       <Link to="/" className="brand" aria-label="Boussole — accueil">
@@ -51,12 +54,13 @@ function Header() {
         <span>Boussole</span>
       </Link>
       <nav className="nav" aria-label="Navigation principale">
-        <NavLink to="/" end>Accueil</NavLink>
-        <NavLink to="/methode">Méthode</NavLink>
-        <NavLink to="/presentation">Présentation</NavLink>
-        {user && <NavLink to="/espace" data-tour="espace">Mon espace</NavLink>}
+        <NavLink to="/" end>{t('nav.home')}</NavLink>
+        <NavLink to="/methode">{t('nav.method')}</NavLink>
+        <NavLink to="/presentation">{t('nav.presentation')}</NavLink>
+        {user && <NavLink to="/espace" data-tour="espace">{t('nav.space')}</NavLink>}
         <FalcToggle />
         {darkMode && <ThemeToggle />}
+        <LanguageSwitcher />
         {user && <NotificationsBell />}
         <AuthMenu />
       </nav>
@@ -65,6 +69,7 @@ function Header() {
 }
 
 function Footer() {
+  const { t } = useTranslation()
   return (
     <footer className="footer">
       <nav className="footer-links" aria-label="Liens légaux">
@@ -83,7 +88,10 @@ function Footer() {
         · © 2026<br />
         <span className="footer-licence">
           Projet <strong>open source</strong> — code sous licence <strong>AGPL-3.0</strong>, documentation sous{' '}
-          <strong>CC&nbsp;BY-NC-SA&nbsp;4.0</strong>. © 2026 Mohamed&nbsp;El&nbsp;Afrit, tous droits réservés.
+          <strong>CC&nbsp;BY-NC-SA&nbsp;4.0</strong>. © 2026 Mohamed&nbsp;El&nbsp;Afrit, tous droits réservés. ·{' '}
+          <a href="https://github.com/melafrit/FAD130_accompagnement_pro" target="_blank" rel="noopener noreferrer">
+            {t('footer.source')} ↗
+          </a>
         </span>
       </p>
     </footer>

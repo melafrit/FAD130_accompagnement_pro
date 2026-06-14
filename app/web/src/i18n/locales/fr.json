@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "method": "Méthode",
+    "presentation": "Présentation",
+    "space": "Mon espace"
+  },
+  "footer": {
+    "tagline": "application développée dans le cadre de l'UE FAD130 (Cnam).",
+    "author": "Auteur",
+    "licence": "Projet open source — code sous licence AGPL-3.0, documentation sous CC BY-NC-SA 4.0. © 2026 Mohamed El Afrit, tous droits réservés.",
+    "source": "Code source sur GitHub"
+  },
+  "lang": {
+    "label": "Langue",
+    "fr": "Français",
+    "en": "English",
+    "switch": "Changer de langue"
+  }
+}
