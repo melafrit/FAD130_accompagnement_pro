@@ -31,9 +31,12 @@ import wikiRouter, { seedWiki, publicWikiRouter } from './wiki'
 import { globalLimiter, authLimiter, helmetConfig } from './security'
 import { csrfIssue, csrfProtect } from './csrf'
 import { scheduleBackups } from './backups'
+import { requestLogger, errorHandler, metrics, logger } from './observability'
+import { requireAuth, requireRole } from './auth'
 import { seed } from './seed'
 
 const app = express()
+app.use(requestLogger) // logs structurés (pino) + compteurs de requêtes
 app.use(helmet(helmetConfig))
 app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({ limit: '1mb' }))
@@ -113,6 +116,11 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'boussole-api', version: '0.1.0', tables: tables.n, time: new Date().toISOString() })
 })
 
+// Métriques de service (observabilité) — réservé à l'administrateur
+app.get('/api/metrics', requireAuth, requireRole('admin'), (_req, res) => {
+  res.json(metrics())
+})
+
 // Contexte public (page d'accueil / onglet Aide)
 app.get('/api/context', (_req, res) => {
   res.json({
@@ -124,6 +132,9 @@ app.get('/api/context', (_req, res) => {
     publicCible: ['accompagnateurs', 'personnes accompagnées (étudiants, alternants)'],
   })
 })
+
+// Gestion centralisée des erreurs (EN DERNIER) : journalise dans error_log + répond 500
+app.use(errorHandler)
 
 // Comptes initiaux (admin + accompagnateur)
 seed().catch((e) => console.error('[seed] échec :', e))
@@ -151,5 +162,5 @@ setInterval(() => {
 
 const port = Number(process.env.PORT) || 3000
 app.listen(port, () => {
-  console.log(`[Boussole] API à l'écoute sur le port ${port}`)
+  logger.info({ port }, `[Boussole] API à l'écoute sur le port ${port}`)
 })

@@ -470,6 +470,17 @@ db.exec(`
     auteur_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
     UNIQUE (page_id, version)
   );
+
+  -- Observabilité : journal des erreurs serveur (alimenté par reportError / le middleware d'erreur).
+  CREATE TABLE IF NOT EXISTS error_log (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    methode TEXT,
+    chemin  TEXT,
+    statut  INTEGER,
+    message TEXT,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    cree_le TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `)
 // Initialise l'ordre des actions héritées (avant le glisser-déposer) pour un tri déterministe
 try {
