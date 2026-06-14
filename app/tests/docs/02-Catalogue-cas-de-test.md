@@ -1,6 +1,6 @@
 # Catalogue de cas de test — Boussole
 
-> Généré automatiquement à partir de la conception ISTQB. 1204 cas de test sur 19 domaines.
+> Généré automatiquement à partir de la conception ISTQB. 1246 cas de test sur 24 domaines.
 > Identifiant : BOUSSOLE-CAT-001 · Voir le plan : [01-Plan-de-test.md](01-Plan-de-test.md) · La matrice : [03-Matrice-tracabilite.md](03-Matrice-tracabilite.md)
 
 ## Domaine AUTH — 69 cas
@@ -18370,4 +18370,686 @@
 - **Résultat attendu :** Le helper api() leve une Error portant le champ 'error' du backend ; le composant l affiche (form-success/msg) sans crash de page.
 - **Traçabilité :** lib/api.ts (throw new Error(msg)) + Admin.tsx/PlansManager/RgpdConsole catch
 - **Automatisation :** ✅ ui/admin.spec.ts
+
+## Domaine WIKI — 23 cas
+
+### TC-WIKI-001 — Accès anonyme à la liste des pages wiki refusé (401)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de sécurité / contrôle d'accès |
+
+- **Préconditions :** Aucune session authentifiée (utilisateur anonyme).
+- **Données :** Session vierge sans cookie d'authentification.
+- **Étapes :**
+  1. Créer une nouvelle Session sans authentification.
+  2. Envoyer GET /api/wiki/pages.
+- **Résultat attendu :** Réponse HTTP 401 (non authentifié).
+- **Traçabilité :** GET /api/wiki/pages
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-002 — Accès accompagnateur à la liste des pages wiki refusé (403, admin-only)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de sécurité / contrôle d'accès basé rôle |
+
+- **Préconditions :** Session authentifiée avec le rôle accompagnateur (DEMO.camille).
+- **Données :** Cookie de session de l'accompagnateur Camille.
+- **Étapes :**
+  1. S'authentifier en tant qu'accompagnateur (DEMO.camille).
+  2. Envoyer GET /api/wiki/pages.
+- **Résultat attendu :** Réponse HTTP 403 (interdit : espace réservé à l'admin).
+- **Traçabilité :** GET /api/wiki/pages
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-003 — Accès accompagné au détail d'une page wiki refusé (403)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de sécurité / contrôle d'accès basé rôle |
+
+- **Préconditions :** Session authentifiée avec le rôle accompagné (DEMO.amine).
+- **Données :** Cookie de session de l'accompagné Amine ; slug ciblé : security.
+- **Étapes :**
+  1. S'authentifier en tant qu'accompagné (DEMO.amine).
+  2. Envoyer GET /api/wiki/pages/security.
+- **Résultat attendu :** Réponse HTTP 403 (interdit : espace réservé à l'admin).
+- **Traçabilité :** GET /api/wiki/pages/:slug
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-004 — Admin : liste des pages de référence (200, au moins 20 pages et au moins 4 catégories)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat / partition d'équivalence (rôle autorisé) |
+
+- **Préconditions :** Session authentifiée avec le rôle admin (DEMO.admin) ; base contenant les pages de référence.
+- **Données :** Cookie de session admin.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin (DEMO.admin).
+  2. Envoyer GET /api/wiki/pages.
+  3. Lire r.json.pages.
+- **Résultat attendu :** HTTP 200 ; la liste pages contient au moins 20 entrées ; au moins 4 catégories distinctes (champ categorie).
+- **Traçabilité :** GET /api/wiki/pages
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-005 — Admin : détail d'une page existante (200 + contenu Markdown)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat |
+
+- **Préconditions :** Session admin ; page de slug executive-summary présente.
+- **Données :** Cookie de session admin ; slug : executive-summary.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Envoyer GET /api/wiki/pages/executive-summary.
+  3. Lire r.json.page.contenu_md.
+- **Résultat attendu :** HTTP 200 ; page.contenu_md est une chaîne de longueur supérieure à 300 caractères.
+- **Traçabilité :** GET /api/wiki/pages/:slug
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-006 — Détail d'une page inexistante (404)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | robustesse | moyenne | partition d'équivalence (classe invalide) / test des cas d'erreur |
+
+- **Préconditions :** Session admin ; aucun slug page-qui-nexiste-pas en base.
+- **Données :** Cookie de session admin ; slug : page-qui-nexiste-pas.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Envoyer GET /api/wiki/pages/page-qui-nexiste-pas.
+- **Résultat attendu :** HTTP 404 (page introuvable).
+- **Traçabilité :** GET /api/wiki/pages/:slug
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-007 — Recherche plein-texte dans le wiki (200 + résultats non vides)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | moyenne | partition d'équivalence (requête correspondante) |
+
+- **Préconditions :** Session admin ; corpus contenant le terme architecture.
+- **Données :** Cookie de session admin ; paramètre q=architecture.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Envoyer GET /api/wiki/search?q=architecture.
+  3. Lire r.json.resultats.
+- **Résultat attendu :** HTTP 200 ; la liste resultats contient au moins un résultat.
+- **Traçabilité :** GET /api/wiki/search
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-008 — Création d'une page wiki (201)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat (création valide) |
+
+- **Préconditions :** Session admin ; slug jetable non encore présent en base.
+- **Données :** Cookie admin ; corps : { slug: tc-wiki-tmp-<pid>, titre: 'Page jetable', categorie: 'Divers', contenu_md: '# Jetable\n\nContenu.' }.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Envoyer POST /api/wiki/pages avec le corps de la page jetable.
+  3. Lire r.json.page.slug.
+- **Résultat attendu :** HTTP 201 ; page.slug égal au slug jetable envoyé.
+- **Traçabilité :** POST /api/wiki/pages
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-009 — Création refusée si le slug existe déjà (409)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | robustesse | moyenne | partition d'équivalence (classe invalide : doublon) / test des conflits |
+
+- **Préconditions :** Session admin ; page de slug security déjà existante.
+- **Données :** Cookie admin ; corps : { slug: 'security', titre: 'X' }.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Envoyer POST /api/wiki/pages avec slug=security (déjà pris).
+- **Résultat attendu :** HTTP 409 (conflit : slug déjà existant).
+- **Traçabilité :** POST /api/wiki/pages
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-010 — Création refusée si le slug est invalide (400)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | validation | moyenne | partition d'équivalence (entrée invalide) / test de validation d'entrée |
+
+- **Préconditions :** Session admin.
+- **Données :** Cookie admin ; corps : { slug: 'Slug Invalide !', titre: 'X' } (espaces et caractère spécial).
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Envoyer POST /api/wiki/pages avec un slug mal formé ('Slug Invalide !').
+- **Résultat attendu :** HTTP 400 (slug invalide rejeté).
+- **Traçabilité :** POST /api/wiki/pages
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-011 — Mise à jour du contenu d'une page et persistance (200)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat / vérification de persistance (aller-retour) |
+
+- **Préconditions :** Session admin ; page jetable (tc-wiki-tmp-<pid>) créée au préalable.
+- **Données :** Cookie admin ; corps PATCH : { contenu_md: '# Jetable\n\nModifié.', statut: 'brouillon' }.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Envoyer PATCH /api/wiki/pages/tc-wiki-tmp-<pid> avec le nouveau contenu et statut brouillon.
+  3. Relire la page via GET /api/wiki/pages/tc-wiki-tmp-<pid>.
+- **Résultat attendu :** PATCH renvoie HTTP 200 ; à la relecture page.contenu_md contient 'Modifié' et page.statut vaut 'brouillon'.
+- **Traçabilité :** PATCH /api/wiki/pages/:slug ; GET /api/wiki/pages/:slug
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-012 — Suppression d'une page (200) puis devient introuvable (404)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat / test du cycle de vie (suppression puis vérification) |
+
+- **Préconditions :** Session admin ; page jetable (tc-wiki-tmp-<pid>) existante.
+- **Données :** Cookie admin ; slug : tc-wiki-tmp-<pid>.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Envoyer DELETE /api/wiki/pages/tc-wiki-tmp-<pid>.
+  3. Envoyer GET /api/wiki/pages/tc-wiki-tmp-<pid>.
+- **Résultat attendu :** DELETE renvoie HTTP 200 ; le GET suivant renvoie HTTP 404.
+- **Traçabilité :** DELETE /api/wiki/pages/:slug ; GET /api/wiki/pages/:slug
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-013 — Export Markdown d'une page (200, content-type text/markdown)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | moyenne | test du contrat (format de sortie) |
+
+- **Préconditions :** Session admin ; page de slug glossary présente.
+- **Données :** Cookie admin ; chemin : /api/wiki/export/glossary.md.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Récupérer en binaire GET /api/wiki/export/glossary.md (lecture brute avec cookie).
+- **Résultat attendu :** HTTP 200 ; content-type contient 'markdown' ; corps de longueur supérieure à 100 octets.
+- **Traçabilité :** GET /api/wiki/export/:slug.md
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-014 — Export DOCX d'une page via pandoc (200, signature ZIP/OOXML)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | moyenne | test du contrat (signature de fichier / type de média) |
+
+- **Préconditions :** Session admin ; page glossary présente ; pandoc disponible côté serveur. Délai d'attente du test : 30 s.
+- **Données :** Cookie admin ; chemin : /api/wiki/export/glossary.docx.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Récupérer en binaire GET /api/wiki/export/glossary.docx.
+  3. Lire les 4 premiers octets de la réponse.
+- **Résultat attendu :** HTTP 200 ; signature des 4 premiers octets = 504b0304 (en-tête ZIP, conteneur .docx).
+- **Traçabilité :** GET /api/wiki/export/:slug.docx
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-015 — Export PDF d'une page via pandoc (200, signature %PDF)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | moyenne | test du contrat (signature de fichier / type de média) |
+
+- **Préconditions :** Session admin ; page glossary présente ; pandoc disponible côté serveur. Délai d'attente du test : 45 s.
+- **Données :** Cookie admin ; chemin : /api/wiki/export/glossary.pdf.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Récupérer en binaire GET /api/wiki/export/glossary.pdf.
+  3. Lire les 4 premiers octets de la réponse.
+- **Résultat attendu :** HTTP 200 ; signature des 4 premiers octets = 25504446 (magique %PDF).
+- **Traçabilité :** GET /api/wiki/export/:slug.pdf
+- **Automatisation :** ✅ api/wiki.test.ts
+
+### TC-WIKI-016 — Partage public : génération d'un lien tokenisé accessible sans authentification (200)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat / partition d'équivalence (jeton valide) |
+
+- **Préconditions :** Session admin ; page de test avancée (tc-wiki-adv-<pid>, titre 'Page test avancée', contenu '# V0\n\nContenu initial.') créée au beforeAll.
+- **Données :** Cookie admin ; jeton retourné attendu au format /^[a-f0-9]{16,40}$/.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Envoyer POST /api/wiki/pages/tc-wiki-adv-<pid>/share et récupérer share.json.token.
+  3. Depuis une Session anonyme, envoyer GET /api/wiki/public/<token>.
+- **Résultat attendu :** POST share renvoie HTTP 200 et un token hexadécimal de 16 à 40 caractères ; l'accès public anonyme renvoie HTTP 200 avec page.titre = 'Page test avancée' et page.contenu_md contenant 'Contenu'.
+- **Traçabilité :** POST /api/wiki/pages/:slug/share ; GET /api/wiki/public/:token
+- **Automatisation :** ✅ api/wiki-advanced.test.ts
+
+### TC-WIKI-017 — Jeton public inexistant ou mal formé → 404 (pas de fuite d'information)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | partition d'équivalence (jeton inexistant vs jeton mal formé) / test de sécurité |
+
+- **Préconditions :** Aucune session (accès anonyme).
+- **Données :** Jeton bien formé mais inexistant : 0123456789abcdef0123456789abcdef ; jeton mal formé : pas-un-jeton.
+- **Étapes :**
+  1. Depuis une Session anonyme, envoyer GET /api/wiki/public/0123456789abcdef0123456789abcdef.
+  2. Depuis une Session anonyme, envoyer GET /api/wiki/public/pas-un-jeton.
+- **Résultat attendu :** Les deux requêtes renvoient HTTP 404 (aucune fuite, même réponse pour jeton inexistant et jeton invalide).
+- **Traçabilité :** GET /api/wiki/public/:token
+- **Automatisation :** ✅ api/wiki-advanced.test.ts
+
+### TC-WIKI-018 — Révocation du partage : le lien public cesse de fonctionner (404)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test du cycle de vie / contrôle d'accès (révocation) |
+
+- **Préconditions :** Session admin ; page tc-wiki-adv-<pid> existante.
+- **Données :** Cookie admin ; token issu d'un POST share préalable.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin et envoyer POST /api/wiki/pages/tc-wiki-adv-<pid>/share pour obtenir un token.
+  2. Vérifier en anonyme que GET /api/wiki/public/<token> renvoie 200.
+  3. Envoyer DELETE /api/wiki/pages/tc-wiki-adv-<pid>/share (révocation).
+  4. Réessayer en anonyme GET /api/wiki/public/<token>.
+- **Résultat attendu :** Avant révocation l'accès public renvoie 200 ; le DELETE share renvoie 200 ; après révocation l'accès public renvoie 404.
+- **Traçabilité :** POST /api/wiki/pages/:slug/share ; DELETE /api/wiki/pages/:slug/share ; GET /api/wiki/public/:token
+- **Automatisation :** ✅ api/wiki-advanced.test.ts
+
+### TC-WIKI-019 — Partage réservé à l'admin : un accompagnateur ne peut pas partager (403)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de sécurité / contrôle d'accès basé rôle |
+
+- **Préconditions :** Session authentifiée avec le rôle accompagnateur (DEMO.camille) ; page tc-wiki-adv-<pid> existante.
+- **Données :** Cookie de session de l'accompagnateur Camille.
+- **Étapes :**
+  1. S'authentifier en tant qu'accompagnateur (DEMO.camille).
+  2. Envoyer POST /api/wiki/pages/tc-wiki-adv-<pid>/share.
+- **Résultat attendu :** HTTP 403 (partage interdit hors admin).
+- **Traçabilité :** POST /api/wiki/pages/:slug/share
+- **Automatisation :** ✅ api/wiki-advanced.test.ts
+
+### TC-WIKI-020 — Historique : chaque modification crée une nouvelle version (ordre décroissant)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat / vérification d'invariant (comptage et ordonnancement) |
+
+- **Préconditions :** Session admin ; page tc-wiki-adv-<pid> existante avec historique de versions.
+- **Données :** Cookie admin ; deux PATCH successifs : { contenu_md: '# V1\n\nModif 1.' } puis { contenu_md: '# V2\n\nModif 2.' }.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Relever le nombre de versions via GET /api/wiki/pages/tc-wiki-adv-<pid>/versions (before).
+  3. Envoyer PATCH /api/wiki/pages/tc-wiki-adv-<pid> avec contenu V1.
+  4. Envoyer PATCH /api/wiki/pages/tc-wiki-adv-<pid> avec contenu V2.
+  5. Relire la liste des versions (after).
+- **Résultat attendu :** after.length = before + 2 ; les versions sont triées par numéro décroissant (after[0].version > after[1].version).
+- **Traçabilité :** PATCH /api/wiki/pages/:slug ; GET /api/wiki/pages/:slug/versions
+- **Automatisation :** ✅ api/wiki-advanced.test.ts
+
+### TC-WIKI-021 — Restauration d'une version : remet le contenu de cette version (200)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat / test du cycle de vie (restauration) |
+
+- **Préconditions :** Session admin ; page tc-wiki-adv-<pid> disposant de plusieurs versions, dont la plus ancienne au contenu initial '# V0'.
+- **Données :** Cookie admin ; v = version la plus ancienne (dernier élément de la liste) ; contenu de référence : full.contenu_md.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Lister les versions via GET /api/wiki/pages/tc-wiki-adv-<pid>/versions et sélectionner la plus ancienne.
+  3. Récupérer son contenu via GET /api/wiki/pages/tc-wiki-adv-<pid>/versions/<v.version>.
+  4. Envoyer POST /api/wiki/pages/tc-wiki-adv-<pid>/versions/<v.version>/restore.
+- **Résultat attendu :** Le POST restore renvoie HTTP 200 ; restore.json.page.contenu_md est identique au contenu_md de la version restaurée.
+- **Traçabilité :** GET /api/wiki/pages/:slug/versions ; GET /api/wiki/pages/:slug/versions/:version ; POST /api/wiki/pages/:slug/versions/:version/restore
+- **Automatisation :** ✅ api/wiki-advanced.test.ts
+
+### TC-WIKI-022 — Export global du wiki en Markdown et DOCX (admin, 200)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | moyenne | test du contrat (format/signature de sortie) |
+
+- **Préconditions :** Session admin ; pandoc disponible côté serveur. Délai d'attente du test : 45 s.
+- **Données :** Cookie admin ; chemins : /api/wiki/export-all.md et /api/wiki/export-all.docx.
+- **Étapes :**
+  1. S'authentifier en tant qu'admin.
+  2. Récupérer en binaire GET /api/wiki/export-all.md.
+  3. Récupérer en binaire GET /api/wiki/export-all.docx.
+  4. Vérifier content-type, contenu texte et signature.
+- **Résultat attendu :** Export MD : HTTP 200, content-type contient 'markdown', le texte contient 'Sommaire'. Export DOCX : HTTP 200, signature des 4 premiers octets = 504b0304 (conteneur ZIP/.docx).
+- **Traçabilité :** GET /api/wiki/export-all.md ; GET /api/wiki/export-all.docx
+- **Automatisation :** ✅ api/wiki-advanced.test.ts
+
+### TC-WIKI-023 — Export global réservé à l'admin : accès anonyme refusé (401)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de sécurité / contrôle d'accès |
+
+- **Préconditions :** Aucune session authentifiée (anonyme).
+- **Données :** Session vierge ; chemin : /api/wiki/export-all.md.
+- **Étapes :**
+  1. Créer une Session anonyme.
+  2. Envoyer GET /api/wiki/export-all.md.
+- **Résultat attendu :** HTTP 401 (export global non autorisé sans authentification admin).
+- **Traçabilité :** GET /api/wiki/export-all.md
+- **Automatisation :** ✅ api/wiki-advanced.test.ts
+
+## Domaine TWOFA — 6 cas
+
+### TC-2FA-001 — Statut initial de la 2FA : désactivée pour un nouvel utilisateur
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | moyenne | Test du contrat (vérification de l'état par défaut / partition d'équivalence : utilisateur sans 2FA) |
+
+- **Préconditions :** Un compte de test jetable de rôle 'accompagne' est créé via l'admin de démo ; la 2FA n'a jamais été activée pour ce compte.
+- **Données :** Connexion avec { email, password } du compte de test (sans code TOTP).
+- **Étapes :**
+  1. Ouvrir une session connectée pour le compte de test (POST /api/auth/login avec email + password).
+  2. Appeler GET /api/auth/2fa/status.
+- **Résultat attendu :** HTTP 200 ; le corps JSON contient enabled = false.
+- **Traçabilité :** GET /api/auth/2fa/status
+- **Automatisation :** ✅ api/twofa.test.ts
+
+### TC-2FA-002 — Setup renvoie un secret et un QR code ; l'activation exige un code TOTP valide
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | Test du contrat + partition d'équivalence (code invalide vs code valide) |
+
+- **Préconditions :** Compte de test connecté ; 2FA non encore activée.
+- **Données :** POST /api/auth/2fa/setup (sans corps) ; POST /api/auth/2fa/enable avec { code: '000000' } (code invalide) puis avec { code: currentTotp(secret) } (code valide dérivé du secret renvoyé par le setup).
+- **Étapes :**
+  1. Appeler POST /api/auth/2fa/setup.
+  2. Vérifier que setup.json.secret est une chaîne et que setup.json.qr commence par 'data:image/png;base64,'.
+  3. Mémoriser le secret retourné.
+  4. Appeler POST /api/auth/2fa/enable avec code '000000' (mauvais code).
+  5. Appeler POST /api/auth/2fa/enable avec le code TOTP courant calculé à partir du secret.
+- **Résultat attendu :** Setup : HTTP 200, secret de type string et qr au format data URL PNG base64. Enable avec mauvais code : HTTP 401. Enable avec code valide : HTTP 200 et enabled = true.
+- **Traçabilité :** POST /api/auth/2fa/setup ; POST /api/auth/2fa/enable
+- **Automatisation :** ✅ api/twofa.test.ts
+
+### TC-2FA-003 — Login sans code TOTP sur compte 2FA activée renvoie un challenge sans ouvrir de session
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | Test de sécurité / contrôle d'accès (vérification de l'absence d'authentification au stade challenge) |
+
+- **Préconditions :** La 2FA est activée pour le compte de test (état laissé par TC-2FA-002).
+- **Données :** POST /api/auth/login avec { email, password } seulement (sans champ code).
+- **Étapes :**
+  1. Ouvrir une nouvelle Session vierge.
+  2. Appeler POST /api/auth/login avec email + password (sans code).
+  3. Appeler GET /api/auth/me sur la même session.
+- **Résultat attendu :** Login : HTTP 200 avec twofa = true (challenge). GET /api/auth/me : HTTP 401 (aucun cookie de session valide n'a été émis).
+- **Traçabilité :** POST /api/auth/login ; GET /api/auth/me
+- **Automatisation :** ✅ api/twofa.test.ts
+
+### TC-2FA-004 — Login avec code TOTP valide authentifie l'utilisateur
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | Partition d'équivalence (classe valide : code TOTP correct) |
+
+- **Préconditions :** La 2FA est activée pour le compte de test ; le secret TOTP est connu.
+- **Données :** POST /api/auth/login avec { email, password, code: currentTotp(secret) }.
+- **Étapes :**
+  1. Ouvrir une nouvelle Session vierge.
+  2. Appeler POST /api/auth/login avec email + password + code TOTP courant.
+  3. Appeler GET /api/auth/me sur la même session.
+- **Résultat attendu :** Login : HTTP 200 avec json.user.email égal à l'email du compte de test. GET /api/auth/me : HTTP 200 (session authentifiée établie).
+- **Traçabilité :** POST /api/auth/login ; GET /api/auth/me
+- **Automatisation :** ✅ api/twofa.test.ts
+
+### TC-2FA-005 — Login avec code TOTP invalide est rejeté
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | Partition d'équivalence (classe invalide : code TOTP incorrect) / test de contrôle d'accès |
+
+- **Préconditions :** La 2FA est activée pour le compte de test.
+- **Données :** POST /api/auth/login avec { email, password, code: '000000' } (code invalide).
+- **Étapes :**
+  1. Ouvrir une nouvelle Session vierge.
+  2. Appeler POST /api/auth/login avec email + password + code '000000'.
+- **Résultat attendu :** HTTP 401 (authentification refusée).
+- **Traçabilité :** POST /api/auth/login
+- **Automatisation :** ✅ api/twofa.test.ts
+
+### TC-2FA-006 — Désactivation de la 2FA : code requis, puis retour à l'état initial (login sans code possible)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | Partition d'équivalence (code invalide vs valide) + test d'état (cycle activation/désactivation) |
+
+- **Préconditions :** La 2FA est activée pour le compte de test ; le secret TOTP est connu. Une session authentifiée 2FA est ouverte via login complet (email + password + code TOTP).
+- **Données :** POST /api/auth/2fa/disable avec { code: '000000' } (invalide) puis avec { code: currentTotp(secret) } (valide). Puis nouvelle connexion avec { email, password } seulement.
+- **Étapes :**
+  1. Ouvrir une session authentifiée 2FA (login avec email + password + code TOTP courant).
+  2. Appeler POST /api/auth/2fa/disable avec code '000000' (mauvais code).
+  3. Appeler POST /api/auth/2fa/disable avec le code TOTP courant valide.
+  4. Ouvrir une nouvelle session via POST /api/auth/login avec email + password (sans code).
+  5. Appeler GET /api/auth/me sur cette nouvelle session.
+- **Résultat attendu :** Disable avec mauvais code : HTTP 401. Disable avec code valide : HTTP 200 et enabled = false. Après désactivation, login sans code réussit et GET /api/auth/me renvoie HTTP 200.
+- **Traçabilité :** POST /api/auth/2fa/disable ; POST /api/auth/login ; GET /api/auth/me
+- **Automatisation :** ✅ api/twofa.test.ts
+
+## Domaine SECU — 4 cas
+
+### TC-SEC-001 — Content-Security-Policy présente et restrictive sur /api/health
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | Test de sécurité (durcissement HTTP) / test du contrat d'en-têtes |
+
+- **Préconditions :** La stack API est démarrée et accessible. L'endpoint public /api/health répond. Middleware helmet/CSP actif.
+- **Données :** Requête GET sans corps ni jeton, via une session anonyme (new Session()).
+- **Étapes :**
+  1. Créer une session anonyme et envoyer GET /api/health
+  2. Vérifier le statut de la réponse
+  3. Lire l'en-tête de réponse 'content-security-policy'
+  4. Vérifier que la valeur de la CSP contient la directive default-src 'self'
+  5. Vérifier que la valeur de la CSP contient la directive object-src 'none'
+- **Résultat attendu :** Statut HTTP 200. L'en-tête content-security-policy est présent et contient à la fois "default-src 'self'" et "object-src 'none'".
+- **Traçabilité :** GET /api/health — middleware helmet/CSP (en-tête Content-Security-Policy)
+- **Automatisation :** ✅ api/security.test.ts
+
+### TC-SEC-002 — En-têtes helmet de durcissement présents (nosniff et anti-clickjacking)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | Test de sécurité (durcissement HTTP) / test du contrat d'en-têtes |
+
+- **Préconditions :** La stack API est démarrée et accessible. L'endpoint public /api/health répond. Middleware helmet actif.
+- **Données :** Requête GET sans corps ni jeton, via une session anonyme (new Session()).
+- **Étapes :**
+  1. Créer une session anonyme et envoyer GET /api/health
+  2. Lire l'en-tête de réponse 'x-content-type-options'
+  3. Lire l'en-tête 'x-frame-options' ; à défaut, se rabattre sur la valeur de l'en-tête 'content-security-policy' (frame-ancestors)
+  4. Vérifier la protection anti-clickjacking via l'un ou l'autre
+- **Résultat attendu :** L'en-tête x-content-type-options vaut exactement 'nosniff'. Une protection anti-clickjacking est présente : soit l'en-tête X-Frame-Options, soit une CSP (valeur non vide / truthy).
+- **Traçabilité :** GET /api/health — middleware helmet (en-têtes X-Content-Type-Options, X-Frame-Options / CSP)
+- **Automatisation :** ✅ api/security.test.ts
+
+### TC-SEC-010 — backupNow crée un fichier de sauvegarde SQLite horodaté
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| Unitaire | fonctionnel | haute | Partition d'équivalence (cas nominal) / test sur sortie attendue d'une fonction |
+
+- **Préconditions :** Module api/src/backups disponible. Répertoire temporaire de sauvegarde créé (mkdtempSync sous tmpdir, préfixe 'boussole-bak-').
+- **Données :** Répertoire cible = répertoire temporaire 'boussole-bak-...'. Convention de nommage attendue : /boussole-.*\.sqlite$/.
+- **Étapes :**
+  1. Appeler backupNow(dir) sur le répertoire temporaire et récupérer le chemin du fichier produit
+  2. Vérifier l'existence du fichier retourné (existsSync)
+  3. Vérifier que le nom du fichier respecte le motif /boussole-.*\.sqlite$/
+- **Résultat attendu :** La fonction retourne le chemin d'un fichier réellement créé (existsSync = true) dont le nom correspond au motif boussole-<horodatage>.sqlite.
+- **Traçabilité :** Module api/src/backups — fonction backupNow(dir)
+- **Automatisation :** ✅ unit/security.test.ts
+
+### TC-SEC-011 — purgeOldBackups respecte la politique de rétention des sauvegardes
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| Unitaire | fonctionnel | haute | Valeurs limites / partition d'équivalence sur le seuil de rétention (rien à purger vs tout à purger) |
+
+- **Préconditions :** Module api/src/backups disponible. Répertoire temporaire de sauvegarde créé. Au moins une sauvegarde présente (créée via backupNow).
+- **Données :** Seuils de rétention testés : 9999 (aucun fichier assez ancien) puis -1 (tous les fichiers considérés trop anciens). Filtre fichiers via /boussole-.*\.sqlite$/.
+- **Étapes :**
+  1. Appeler backupNow(dir) pour garantir au moins une sauvegarde
+  2. Vérifier qu'il existe au moins un fichier de sauvegarde (count > 0)
+  3. Appeler purgeOldBackups(dir, 9999) et vérifier la valeur de retour
+  4. Appeler purgeOldBackups(dir, -1) et vérifier la valeur de retour
+  5. Recompter les fichiers de sauvegarde restants dans le répertoire
+- **Résultat attendu :** purgeOldBackups(dir, 9999) retourne 0 (aucune suppression, rien d'assez ancien). purgeOldBackups(dir, -1) retourne un nombre > 0 (au moins une suppression). Après purge à -1, il ne reste plus aucun fichier de sauvegarde (count = 0).
+- **Traçabilité :** Module api/src/backups — fonction purgeOldBackups(dir, retention)
+- **Automatisation :** ✅ unit/security.test.ts
+
+## Domaine CSRF — 4 cas
+
+### TC-CSRF-001 — Methode sure (GET) : la requete passe sans verification CSRF
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| Unitaire | securite | haute | Partition d'equivalence (classe des methodes sures GET/HEAD/OPTIONS) / test de controle d'acces |
+
+- **Préconditions :** Middleware csrfProtect importe ; variable CSRF_DISABLED non positionnee a 1 ; requete et reponse simulees par des mocks (pas de serveur reel).
+- **Données :** Requete mockee : method = 'GET', aucun cookie csrf_token, aucun en-tete X-CSRF-Token.
+- **Étapes :**
+  1. Construire une requete mockee via runCsrf('GET') (methode GET, cookies vides, get() retourne undefined pour x-csrf-token).
+  2. Appeler le middleware csrfProtect(req, res, next).
+  3. Observer l'objet retourne { status, nexted }.
+- **Résultat attendu :** Le middleware appelle next() sans fixer de statut : resultat egal a { status: 0, nexted: true }. La methode sure n'est pas bloquee.
+- **Traçabilité :** Middleware csrfProtect (api/src/csrf.ts) — applique aux requetes /api/*
+- **Automatisation :** ✅ unit/security.test.ts
+
+### TC-CSRF-002 — Mutation POST sans en-tete X-CSRF-Token : rejet 403
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| Unitaire | securite | haute | Test de controle d'acces / partition d'equivalence (classe invalide : en-tete absent malgre presence du cookie) |
+
+- **Préconditions :** Middleware csrfProtect importe ; CSRF_DISABLED non positionnee a 1 ; requete et reponse simulees par des mocks.
+- **Données :** Requete mockee : method = 'POST', cookie csrf_token = 'abc123', aucun en-tete X-CSRF-Token (header undefined).
+- **Étapes :**
+  1. Construire la requete via runCsrf('POST', 'abc123') : POST, cookie present, en-tete absent.
+  2. Appeler csrfProtect(req, res, next).
+  3. Observer { status, nexted }.
+- **Résultat attendu :** Le middleware fixe le statut 403 et n'appelle pas next() : resultat egal a { status: 403, nexted: false }. Reponse JSON d'erreur CSRF (jeton manquant ou invalide).
+- **Traçabilité :** Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/*
+- **Automatisation :** ✅ unit/security.test.ts
+
+### TC-CSRF-003 — Mutation POST avec en-tete different du cookie : rejet 403
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| Unitaire | securite | haute | Test de controle d'acces / partition d'equivalence (classe invalide : en-tete != cookie, non-correspondance double-submit) |
+
+- **Préconditions :** Middleware csrfProtect importe ; CSRF_DISABLED non positionnee a 1 ; requete et reponse simulees par des mocks.
+- **Données :** Requete mockee : method = 'POST', cookie csrf_token = 'abc123', en-tete X-CSRF-Token = 'XXXXXX' (valeurs differentes).
+- **Étapes :**
+  1. Construire la requete via runCsrf('POST', 'abc123', 'XXXXXX') : POST, cookie et en-tete tous deux presents mais distincts.
+  2. Appeler csrfProtect(req, res, next).
+  3. Observer { status, nexted }.
+- **Résultat attendu :** Le middleware fixe le statut 403 et n'appelle pas next() : resultat egal a { status: 403, nexted: false }. La non-correspondance cookie/en-tete fait echouer la verification double-submit.
+- **Traçabilité :** Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/*
+- **Automatisation :** ✅ unit/security.test.ts
+
+### TC-CSRF-004 — Mutation POST avec en-tete egal au cookie : la requete passe
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| Unitaire | securite | haute | Test de controle d'acces / partition d'equivalence (classe valide : en-tete == cookie, correspondance double-submit) |
+
+- **Préconditions :** Middleware csrfProtect importe ; CSRF_DISABLED non positionnee a 1 ; requete et reponse simulees par des mocks.
+- **Données :** Requete mockee : method = 'POST', cookie csrf_token = 'abc123', en-tete X-CSRF-Token = 'abc123' (valeurs identiques).
+- **Étapes :**
+  1. Construire la requete via runCsrf('POST', 'abc123', 'abc123') : POST, cookie et en-tete identiques.
+  2. Appeler csrfProtect(req, res, next).
+  3. Observer { status, nexted }.
+- **Résultat attendu :** Le middleware appelle next() sans fixer de statut : resultat egal a { status: 0, nexted: true }. La correspondance cookie == en-tete valide la requete mutante.
+- **Traçabilité :** Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/*
+- **Automatisation :** ✅ unit/security.test.ts
+
+## Domaine OBS — 5 cas
+
+### TC-OBS-001 — Accès anonyme à /api/metrics refusé (401)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de sécurité / contrôle d'accès (utilisateur non authentifié) |
+
+- **Préconditions :** API Boussole démarrée et accessible sur la base configurée (BOUSSOLE_BASE, défaut http://localhost:8080). Aucune session ouverte (pas de cookie boussole_token).
+- **Données :** Aucun corps de requête. Aucun cookie de session envoyé.
+- **Étapes :**
+  1. Créer une nouvelle Session sans authentification (aucun cookie).
+  2. Envoyer GET /api/metrics.
+- **Résultat attendu :** Réponse HTTP 401 (non authentifié).
+- **Traçabilité :** GET /api/metrics
+- **Automatisation :** ✅ api/observability.test.ts
+
+### TC-OBS-002 — Accès à /api/metrics interdit pour un accompagnateur (403)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de contrôle d'accès basé sur les rôles (utilisateur authentifié non administrateur) |
+
+- **Préconditions :** API démarrée. Le compte de démo accompagnateur 'camille' (camille.laurent@boussole.demo) existe et peut se connecter.
+- **Données :** Session authentifiée en tant qu'accompagnateur DEMO.camille. Aucun corps de requête.
+- **Étapes :**
+  1. Se connecter via asUser(DEMO.camille) (POST /api/auth/login) pour obtenir une session accompagnateur.
+  2. Envoyer GET /api/metrics avec le cookie de session.
+- **Résultat attendu :** Réponse HTTP 403 (authentifié mais rôle non autorisé : endpoint réservé à l'administrateur).
+- **Traçabilité :** GET /api/metrics
+- **Automatisation :** ✅ api/observability.test.ts
+
+### TC-OBS-003 — Accès admin à /api/metrics : 200 et forme des métriques
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat (vérification du statut et de la structure de la réponse) |
+
+- **Préconditions :** API démarrée. Le compte de démo administrateur 'admin' (mohamed@elafrit.com) existe et peut se connecter.
+- **Données :** Session authentifiée en tant qu'administrateur DEMO.admin. Aucun corps de requête.
+- **Étapes :**
+  1. Se connecter via asUser(DEMO.admin) (POST /api/auth/login) pour obtenir une session administrateur.
+  2. Envoyer GET /api/metrics avec le cookie de session.
+  3. Inspecter le statut et le corps JSON de la réponse.
+- **Résultat attendu :** Réponse HTTP 200. Le corps JSON contient : uptime_s de type number ; requests possédant la propriété 'total' ; db possédant la propriété 'users'.
+- **Traçabilité :** GET /api/metrics
+- **Automatisation :** ✅ api/observability.test.ts
+
+### TC-OBS-010 — metrics() renvoie la forme attendue de l'objet de métriques
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| Unitaire | fonctionnel | moyenne | test du contrat (vérification de la structure / des types de la valeur de retour) |
+
+- **Préconditions :** Module api/src/observability importable. Fonction metrics() exportée et appelable.
+- **Données :** Aucune donnée d'entrée (appel sans argument).
+- **Étapes :**
+  1. Importer metrics depuis api/src/observability.
+  2. Appeler m = metrics().
+  3. Vérifier les types et propriétés du résultat.
+- **Résultat attendu :** m.uptime_s est de type number ; m.requests possède les propriétés 'total' et '5xx' ; m.db possède la propriété 'users' ; m.errors_logged est de type number.
+- **Traçabilité :** module api/src/observability — fonction metrics()
+- **Automatisation :** ✅ unit/observability.test.ts
+
+### TC-OBS-011 — reportError persiste une erreur et incrémente le compteur errors_logged
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| Unitaire | fonctionnel | moyenne | test fonctionnel d'effet de bord (état avant/après : incrément du compteur du journal d'erreurs) |
+
+- **Préconditions :** Module api/src/observability importable. Fonctions metrics() et reportError() exportées. Journal d'erreurs (error_log) accessible.
+- **Données :** Erreur new Error('erreur de test') et contexte { method: 'POST', path: '/api/test', status: 500, userId: null }.
+- **Étapes :**
+  1. Lire le compteur initial : before = metrics().errors_logged.
+  2. Appeler reportError(new Error('erreur de test'), { method: 'POST', path: '/api/test', status: 500, userId: null }).
+  3. Relire metrics().errors_logged.
+- **Résultat attendu :** Après l'appel, metrics().errors_logged vaut before + 1 (l'erreur a bien été persistée dans error_log).
+- **Traçabilité :** module api/src/observability — fonction reportError() / journal error_log
+- **Automatisation :** ✅ unit/observability.test.ts
 

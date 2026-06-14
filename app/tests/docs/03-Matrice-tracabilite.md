@@ -1,6 +1,6 @@
 # Matrice de traçabilité — Boussole
 
-> Identifiant : BOUSSOLE-MAT-001 · 1204 cas · 1009 automatisés (84%).
+> Identifiant : BOUSSOLE-MAT-001 · 1246 cas · 1051 automatisés (84%).
 > Régénérée à chaque exécution (un cas est « automatisé » dès que son ID apparaît dans le code de test).
 
 ## Synthèse de couverture par domaine
@@ -26,7 +26,12 @@
 | UI_ACC | 59 | 47 | 80% |
 | UI_ACP | 72 | 56 | 78% |
 | UI_ADMIN | 53 | 50 | 94% |
-| **Total** | **1204** | **1009** | **84%** |
+| WIKI | 23 | 23 | 100% |
+| TWOFA | 6 | 6 | 100% |
+| SECU | 4 | 4 | 100% |
+| CSRF | 4 | 4 | 100% |
+| OBS | 5 | 5 | 100% |
+| **Total** | **1246** | **1051** | **84%** |
 
 ## Détail (cas ↔ fonctionnalité/endpoint ↔ test automatisé)
 
@@ -1236,3 +1241,45 @@
 | TC-UI-350 | Unitaire | moyenne | ethique.processEffacement | ✅ unit/ethique.test.ts |
 | TC-UI-351 | UI | basse | Admin.tsx onChange (load + loadPlans) + DELETE /admin/plans/:id | ✅ ui/admin.spec.ts |
 | TC-UI-352 | UI | moyenne | lib/api.ts (throw new Error(msg)) + Admin.tsx/PlansManager/RgpdConsole catch | ✅ ui/admin.spec.ts |
+| TC-WIKI-001 | API | haute | GET /api/wiki/pages | ✅ api/wiki.test.ts |
+| TC-WIKI-002 | API | haute | GET /api/wiki/pages | ✅ api/wiki.test.ts |
+| TC-WIKI-003 | API | haute | GET /api/wiki/pages/:slug | ✅ api/wiki.test.ts |
+| TC-WIKI-004 | API | haute | GET /api/wiki/pages | ✅ api/wiki.test.ts |
+| TC-WIKI-005 | API | haute | GET /api/wiki/pages/:slug | ✅ api/wiki.test.ts |
+| TC-WIKI-006 | API | moyenne | GET /api/wiki/pages/:slug | ✅ api/wiki.test.ts |
+| TC-WIKI-007 | API | moyenne | GET /api/wiki/search | ✅ api/wiki.test.ts |
+| TC-WIKI-008 | API | haute | POST /api/wiki/pages | ✅ api/wiki.test.ts |
+| TC-WIKI-009 | API | moyenne | POST /api/wiki/pages | ✅ api/wiki.test.ts |
+| TC-WIKI-010 | API | moyenne | POST /api/wiki/pages | ✅ api/wiki.test.ts |
+| TC-WIKI-011 | API | haute | PATCH /api/wiki/pages/:slug ; GET /api/wiki/pages/:slug | ✅ api/wiki.test.ts |
+| TC-WIKI-012 | API | haute | DELETE /api/wiki/pages/:slug ; GET /api/wiki/pages/:slug | ✅ api/wiki.test.ts |
+| TC-WIKI-013 | API | moyenne | GET /api/wiki/export/:slug.md | ✅ api/wiki.test.ts |
+| TC-WIKI-014 | API | moyenne | GET /api/wiki/export/:slug.docx | ✅ api/wiki.test.ts |
+| TC-WIKI-015 | API | moyenne | GET /api/wiki/export/:slug.pdf | ✅ api/wiki.test.ts |
+| TC-WIKI-016 | API | haute | POST /api/wiki/pages/:slug/share ; GET /api/wiki/public/:token | ✅ api/wiki-advanced.test.ts |
+| TC-WIKI-017 | API | haute | GET /api/wiki/public/:token | ✅ api/wiki-advanced.test.ts |
+| TC-WIKI-018 | API | haute | POST /api/wiki/pages/:slug/share ; DELETE /api/wiki/pages/:slug/share ; GET /api/wiki/public/:token | ✅ api/wiki-advanced.test.ts |
+| TC-WIKI-019 | API | haute | POST /api/wiki/pages/:slug/share | ✅ api/wiki-advanced.test.ts |
+| TC-WIKI-020 | API | haute | PATCH /api/wiki/pages/:slug ; GET /api/wiki/pages/:slug/versions | ✅ api/wiki-advanced.test.ts |
+| TC-WIKI-021 | API | haute | GET /api/wiki/pages/:slug/versions ; GET /api/wiki/pages/:slug/versions/:version ; POST /api/wiki/pages/:slug/versions/:version/restore | ✅ api/wiki-advanced.test.ts |
+| TC-WIKI-022 | API | moyenne | GET /api/wiki/export-all.md ; GET /api/wiki/export-all.docx | ✅ api/wiki-advanced.test.ts |
+| TC-WIKI-023 | API | haute | GET /api/wiki/export-all.md | ✅ api/wiki-advanced.test.ts |
+| TC-2FA-001 | API | moyenne | GET /api/auth/2fa/status | ✅ api/twofa.test.ts |
+| TC-2FA-002 | API | haute | POST /api/auth/2fa/setup ; POST /api/auth/2fa/enable | ✅ api/twofa.test.ts |
+| TC-2FA-003 | API | haute | POST /api/auth/login ; GET /api/auth/me | ✅ api/twofa.test.ts |
+| TC-2FA-004 | API | haute | POST /api/auth/login ; GET /api/auth/me | ✅ api/twofa.test.ts |
+| TC-2FA-005 | API | haute | POST /api/auth/login | ✅ api/twofa.test.ts |
+| TC-2FA-006 | API | haute | POST /api/auth/2fa/disable ; POST /api/auth/login ; GET /api/auth/me | ✅ api/twofa.test.ts |
+| TC-SEC-001 | API | haute | GET /api/health — middleware helmet/CSP (en-tête Content-Security-Policy) | ✅ api/security.test.ts |
+| TC-SEC-002 | API | haute | GET /api/health — middleware helmet (en-têtes X-Content-Type-Options, X-Frame-Options / CSP) | ✅ api/security.test.ts |
+| TC-SEC-010 | Unitaire | haute | Module api/src/backups — fonction backupNow(dir) | ✅ unit/security.test.ts |
+| TC-SEC-011 | Unitaire | haute | Module api/src/backups — fonction purgeOldBackups(dir, retention) | ✅ unit/security.test.ts |
+| TC-CSRF-001 | Unitaire | haute | Middleware csrfProtect (api/src/csrf.ts) — applique aux requetes /api/* | ✅ unit/security.test.ts |
+| TC-CSRF-002 | Unitaire | haute | Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/* | ✅ unit/security.test.ts |
+| TC-CSRF-003 | Unitaire | haute | Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/* | ✅ unit/security.test.ts |
+| TC-CSRF-004 | Unitaire | haute | Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/* | ✅ unit/security.test.ts |
+| TC-OBS-001 | API | haute | GET /api/metrics | ✅ api/observability.test.ts |
+| TC-OBS-002 | API | haute | GET /api/metrics | ✅ api/observability.test.ts |
+| TC-OBS-003 | API | haute | GET /api/metrics | ✅ api/observability.test.ts |
+| TC-OBS-010 | Unitaire | moyenne | module api/src/observability — fonction metrics() | ✅ unit/observability.test.ts |
+| TC-OBS-011 | Unitaire | moyenne | module api/src/observability — fonction reportError() / journal error_log | ✅ unit/observability.test.ts |

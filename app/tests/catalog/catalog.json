@@ -21267,6 +21267,755 @@
         }
       ],
       "areaKey": "ui_admin"
+    },
+    {
+      "area": "Wiki documentaire interne (admin) — CRUD, recherche, partage public tokenisé, historique de versions, export",
+      "endpoints": [],
+      "cases": [
+        {
+          "id": "TC-WIKI-001",
+          "titre": "Accès anonyme à la liste des pages wiki refusé (401)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de sécurité / contrôle d'accès",
+          "preconditions": "Aucune session authentifiée (utilisateur anonyme).",
+          "donnees": "Session vierge sans cookie d'authentification.",
+          "etapes": [
+            "Créer une nouvelle Session sans authentification.",
+            "Envoyer GET /api/wiki/pages."
+          ],
+          "attendu": "Réponse HTTP 401 (non authentifié).",
+          "tracabilite": "GET /api/wiki/pages"
+        },
+        {
+          "id": "TC-WIKI-002",
+          "titre": "Accès accompagnateur à la liste des pages wiki refusé (403, admin-only)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de sécurité / contrôle d'accès basé rôle",
+          "preconditions": "Session authentifiée avec le rôle accompagnateur (DEMO.camille).",
+          "donnees": "Cookie de session de l'accompagnateur Camille.",
+          "etapes": [
+            "S'authentifier en tant qu'accompagnateur (DEMO.camille).",
+            "Envoyer GET /api/wiki/pages."
+          ],
+          "attendu": "Réponse HTTP 403 (interdit : espace réservé à l'admin).",
+          "tracabilite": "GET /api/wiki/pages"
+        },
+        {
+          "id": "TC-WIKI-003",
+          "titre": "Accès accompagné au détail d'une page wiki refusé (403)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de sécurité / contrôle d'accès basé rôle",
+          "preconditions": "Session authentifiée avec le rôle accompagné (DEMO.amine).",
+          "donnees": "Cookie de session de l'accompagné Amine ; slug ciblé : security.",
+          "etapes": [
+            "S'authentifier en tant qu'accompagné (DEMO.amine).",
+            "Envoyer GET /api/wiki/pages/security."
+          ],
+          "attendu": "Réponse HTTP 403 (interdit : espace réservé à l'admin).",
+          "tracabilite": "GET /api/wiki/pages/:slug"
+        },
+        {
+          "id": "TC-WIKI-004",
+          "titre": "Admin : liste des pages de référence (200, au moins 20 pages et au moins 4 catégories)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat / partition d'équivalence (rôle autorisé)",
+          "preconditions": "Session authentifiée avec le rôle admin (DEMO.admin) ; base contenant les pages de référence.",
+          "donnees": "Cookie de session admin.",
+          "etapes": [
+            "S'authentifier en tant qu'admin (DEMO.admin).",
+            "Envoyer GET /api/wiki/pages.",
+            "Lire r.json.pages."
+          ],
+          "attendu": "HTTP 200 ; la liste pages contient au moins 20 entrées ; au moins 4 catégories distinctes (champ categorie).",
+          "tracabilite": "GET /api/wiki/pages"
+        },
+        {
+          "id": "TC-WIKI-005",
+          "titre": "Admin : détail d'une page existante (200 + contenu Markdown)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat",
+          "preconditions": "Session admin ; page de slug executive-summary présente.",
+          "donnees": "Cookie de session admin ; slug : executive-summary.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Envoyer GET /api/wiki/pages/executive-summary.",
+            "Lire r.json.page.contenu_md."
+          ],
+          "attendu": "HTTP 200 ; page.contenu_md est une chaîne de longueur supérieure à 300 caractères.",
+          "tracabilite": "GET /api/wiki/pages/:slug"
+        },
+        {
+          "id": "TC-WIKI-006",
+          "titre": "Détail d'une page inexistante (404)",
+          "niveau": "api",
+          "type": "robustesse",
+          "priorite": "moyenne",
+          "technique": "partition d'équivalence (classe invalide) / test des cas d'erreur",
+          "preconditions": "Session admin ; aucun slug page-qui-nexiste-pas en base.",
+          "donnees": "Cookie de session admin ; slug : page-qui-nexiste-pas.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Envoyer GET /api/wiki/pages/page-qui-nexiste-pas."
+          ],
+          "attendu": "HTTP 404 (page introuvable).",
+          "tracabilite": "GET /api/wiki/pages/:slug"
+        },
+        {
+          "id": "TC-WIKI-007",
+          "titre": "Recherche plein-texte dans le wiki (200 + résultats non vides)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "partition d'équivalence (requête correspondante)",
+          "preconditions": "Session admin ; corpus contenant le terme architecture.",
+          "donnees": "Cookie de session admin ; paramètre q=architecture.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Envoyer GET /api/wiki/search?q=architecture.",
+            "Lire r.json.resultats."
+          ],
+          "attendu": "HTTP 200 ; la liste resultats contient au moins un résultat.",
+          "tracabilite": "GET /api/wiki/search"
+        },
+        {
+          "id": "TC-WIKI-008",
+          "titre": "Création d'une page wiki (201)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat (création valide)",
+          "preconditions": "Session admin ; slug jetable non encore présent en base.",
+          "donnees": "Cookie admin ; corps : { slug: tc-wiki-tmp-<pid>, titre: 'Page jetable', categorie: 'Divers', contenu_md: '# Jetable\\n\\nContenu.' }.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Envoyer POST /api/wiki/pages avec le corps de la page jetable.",
+            "Lire r.json.page.slug."
+          ],
+          "attendu": "HTTP 201 ; page.slug égal au slug jetable envoyé.",
+          "tracabilite": "POST /api/wiki/pages"
+        },
+        {
+          "id": "TC-WIKI-009",
+          "titre": "Création refusée si le slug existe déjà (409)",
+          "niveau": "api",
+          "type": "robustesse",
+          "priorite": "moyenne",
+          "technique": "partition d'équivalence (classe invalide : doublon) / test des conflits",
+          "preconditions": "Session admin ; page de slug security déjà existante.",
+          "donnees": "Cookie admin ; corps : { slug: 'security', titre: 'X' }.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Envoyer POST /api/wiki/pages avec slug=security (déjà pris)."
+          ],
+          "attendu": "HTTP 409 (conflit : slug déjà existant).",
+          "tracabilite": "POST /api/wiki/pages"
+        },
+        {
+          "id": "TC-WIKI-010",
+          "titre": "Création refusée si le slug est invalide (400)",
+          "niveau": "api",
+          "type": "validation",
+          "priorite": "moyenne",
+          "technique": "partition d'équivalence (entrée invalide) / test de validation d'entrée",
+          "preconditions": "Session admin.",
+          "donnees": "Cookie admin ; corps : { slug: 'Slug Invalide !', titre: 'X' } (espaces et caractère spécial).",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Envoyer POST /api/wiki/pages avec un slug mal formé ('Slug Invalide !')."
+          ],
+          "attendu": "HTTP 400 (slug invalide rejeté).",
+          "tracabilite": "POST /api/wiki/pages"
+        },
+        {
+          "id": "TC-WIKI-011",
+          "titre": "Mise à jour du contenu d'une page et persistance (200)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat / vérification de persistance (aller-retour)",
+          "preconditions": "Session admin ; page jetable (tc-wiki-tmp-<pid>) créée au préalable.",
+          "donnees": "Cookie admin ; corps PATCH : { contenu_md: '# Jetable\\n\\nModifié.', statut: 'brouillon' }.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Envoyer PATCH /api/wiki/pages/tc-wiki-tmp-<pid> avec le nouveau contenu et statut brouillon.",
+            "Relire la page via GET /api/wiki/pages/tc-wiki-tmp-<pid>."
+          ],
+          "attendu": "PATCH renvoie HTTP 200 ; à la relecture page.contenu_md contient 'Modifié' et page.statut vaut 'brouillon'.",
+          "tracabilite": "PATCH /api/wiki/pages/:slug ; GET /api/wiki/pages/:slug"
+        },
+        {
+          "id": "TC-WIKI-012",
+          "titre": "Suppression d'une page (200) puis devient introuvable (404)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat / test du cycle de vie (suppression puis vérification)",
+          "preconditions": "Session admin ; page jetable (tc-wiki-tmp-<pid>) existante.",
+          "donnees": "Cookie admin ; slug : tc-wiki-tmp-<pid>.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Envoyer DELETE /api/wiki/pages/tc-wiki-tmp-<pid>.",
+            "Envoyer GET /api/wiki/pages/tc-wiki-tmp-<pid>."
+          ],
+          "attendu": "DELETE renvoie HTTP 200 ; le GET suivant renvoie HTTP 404.",
+          "tracabilite": "DELETE /api/wiki/pages/:slug ; GET /api/wiki/pages/:slug"
+        },
+        {
+          "id": "TC-WIKI-013",
+          "titre": "Export Markdown d'une page (200, content-type text/markdown)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test du contrat (format de sortie)",
+          "preconditions": "Session admin ; page de slug glossary présente.",
+          "donnees": "Cookie admin ; chemin : /api/wiki/export/glossary.md.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Récupérer en binaire GET /api/wiki/export/glossary.md (lecture brute avec cookie)."
+          ],
+          "attendu": "HTTP 200 ; content-type contient 'markdown' ; corps de longueur supérieure à 100 octets.",
+          "tracabilite": "GET /api/wiki/export/:slug.md"
+        },
+        {
+          "id": "TC-WIKI-014",
+          "titre": "Export DOCX d'une page via pandoc (200, signature ZIP/OOXML)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test du contrat (signature de fichier / type de média)",
+          "preconditions": "Session admin ; page glossary présente ; pandoc disponible côté serveur. Délai d'attente du test : 30 s.",
+          "donnees": "Cookie admin ; chemin : /api/wiki/export/glossary.docx.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Récupérer en binaire GET /api/wiki/export/glossary.docx.",
+            "Lire les 4 premiers octets de la réponse."
+          ],
+          "attendu": "HTTP 200 ; signature des 4 premiers octets = 504b0304 (en-tête ZIP, conteneur .docx).",
+          "tracabilite": "GET /api/wiki/export/:slug.docx"
+        },
+        {
+          "id": "TC-WIKI-015",
+          "titre": "Export PDF d'une page via pandoc (200, signature %PDF)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test du contrat (signature de fichier / type de média)",
+          "preconditions": "Session admin ; page glossary présente ; pandoc disponible côté serveur. Délai d'attente du test : 45 s.",
+          "donnees": "Cookie admin ; chemin : /api/wiki/export/glossary.pdf.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Récupérer en binaire GET /api/wiki/export/glossary.pdf.",
+            "Lire les 4 premiers octets de la réponse."
+          ],
+          "attendu": "HTTP 200 ; signature des 4 premiers octets = 25504446 (magique %PDF).",
+          "tracabilite": "GET /api/wiki/export/:slug.pdf"
+        },
+        {
+          "id": "TC-WIKI-016",
+          "titre": "Partage public : génération d'un lien tokenisé accessible sans authentification (200)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat / partition d'équivalence (jeton valide)",
+          "preconditions": "Session admin ; page de test avancée (tc-wiki-adv-<pid>, titre 'Page test avancée', contenu '# V0\\n\\nContenu initial.') créée au beforeAll.",
+          "donnees": "Cookie admin ; jeton retourné attendu au format /^[a-f0-9]{16,40}$/.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Envoyer POST /api/wiki/pages/tc-wiki-adv-<pid>/share et récupérer share.json.token.",
+            "Depuis une Session anonyme, envoyer GET /api/wiki/public/<token>."
+          ],
+          "attendu": "POST share renvoie HTTP 200 et un token hexadécimal de 16 à 40 caractères ; l'accès public anonyme renvoie HTTP 200 avec page.titre = 'Page test avancée' et page.contenu_md contenant 'Contenu'.",
+          "tracabilite": "POST /api/wiki/pages/:slug/share ; GET /api/wiki/public/:token"
+        },
+        {
+          "id": "TC-WIKI-017",
+          "titre": "Jeton public inexistant ou mal formé → 404 (pas de fuite d'information)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "partition d'équivalence (jeton inexistant vs jeton mal formé) / test de sécurité",
+          "preconditions": "Aucune session (accès anonyme).",
+          "donnees": "Jeton bien formé mais inexistant : 0123456789abcdef0123456789abcdef ; jeton mal formé : pas-un-jeton.",
+          "etapes": [
+            "Depuis une Session anonyme, envoyer GET /api/wiki/public/0123456789abcdef0123456789abcdef.",
+            "Depuis une Session anonyme, envoyer GET /api/wiki/public/pas-un-jeton."
+          ],
+          "attendu": "Les deux requêtes renvoient HTTP 404 (aucune fuite, même réponse pour jeton inexistant et jeton invalide).",
+          "tracabilite": "GET /api/wiki/public/:token"
+        },
+        {
+          "id": "TC-WIKI-018",
+          "titre": "Révocation du partage : le lien public cesse de fonctionner (404)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test du cycle de vie / contrôle d'accès (révocation)",
+          "preconditions": "Session admin ; page tc-wiki-adv-<pid> existante.",
+          "donnees": "Cookie admin ; token issu d'un POST share préalable.",
+          "etapes": [
+            "S'authentifier en tant qu'admin et envoyer POST /api/wiki/pages/tc-wiki-adv-<pid>/share pour obtenir un token.",
+            "Vérifier en anonyme que GET /api/wiki/public/<token> renvoie 200.",
+            "Envoyer DELETE /api/wiki/pages/tc-wiki-adv-<pid>/share (révocation).",
+            "Réessayer en anonyme GET /api/wiki/public/<token>."
+          ],
+          "attendu": "Avant révocation l'accès public renvoie 200 ; le DELETE share renvoie 200 ; après révocation l'accès public renvoie 404.",
+          "tracabilite": "POST /api/wiki/pages/:slug/share ; DELETE /api/wiki/pages/:slug/share ; GET /api/wiki/public/:token"
+        },
+        {
+          "id": "TC-WIKI-019",
+          "titre": "Partage réservé à l'admin : un accompagnateur ne peut pas partager (403)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de sécurité / contrôle d'accès basé rôle",
+          "preconditions": "Session authentifiée avec le rôle accompagnateur (DEMO.camille) ; page tc-wiki-adv-<pid> existante.",
+          "donnees": "Cookie de session de l'accompagnateur Camille.",
+          "etapes": [
+            "S'authentifier en tant qu'accompagnateur (DEMO.camille).",
+            "Envoyer POST /api/wiki/pages/tc-wiki-adv-<pid>/share."
+          ],
+          "attendu": "HTTP 403 (partage interdit hors admin).",
+          "tracabilite": "POST /api/wiki/pages/:slug/share"
+        },
+        {
+          "id": "TC-WIKI-020",
+          "titre": "Historique : chaque modification crée une nouvelle version (ordre décroissant)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat / vérification d'invariant (comptage et ordonnancement)",
+          "preconditions": "Session admin ; page tc-wiki-adv-<pid> existante avec historique de versions.",
+          "donnees": "Cookie admin ; deux PATCH successifs : { contenu_md: '# V1\\n\\nModif 1.' } puis { contenu_md: '# V2\\n\\nModif 2.' }.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Relever le nombre de versions via GET /api/wiki/pages/tc-wiki-adv-<pid>/versions (before).",
+            "Envoyer PATCH /api/wiki/pages/tc-wiki-adv-<pid> avec contenu V1.",
+            "Envoyer PATCH /api/wiki/pages/tc-wiki-adv-<pid> avec contenu V2.",
+            "Relire la liste des versions (after)."
+          ],
+          "attendu": "after.length = before + 2 ; les versions sont triées par numéro décroissant (after[0].version > after[1].version).",
+          "tracabilite": "PATCH /api/wiki/pages/:slug ; GET /api/wiki/pages/:slug/versions"
+        },
+        {
+          "id": "TC-WIKI-021",
+          "titre": "Restauration d'une version : remet le contenu de cette version (200)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat / test du cycle de vie (restauration)",
+          "preconditions": "Session admin ; page tc-wiki-adv-<pid> disposant de plusieurs versions, dont la plus ancienne au contenu initial '# V0'.",
+          "donnees": "Cookie admin ; v = version la plus ancienne (dernier élément de la liste) ; contenu de référence : full.contenu_md.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Lister les versions via GET /api/wiki/pages/tc-wiki-adv-<pid>/versions et sélectionner la plus ancienne.",
+            "Récupérer son contenu via GET /api/wiki/pages/tc-wiki-adv-<pid>/versions/<v.version>.",
+            "Envoyer POST /api/wiki/pages/tc-wiki-adv-<pid>/versions/<v.version>/restore."
+          ],
+          "attendu": "Le POST restore renvoie HTTP 200 ; restore.json.page.contenu_md est identique au contenu_md de la version restaurée.",
+          "tracabilite": "GET /api/wiki/pages/:slug/versions ; GET /api/wiki/pages/:slug/versions/:version ; POST /api/wiki/pages/:slug/versions/:version/restore"
+        },
+        {
+          "id": "TC-WIKI-022",
+          "titre": "Export global du wiki en Markdown et DOCX (admin, 200)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test du contrat (format/signature de sortie)",
+          "preconditions": "Session admin ; pandoc disponible côté serveur. Délai d'attente du test : 45 s.",
+          "donnees": "Cookie admin ; chemins : /api/wiki/export-all.md et /api/wiki/export-all.docx.",
+          "etapes": [
+            "S'authentifier en tant qu'admin.",
+            "Récupérer en binaire GET /api/wiki/export-all.md.",
+            "Récupérer en binaire GET /api/wiki/export-all.docx.",
+            "Vérifier content-type, contenu texte et signature."
+          ],
+          "attendu": "Export MD : HTTP 200, content-type contient 'markdown', le texte contient 'Sommaire'. Export DOCX : HTTP 200, signature des 4 premiers octets = 504b0304 (conteneur ZIP/.docx).",
+          "tracabilite": "GET /api/wiki/export-all.md ; GET /api/wiki/export-all.docx"
+        },
+        {
+          "id": "TC-WIKI-023",
+          "titre": "Export global réservé à l'admin : accès anonyme refusé (401)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de sécurité / contrôle d'accès",
+          "preconditions": "Aucune session authentifiée (anonyme).",
+          "donnees": "Session vierge ; chemin : /api/wiki/export-all.md.",
+          "etapes": [
+            "Créer une Session anonyme.",
+            "Envoyer GET /api/wiki/export-all.md."
+          ],
+          "attendu": "HTTP 401 (export global non autorisé sans authentification admin).",
+          "tracabilite": "GET /api/wiki/export-all.md"
+        }
+      ],
+      "areaKey": "wiki"
+    },
+    {
+      "area": "Double authentification (2FA TOTP, opt-in)",
+      "endpoints": [],
+      "cases": [
+        {
+          "id": "TC-2FA-001",
+          "titre": "Statut initial de la 2FA : désactivée pour un nouvel utilisateur",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "Test du contrat (vérification de l'état par défaut / partition d'équivalence : utilisateur sans 2FA)",
+          "preconditions": "Un compte de test jetable de rôle 'accompagne' est créé via l'admin de démo ; la 2FA n'a jamais été activée pour ce compte.",
+          "donnees": "Connexion avec { email, password } du compte de test (sans code TOTP).",
+          "etapes": [
+            "Ouvrir une session connectée pour le compte de test (POST /api/auth/login avec email + password).",
+            "Appeler GET /api/auth/2fa/status."
+          ],
+          "attendu": "HTTP 200 ; le corps JSON contient enabled = false.",
+          "tracabilite": "GET /api/auth/2fa/status"
+        },
+        {
+          "id": "TC-2FA-002",
+          "titre": "Setup renvoie un secret et un QR code ; l'activation exige un code TOTP valide",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "Test du contrat + partition d'équivalence (code invalide vs code valide)",
+          "preconditions": "Compte de test connecté ; 2FA non encore activée.",
+          "donnees": "POST /api/auth/2fa/setup (sans corps) ; POST /api/auth/2fa/enable avec { code: '000000' } (code invalide) puis avec { code: currentTotp(secret) } (code valide dérivé du secret renvoyé par le setup).",
+          "etapes": [
+            "Appeler POST /api/auth/2fa/setup.",
+            "Vérifier que setup.json.secret est une chaîne et que setup.json.qr commence par 'data:image/png;base64,'.",
+            "Mémoriser le secret retourné.",
+            "Appeler POST /api/auth/2fa/enable avec code '000000' (mauvais code).",
+            "Appeler POST /api/auth/2fa/enable avec le code TOTP courant calculé à partir du secret."
+          ],
+          "attendu": "Setup : HTTP 200, secret de type string et qr au format data URL PNG base64. Enable avec mauvais code : HTTP 401. Enable avec code valide : HTTP 200 et enabled = true.",
+          "tracabilite": "POST /api/auth/2fa/setup ; POST /api/auth/2fa/enable"
+        },
+        {
+          "id": "TC-2FA-003",
+          "titre": "Login sans code TOTP sur compte 2FA activée renvoie un challenge sans ouvrir de session",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "Test de sécurité / contrôle d'accès (vérification de l'absence d'authentification au stade challenge)",
+          "preconditions": "La 2FA est activée pour le compte de test (état laissé par TC-2FA-002).",
+          "donnees": "POST /api/auth/login avec { email, password } seulement (sans champ code).",
+          "etapes": [
+            "Ouvrir une nouvelle Session vierge.",
+            "Appeler POST /api/auth/login avec email + password (sans code).",
+            "Appeler GET /api/auth/me sur la même session."
+          ],
+          "attendu": "Login : HTTP 200 avec twofa = true (challenge). GET /api/auth/me : HTTP 401 (aucun cookie de session valide n'a été émis).",
+          "tracabilite": "POST /api/auth/login ; GET /api/auth/me"
+        },
+        {
+          "id": "TC-2FA-004",
+          "titre": "Login avec code TOTP valide authentifie l'utilisateur",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "Partition d'équivalence (classe valide : code TOTP correct)",
+          "preconditions": "La 2FA est activée pour le compte de test ; le secret TOTP est connu.",
+          "donnees": "POST /api/auth/login avec { email, password, code: currentTotp(secret) }.",
+          "etapes": [
+            "Ouvrir une nouvelle Session vierge.",
+            "Appeler POST /api/auth/login avec email + password + code TOTP courant.",
+            "Appeler GET /api/auth/me sur la même session."
+          ],
+          "attendu": "Login : HTTP 200 avec json.user.email égal à l'email du compte de test. GET /api/auth/me : HTTP 200 (session authentifiée établie).",
+          "tracabilite": "POST /api/auth/login ; GET /api/auth/me"
+        },
+        {
+          "id": "TC-2FA-005",
+          "titre": "Login avec code TOTP invalide est rejeté",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "Partition d'équivalence (classe invalide : code TOTP incorrect) / test de contrôle d'accès",
+          "preconditions": "La 2FA est activée pour le compte de test.",
+          "donnees": "POST /api/auth/login avec { email, password, code: '000000' } (code invalide).",
+          "etapes": [
+            "Ouvrir une nouvelle Session vierge.",
+            "Appeler POST /api/auth/login avec email + password + code '000000'."
+          ],
+          "attendu": "HTTP 401 (authentification refusée).",
+          "tracabilite": "POST /api/auth/login"
+        },
+        {
+          "id": "TC-2FA-006",
+          "titre": "Désactivation de la 2FA : code requis, puis retour à l'état initial (login sans code possible)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "Partition d'équivalence (code invalide vs valide) + test d'état (cycle activation/désactivation)",
+          "preconditions": "La 2FA est activée pour le compte de test ; le secret TOTP est connu. Une session authentifiée 2FA est ouverte via login complet (email + password + code TOTP).",
+          "donnees": "POST /api/auth/2fa/disable avec { code: '000000' } (invalide) puis avec { code: currentTotp(secret) } (valide). Puis nouvelle connexion avec { email, password } seulement.",
+          "etapes": [
+            "Ouvrir une session authentifiée 2FA (login avec email + password + code TOTP courant).",
+            "Appeler POST /api/auth/2fa/disable avec code '000000' (mauvais code).",
+            "Appeler POST /api/auth/2fa/disable avec le code TOTP courant valide.",
+            "Ouvrir une nouvelle session via POST /api/auth/login avec email + password (sans code).",
+            "Appeler GET /api/auth/me sur cette nouvelle session."
+          ],
+          "attendu": "Disable avec mauvais code : HTTP 401. Disable avec code valide : HTTP 200 et enabled = false. Après désactivation, login sans code réussit et GET /api/auth/me renvoie HTTP 200.",
+          "tracabilite": "POST /api/auth/2fa/disable ; POST /api/auth/login ; GET /api/auth/me"
+        }
+      ],
+      "areaKey": "twofa"
+    },
+    {
+      "area": "Sécurité — en-têtes/CSP, rate-limiting, sauvegardes SQLite",
+      "endpoints": [],
+      "cases": [
+        {
+          "id": "TC-SEC-001",
+          "titre": "Content-Security-Policy présente et restrictive sur /api/health",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "Test de sécurité (durcissement HTTP) / test du contrat d'en-têtes",
+          "preconditions": "La stack API est démarrée et accessible. L'endpoint public /api/health répond. Middleware helmet/CSP actif.",
+          "donnees": "Requête GET sans corps ni jeton, via une session anonyme (new Session()).",
+          "etapes": [
+            "Créer une session anonyme et envoyer GET /api/health",
+            "Vérifier le statut de la réponse",
+            "Lire l'en-tête de réponse 'content-security-policy'",
+            "Vérifier que la valeur de la CSP contient la directive default-src 'self'",
+            "Vérifier que la valeur de la CSP contient la directive object-src 'none'"
+          ],
+          "attendu": "Statut HTTP 200. L'en-tête content-security-policy est présent et contient à la fois \"default-src 'self'\" et \"object-src 'none'\".",
+          "tracabilite": "GET /api/health — middleware helmet/CSP (en-tête Content-Security-Policy)"
+        },
+        {
+          "id": "TC-SEC-002",
+          "titre": "En-têtes helmet de durcissement présents (nosniff et anti-clickjacking)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "Test de sécurité (durcissement HTTP) / test du contrat d'en-têtes",
+          "preconditions": "La stack API est démarrée et accessible. L'endpoint public /api/health répond. Middleware helmet actif.",
+          "donnees": "Requête GET sans corps ni jeton, via une session anonyme (new Session()).",
+          "etapes": [
+            "Créer une session anonyme et envoyer GET /api/health",
+            "Lire l'en-tête de réponse 'x-content-type-options'",
+            "Lire l'en-tête 'x-frame-options' ; à défaut, se rabattre sur la valeur de l'en-tête 'content-security-policy' (frame-ancestors)",
+            "Vérifier la protection anti-clickjacking via l'un ou l'autre"
+          ],
+          "attendu": "L'en-tête x-content-type-options vaut exactement 'nosniff'. Une protection anti-clickjacking est présente : soit l'en-tête X-Frame-Options, soit une CSP (valeur non vide / truthy).",
+          "tracabilite": "GET /api/health — middleware helmet (en-têtes X-Content-Type-Options, X-Frame-Options / CSP)"
+        },
+        {
+          "id": "TC-SEC-010",
+          "titre": "backupNow crée un fichier de sauvegarde SQLite horodaté",
+          "niveau": "unitaire",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "Partition d'équivalence (cas nominal) / test sur sortie attendue d'une fonction",
+          "preconditions": "Module api/src/backups disponible. Répertoire temporaire de sauvegarde créé (mkdtempSync sous tmpdir, préfixe 'boussole-bak-').",
+          "donnees": "Répertoire cible = répertoire temporaire 'boussole-bak-...'. Convention de nommage attendue : /boussole-.*\\.sqlite$/.",
+          "etapes": [
+            "Appeler backupNow(dir) sur le répertoire temporaire et récupérer le chemin du fichier produit",
+            "Vérifier l'existence du fichier retourné (existsSync)",
+            "Vérifier que le nom du fichier respecte le motif /boussole-.*\\.sqlite$/"
+          ],
+          "attendu": "La fonction retourne le chemin d'un fichier réellement créé (existsSync = true) dont le nom correspond au motif boussole-<horodatage>.sqlite.",
+          "tracabilite": "Module api/src/backups — fonction backupNow(dir)"
+        },
+        {
+          "id": "TC-SEC-011",
+          "titre": "purgeOldBackups respecte la politique de rétention des sauvegardes",
+          "niveau": "unitaire",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "Valeurs limites / partition d'équivalence sur le seuil de rétention (rien à purger vs tout à purger)",
+          "preconditions": "Module api/src/backups disponible. Répertoire temporaire de sauvegarde créé. Au moins une sauvegarde présente (créée via backupNow).",
+          "donnees": "Seuils de rétention testés : 9999 (aucun fichier assez ancien) puis -1 (tous les fichiers considérés trop anciens). Filtre fichiers via /boussole-.*\\.sqlite$/.",
+          "etapes": [
+            "Appeler backupNow(dir) pour garantir au moins une sauvegarde",
+            "Vérifier qu'il existe au moins un fichier de sauvegarde (count > 0)",
+            "Appeler purgeOldBackups(dir, 9999) et vérifier la valeur de retour",
+            "Appeler purgeOldBackups(dir, -1) et vérifier la valeur de retour",
+            "Recompter les fichiers de sauvegarde restants dans le répertoire"
+          ],
+          "attendu": "purgeOldBackups(dir, 9999) retourne 0 (aucune suppression, rien d'assez ancien). purgeOldBackups(dir, -1) retourne un nombre > 0 (au moins une suppression). Après purge à -1, il ne reste plus aucun fichier de sauvegarde (count = 0).",
+          "tracabilite": "Module api/src/backups — fonction purgeOldBackups(dir, retention)"
+        }
+      ],
+      "areaKey": "secu"
+    },
+    {
+      "area": "Protection CSRF (double-submit cookie)",
+      "endpoints": [],
+      "cases": [
+        {
+          "id": "TC-CSRF-001",
+          "titre": "Methode sure (GET) : la requete passe sans verification CSRF",
+          "niveau": "unitaire",
+          "type": "securite",
+          "priorite": "haute",
+          "technique": "Partition d'equivalence (classe des methodes sures GET/HEAD/OPTIONS) / test de controle d'acces",
+          "preconditions": "Middleware csrfProtect importe ; variable CSRF_DISABLED non positionnee a 1 ; requete et reponse simulees par des mocks (pas de serveur reel).",
+          "donnees": "Requete mockee : method = 'GET', aucun cookie csrf_token, aucun en-tete X-CSRF-Token.",
+          "etapes": [
+            "Construire une requete mockee via runCsrf('GET') (methode GET, cookies vides, get() retourne undefined pour x-csrf-token).",
+            "Appeler le middleware csrfProtect(req, res, next).",
+            "Observer l'objet retourne { status, nexted }."
+          ],
+          "attendu": "Le middleware appelle next() sans fixer de statut : resultat egal a { status: 0, nexted: true }. La methode sure n'est pas bloquee.",
+          "tracabilite": "Middleware csrfProtect (api/src/csrf.ts) — applique aux requetes /api/*"
+        },
+        {
+          "id": "TC-CSRF-002",
+          "titre": "Mutation POST sans en-tete X-CSRF-Token : rejet 403",
+          "niveau": "unitaire",
+          "type": "securite",
+          "priorite": "haute",
+          "technique": "Test de controle d'acces / partition d'equivalence (classe invalide : en-tete absent malgre presence du cookie)",
+          "preconditions": "Middleware csrfProtect importe ; CSRF_DISABLED non positionnee a 1 ; requete et reponse simulees par des mocks.",
+          "donnees": "Requete mockee : method = 'POST', cookie csrf_token = 'abc123', aucun en-tete X-CSRF-Token (header undefined).",
+          "etapes": [
+            "Construire la requete via runCsrf('POST', 'abc123') : POST, cookie present, en-tete absent.",
+            "Appeler csrfProtect(req, res, next).",
+            "Observer { status, nexted }."
+          ],
+          "attendu": "Le middleware fixe le statut 403 et n'appelle pas next() : resultat egal a { status: 403, nexted: false }. Reponse JSON d'erreur CSRF (jeton manquant ou invalide).",
+          "tracabilite": "Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/*"
+        },
+        {
+          "id": "TC-CSRF-003",
+          "titre": "Mutation POST avec en-tete different du cookie : rejet 403",
+          "niveau": "unitaire",
+          "type": "securite",
+          "priorite": "haute",
+          "technique": "Test de controle d'acces / partition d'equivalence (classe invalide : en-tete != cookie, non-correspondance double-submit)",
+          "preconditions": "Middleware csrfProtect importe ; CSRF_DISABLED non positionnee a 1 ; requete et reponse simulees par des mocks.",
+          "donnees": "Requete mockee : method = 'POST', cookie csrf_token = 'abc123', en-tete X-CSRF-Token = 'XXXXXX' (valeurs differentes).",
+          "etapes": [
+            "Construire la requete via runCsrf('POST', 'abc123', 'XXXXXX') : POST, cookie et en-tete tous deux presents mais distincts.",
+            "Appeler csrfProtect(req, res, next).",
+            "Observer { status, nexted }."
+          ],
+          "attendu": "Le middleware fixe le statut 403 et n'appelle pas next() : resultat egal a { status: 403, nexted: false }. La non-correspondance cookie/en-tete fait echouer la verification double-submit.",
+          "tracabilite": "Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/*"
+        },
+        {
+          "id": "TC-CSRF-004",
+          "titre": "Mutation POST avec en-tete egal au cookie : la requete passe",
+          "niveau": "unitaire",
+          "type": "securite",
+          "priorite": "haute",
+          "technique": "Test de controle d'acces / partition d'equivalence (classe valide : en-tete == cookie, correspondance double-submit)",
+          "preconditions": "Middleware csrfProtect importe ; CSRF_DISABLED non positionnee a 1 ; requete et reponse simulees par des mocks.",
+          "donnees": "Requete mockee : method = 'POST', cookie csrf_token = 'abc123', en-tete X-CSRF-Token = 'abc123' (valeurs identiques).",
+          "etapes": [
+            "Construire la requete via runCsrf('POST', 'abc123', 'abc123') : POST, cookie et en-tete identiques.",
+            "Appeler csrfProtect(req, res, next).",
+            "Observer { status, nexted }."
+          ],
+          "attendu": "Le middleware appelle next() sans fixer de statut : resultat egal a { status: 0, nexted: true }. La correspondance cookie == en-tete valide la requete mutante.",
+          "tracabilite": "Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/*"
+        }
+      ],
+      "areaKey": "csrf"
+    },
+    {
+      "area": "Observabilité — endpoint /api/metrics, journal d’erreurs",
+      "endpoints": [],
+      "cases": [
+        {
+          "id": "TC-OBS-001",
+          "titre": "Accès anonyme à /api/metrics refusé (401)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de sécurité / contrôle d'accès (utilisateur non authentifié)",
+          "preconditions": "API Boussole démarrée et accessible sur la base configurée (BOUSSOLE_BASE, défaut http://localhost:8080). Aucune session ouverte (pas de cookie boussole_token).",
+          "donnees": "Aucun corps de requête. Aucun cookie de session envoyé.",
+          "etapes": [
+            "Créer une nouvelle Session sans authentification (aucun cookie).",
+            "Envoyer GET /api/metrics."
+          ],
+          "attendu": "Réponse HTTP 401 (non authentifié).",
+          "tracabilite": "GET /api/metrics"
+        },
+        {
+          "id": "TC-OBS-002",
+          "titre": "Accès à /api/metrics interdit pour un accompagnateur (403)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de contrôle d'accès basé sur les rôles (utilisateur authentifié non administrateur)",
+          "preconditions": "API démarrée. Le compte de démo accompagnateur 'camille' (camille.laurent@boussole.demo) existe et peut se connecter.",
+          "donnees": "Session authentifiée en tant qu'accompagnateur DEMO.camille. Aucun corps de requête.",
+          "etapes": [
+            "Se connecter via asUser(DEMO.camille) (POST /api/auth/login) pour obtenir une session accompagnateur.",
+            "Envoyer GET /api/metrics avec le cookie de session."
+          ],
+          "attendu": "Réponse HTTP 403 (authentifié mais rôle non autorisé : endpoint réservé à l'administrateur).",
+          "tracabilite": "GET /api/metrics"
+        },
+        {
+          "id": "TC-OBS-003",
+          "titre": "Accès admin à /api/metrics : 200 et forme des métriques",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat (vérification du statut et de la structure de la réponse)",
+          "preconditions": "API démarrée. Le compte de démo administrateur 'admin' (mohamed@elafrit.com) existe et peut se connecter.",
+          "donnees": "Session authentifiée en tant qu'administrateur DEMO.admin. Aucun corps de requête.",
+          "etapes": [
+            "Se connecter via asUser(DEMO.admin) (POST /api/auth/login) pour obtenir une session administrateur.",
+            "Envoyer GET /api/metrics avec le cookie de session.",
+            "Inspecter le statut et le corps JSON de la réponse."
+          ],
+          "attendu": "Réponse HTTP 200. Le corps JSON contient : uptime_s de type number ; requests possédant la propriété 'total' ; db possédant la propriété 'users'.",
+          "tracabilite": "GET /api/metrics"
+        },
+        {
+          "id": "TC-OBS-010",
+          "titre": "metrics() renvoie la forme attendue de l'objet de métriques",
+          "niveau": "unitaire",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test du contrat (vérification de la structure / des types de la valeur de retour)",
+          "preconditions": "Module api/src/observability importable. Fonction metrics() exportée et appelable.",
+          "donnees": "Aucune donnée d'entrée (appel sans argument).",
+          "etapes": [
+            "Importer metrics depuis api/src/observability.",
+            "Appeler m = metrics().",
+            "Vérifier les types et propriétés du résultat."
+          ],
+          "attendu": "m.uptime_s est de type number ; m.requests possède les propriétés 'total' et '5xx' ; m.db possède la propriété 'users' ; m.errors_logged est de type number.",
+          "tracabilite": "module api/src/observability — fonction metrics()"
+        },
+        {
+          "id": "TC-OBS-011",
+          "titre": "reportError persiste une erreur et incrémente le compteur errors_logged",
+          "niveau": "unitaire",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test fonctionnel d'effet de bord (état avant/après : incrément du compteur du journal d'erreurs)",
+          "preconditions": "Module api/src/observability importable. Fonctions metrics() et reportError() exportées. Journal d'erreurs (error_log) accessible.",
+          "donnees": "Erreur new Error('erreur de test') et contexte { method: 'POST', path: '/api/test', status: 500, userId: null }.",
+          "etapes": [
+            "Lire le compteur initial : before = metrics().errors_logged.",
+            "Appeler reportError(new Error('erreur de test'), { method: 'POST', path: '/api/test', status: 500, userId: null }).",
+            "Relire metrics().errors_logged."
+          ],
+          "attendu": "Après l'appel, metrics().errors_logged vaut before + 1 (l'erreur a bien été persistée dans error_log).",
+          "tracabilite": "module api/src/observability — fonction reportError() / journal error_log"
+        }
+      ],
+      "areaKey": "obs"
     }
   ]
 }
