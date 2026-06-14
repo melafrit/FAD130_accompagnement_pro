@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+// Section « Présentation orale » — fusionnée à la fin de la page Méthode (l'ancienne page
+// /presentation a été supprimée). Conserve sa logique d'onglets (questions + démo).
+
 interface PointCle { titre: string; detail: string }
 interface Matrice { attention: string; autorise: string; interdit: string; pasEncore: string; pourquoi: string }
 interface QPres {
@@ -94,15 +97,14 @@ const MATRICE_CELLS: { key: keyof Matrice; cls: string; icon: string; label: str
 ]
 
 const DEMO_PWD = 'BoussoleDemo2026'
-// Page publique : on n'expose que les comptes de démo dédiés (@boussole.demo).
-// Les comptes admin et les adresses personnelles ne sont pas affichés ici.
+// On n'expose que les comptes de démo dédiés (@boussole.demo) ; ni admin ni adresses personnelles.
 const DEMO_ACCOUNTS: { role: string; nom: string; email: string }[] = [
   { role: 'Accompagnateur', nom: 'Camille Laurent', email: 'camille.laurent@boussole.demo' },
   { role: 'Accompagné', nom: 'Léa Martin', email: 'lea.martin@boussole.demo' },
   { role: 'Accompagné', nom: 'Karim Benali', email: 'karim.benali@boussole.demo' },
 ]
 
-export default function Presentation() {
+export default function PresentationSection() {
   const [q, setQ] = useState(0)
   const [openPoint, setOpenPoint] = useState<number | null>(null)
   const [showPourquoi, setShowPourquoi] = useState(false)
@@ -115,11 +117,11 @@ export default function Presentation() {
   }
 
   return (
-    <article className="page presentation">
-      <p className="kicker">FAD130 · Support de l’oral</p>
-      <h1 className="page-title">Présentation orale</h1>
+    <section className="presentation" data-tour="presentation">
+      <h2>Présentation orale (FAD130)</h2>
+      <p className="lead">Ma posture, mes méthodes et le rôle social de ma fonction — le support de l’oral, suivi des comptes de démonstration.</p>
 
-      <section className="ia-section">
+      <div className="ia-section">
         <div className="phase-tabs">
           {QUESTIONS.map((ph, i) => (
             <button key={i} className={`phase-tab ${i === q ? 'active' : ''} ${i < q ? 'done' : ''}`} onClick={() => goto(i)}>
@@ -168,7 +170,7 @@ export default function Presentation() {
                 {item.ancrages.map((a, i) => <span key={i} className="pres-chip">{a}</span>)}
               </div>
               <div className="pres-preuves"><span className="pres-meta-lbl">Preuves :</span>
-                {item.preuves.map((p, i) => <Link key={i} className="pres-chip pres-chip-link" to={p.to}>{p.label} →</Link>)}
+                {item.preuves.map((pr, i) => <Link key={i} className="pres-chip pres-chip-link" to={pr.to}>{pr.label} →</Link>)}
               </div>
             </div>
 
@@ -203,7 +205,7 @@ export default function Presentation() {
             </div>
           </div>
         )}
-      </section>
-    </article>
+      </div>
+    </section>
   )
 }

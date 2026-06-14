@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PresentationSection from '../components/PresentationSection'
 
 const FLOW = [
   ['Inscription & consentement', 'L’utilisateur crée son compte, valide son email et accepte les CGU / la politique de confidentialité.'],
@@ -258,6 +259,9 @@ export default function Methode() {
           <li><strong>Elle respecte les 8 principes</strong> ci-dessus (intégrés à ses garde-fous).</li>
         </ul>
       </section>
+
+      {/* Présentation orale (fusionnée depuis l'ancienne page /presentation) */}
+      <PresentationSection />
     </article>
   )
 }
