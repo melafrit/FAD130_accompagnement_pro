@@ -2,6 +2,29 @@
 
 > Identifiant : BOUSSOLE-RAP-001. Historique des exécutions de la batterie de non-régression (le plus récent en premier).
 
+## Exécution du 2026-06-14 19:15:12
+
+**Verdict : ✅ VERT** — 1025/1030 tests au vert.
+
+| Couche | Total | Réussis | Échecs |
+|---|---|---|---|
+| Unitaire | 98 | 96 | 0 |
+| API | 828 | 828 | 0 |
+| UI (Playwright) | 104 | 101 | 0 |
+
+## Exécution du 2026-06-14 18:57:44
+
+**Verdict : ❌ ROUGE** — 1023/1030 tests au vert.
+
+| Couche | Total | Réussis | Échecs |
+|---|---|---|---|
+| Unitaire | 98 | 96 | 0 |
+| API | 828 | 827 | 1 |
+| UI (Playwright) | 104 | 100 | 1 |
+
+**Échecs :**
+- collab — mutualisation, problématisation & résumé TC-COLLAB-042 — problématisation suggerer : repli heuristique déterministe (si IA indisponible) (collab.test.ts)
+
 ## Exécution du 2026-06-14 18:37:59
 
 **Verdict : ✅ VERT** — 1025/1030 tests au vert.

@@ -62,7 +62,11 @@ let prevSections = ''
 try {
   const existing = fs.readFileSync(reportPath, 'utf8')
   const idx = existing.indexOf('## Exécution')
-  if (idx >= 0) prevSections = '\n' + existing.slice(idx)
+  if (idx >= 0) {
+    prevSections = '\n' + existing.slice(idx)
+    // Auto-réparation : retire d'éventuels bandeaux glissés ENTRE des sections d'exécution.
+    prevSections = prevSections.replace(/\n?# Rapport d['’]exécution — Boussole\n\n> Identifiant : BOUSSOLE-RAP-001\.[^\n]*\n/g, '')
+  }
 } catch { /* premier rapport */ }
 fs.mkdirSync(DOCS, { recursive: true })
 fs.writeFileSync(reportPath, header + section + prevSections)
