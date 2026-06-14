@@ -421,6 +421,11 @@ test.describe('ACCOMPAGNÉ — Comptes rendus & synthèse', () => {
     await page.goto('/mes-comptes-rendus')
     await expect(page.getByRole('heading', { name: 'Mes comptes rendus' })).toBeVisible()
 
+    // Attendre que la liste soit CHARGÉE (un « Consulter » OU le message d'état vide) avant de
+    // brancher : sinon la lecture de count() peut précéder le chargement asynchrone (flaky).
+    await expect(
+      page.getByRole('button', { name: 'Consulter' }).or(page.getByText('Aucun compte rendu pour l’instant.')).first(),
+    ).toBeVisible()
     const consulter = page.getByRole('button', { name: 'Consulter' })
     if (await consulter.count() > 0) {
       await consulter.first().click()

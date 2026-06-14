@@ -55,13 +55,17 @@ if (allFailures.length) {
 
 const reportPath = path.join(DOCS, '04-Rapport-execution.md')
 const header = `# Rapport d'exécution — Boussole\n\n> Identifiant : BOUSSOLE-RAP-001. Historique des exécutions de la batterie de non-régression (le plus récent en premier).\n`
-let prev = ''
-// Retire TOUTES les occurrences du bandeau (sinon des en-têtes dupliqués s'accumulent au fil des
-// exécutions). Regex tolérante à l'apostrophe (droite ' ou typographique ’) pour ne rien laisser passer.
-const HEADER_RE = /# Rapport d['’]exécution — Boussole\n\n> Identifiant : BOUSSOLE-RAP-001\.[^\n]*\n/g
-try { prev = fs.readFileSync(reportPath, 'utf8').replace(HEADER_RE, '') } catch { /* premier rapport */ }
+// On ne conserve QUE les sections d'exécution existantes (tout ce qui suit le 1er « ## Exécution »),
+// en ignorant tout bandeau précédent : impossible d'accumuler des en-têtes dupliqués (robuste aux
+// fins de ligne et à l'apostrophe).
+let prevSections = ''
+try {
+  const existing = fs.readFileSync(reportPath, 'utf8')
+  const idx = existing.indexOf('## Exécution')
+  if (idx >= 0) prevSections = '\n' + existing.slice(idx)
+} catch { /* premier rapport */ }
 fs.mkdirSync(DOCS, { recursive: true })
-fs.writeFileSync(reportPath, header + section + prev)
+fs.writeFileSync(reportPath, header + section + prevSections)
 
 // Rafraîchit la matrice de traçabilité (couverture par scan des IDs dans les tests)
 try { execSync('node scripts/build-catalog.mjs', { cwd: ROOT, stdio: 'ignore' }) } catch { /* ignore */ }
