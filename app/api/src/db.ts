@@ -215,6 +215,9 @@ for (const stmt of [
   'ALTER TABLE demandes_effacement ADD COLUMN action TEXT',
   // Wiki : jeton de partage public en lecture seule (NULL = non partagé)
   'ALTER TABLE wiki_pages ADD COLUMN public_token TEXT',
+  // 2FA TOTP (opt-in) : secret et activation par utilisateur
+  'ALTER TABLE users ADD COLUMN totp_secret TEXT',
+  'ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0',
 ]) {
   try {
     db.exec(stmt)

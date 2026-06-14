@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { api } from '../lib/api'
 import PushToggle from '../components/PushToggle'
+import TwoFactorSettings from '../components/TwoFactorSettings'
 
 export default function Profil() {
   const { user, refresh } = useAuth()
@@ -73,6 +74,12 @@ export default function Profil() {
           <p className="hint">Un lien de confirmation sera envoyé à la nouvelle adresse. Le changement ne prend effet qu’après confirmation (l’ancienne adresse reste active entre-temps).</p>
           <div className="profil-actions"><button className="btn btn-primary" type="submit">Changer l’e-mail</button>{emailMsg && <span className="profil-msg">{emailMsg}</span>}</div>
         </form>
+      </section>
+
+      <section className="profil-card">
+        <h2>Double authentification (2FA)</h2>
+        <p className="muted">Renforce la sécurité de votre compte avec un code temporaire généré par une application d’authentification.</p>
+        <TwoFactorSettings />
       </section>
 
       <section className="profil-card">

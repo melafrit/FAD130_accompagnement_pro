@@ -6,6 +6,7 @@ import { db } from './db'
 import { makeToken, expiryHours } from './util'
 import { sendEmail, verificationEmail, resetEmail } from './mailer'
 import { userFeatures } from './features'
+import { genTotpSecret, verifyTotp, otpauthUri, qrDataUrl } from './totp'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me'
 const COOKIE = 'boussole_token'
@@ -26,6 +27,8 @@ interface UserRow {
   prenom: string | null
   email_verifie: number
   actif: number
+  totp_secret: string | null
+  totp_enabled: number
 }
 
 interface TokenRow { id: number; user_id: number; expire_le: string }
@@ -133,7 +136,7 @@ router.get('/verify-email', (req: Request, res: Response) => {
 
 // --- Connexion ---
 router.post('/login', async (req: Request, res: Response) => {
-  const parsed = z.object({ email: z.string().email(), password: z.string() }).safeParse(req.body)
+  const parsed = z.object({ email: z.string().email(), password: z.string(), code: z.string().optional() }).safeParse(req.body)
   if (!parsed.success) {
     res.status(400).json({ error: 'Données invalides' })
     return
@@ -155,6 +158,12 @@ router.post('/login', async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Email non vérifié. Consultez votre boîte mail.' })
     return
   }
+  // Double authentification (opt-in) : si activée, un code TOTP valide est requis.
+  if (user.totp_enabled) {
+    const code = (parsed.data.code || '').trim()
+    if (!code) { res.json({ twofa: true }); return } // challenge : on n'émet PAS de cookie
+    if (!verifyTotp(user.totp_secret || '', code)) { res.status(401).json({ error: 'Code de vérification incorrect' }); return }
+  }
   setAuthCookie(res, { id: user.id, email: user.email, role: user.role })
   db.prepare("UPDATE users SET dernier_acces = datetime('now') WHERE id = ?").run(user.id)
   res.json({ user: { id: user.id, email: user.email, role: user.role, nom: user.nom, prenom: user.prenom } })
@@ -169,8 +178,50 @@ router.post('/logout', (_req: Request, res: Response) => {
 // --- Profil courant ---
 router.get('/me', requireAuth, (req: Request, res: Response) => {
   const u = (req as ReqUser).user as SessionUser
-  const row = db.prepare('SELECT id, email, role, nom, prenom FROM users WHERE id = ?').get(u.id)
-  res.json({ user: row })
+  const row = db.prepare('SELECT id, email, role, nom, prenom, totp_enabled FROM users WHERE id = ?').get(u.id) as
+    | { totp_enabled: number }
+    | undefined
+  res.json({ user: row ? { ...row, totp_enabled: !!row.totp_enabled } : row })
+})
+
+// --- Double authentification (TOTP, opt-in) ---
+router.get('/2fa/status', requireAuth, (req: Request, res: Response) => {
+  const u = (req as ReqUser).user as SessionUser
+  const row = db.prepare('SELECT totp_enabled FROM users WHERE id=?').get(u.id) as { totp_enabled: number } | undefined
+  res.json({ enabled: !!row?.totp_enabled })
+})
+
+// Démarre la configuration : génère un secret (en attente) et renvoie le QR à scanner.
+router.post('/2fa/setup', requireAuth, async (req: Request, res: Response) => {
+  const u = (req as ReqUser).user as SessionUser
+  const row = db.prepare('SELECT totp_enabled FROM users WHERE id=?').get(u.id) as { totp_enabled: number } | undefined
+  if (row?.totp_enabled) { res.status(409).json({ error: 'La double authentification est déjà activée' }); return }
+  const secret = genTotpSecret()
+  db.prepare('UPDATE users SET totp_secret=? WHERE id=?').run(secret, u.id)
+  const uri = otpauthUri(u.email, secret)
+  res.json({ secret, otpauth: uri, qr: await qrDataUrl(uri) })
+})
+
+// Active la 2FA après vérification d'un premier code (preuve que l'app est bien configurée).
+router.post('/2fa/enable', requireAuth, (req: Request, res: Response) => {
+  const u = (req as ReqUser).user as SessionUser
+  const row = db.prepare('SELECT totp_secret, totp_enabled FROM users WHERE id=?').get(u.id) as { totp_secret: string | null; totp_enabled: number } | undefined
+  if (row?.totp_enabled) { res.status(409).json({ error: 'Déjà activée' }); return }
+  if (!row?.totp_secret) { res.status(400).json({ error: 'Lancez d’abord la configuration' }); return }
+  const code = String(req.body?.code || '').trim()
+  if (!verifyTotp(row.totp_secret, code)) { res.status(401).json({ error: 'Code incorrect' }); return }
+  db.prepare('UPDATE users SET totp_enabled=1 WHERE id=?').run(u.id)
+  res.json({ enabled: true })
+})
+
+// Désactive la 2FA (exige un code valide si elle est active).
+router.post('/2fa/disable', requireAuth, (req: Request, res: Response) => {
+  const u = (req as ReqUser).user as SessionUser
+  const row = db.prepare('SELECT totp_secret, totp_enabled FROM users WHERE id=?').get(u.id) as { totp_secret: string | null; totp_enabled: number } | undefined
+  const code = String(req.body?.code || '').trim()
+  if (row?.totp_enabled && !verifyTotp(row.totp_secret || '', code)) { res.status(401).json({ error: 'Code incorrect' }); return }
+  db.prepare('UPDATE users SET totp_enabled=0, totp_secret=NULL WHERE id=?').run(u.id)
+  res.json({ enabled: false })
 })
 
 // --- Fonctionnalités activées pour l'utilisateur courant (selon son plan ; aucun plan = tout) ---
