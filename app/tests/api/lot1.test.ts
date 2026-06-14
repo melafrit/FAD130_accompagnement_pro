@@ -472,7 +472,7 @@ describe('PATCH /api/admin/plans/:id', () => {
     expect(list.find((p: any) => p.id === id).nom).toBe(nomInitial)
   })
 
-  it("TC-LOT1-036 — plan socle protégé : PATCH/DELETE → 403, flag builtin exposé, plan intact", async () => {
+  it("TC-LOT1-070 — plan socle protégé : PATCH/DELETE → 403, flag builtin exposé, plan intact", async () => {
     const list = await fetchPlans()
     const pro = list.find((p: any) => p.nom === 'Pro')
     expect(pro).toBeDefined()

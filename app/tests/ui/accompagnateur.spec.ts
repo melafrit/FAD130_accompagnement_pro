@@ -191,9 +191,9 @@ test.describe('Dossier', () => {
     await expect(page.locator('.timeline')).toHaveCount(0)
   })
 
-  // TC-UI-128 — régression : une modale ouverte alors que la page est SCROLLÉE reste ancrée au
+  // TC-UI-370 — régression : une modale ouverte alors que la page est SCROLLÉE reste ancrée au
   // viewport (non coupée). Garde-fou contre le retour du bloc englobant créé par .page (transform).
-  test('TC-UI-128 — modale non coupée quand la page est scrollée (Dossier)', async ({ page }) => {
+  test('TC-UI-370 — modale non coupée quand la page est scrollée (Dossier)', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 520 }) // viewport court → la page défile
     await login(page, DEMO.mohamed)
     const id = await dossierAccId(page, 'Amine')

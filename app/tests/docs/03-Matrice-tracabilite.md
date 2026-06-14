@@ -1,6 +1,6 @@
 # Matrice de traçabilité — Boussole
 
-> Identifiant : BOUSSOLE-MAT-001 · 1265 cas · 1070 automatisés (85%).
+> Identifiant : BOUSSOLE-MAT-001 · 1273 cas · 1078 automatisés (85%).
 > Régénérée à chaque exécution (un cas est « automatisé » dès que son ID apparaît dans le code de test).
 
 ## Synthèse de couverture par domaine
@@ -9,13 +9,13 @@
 |---|---|---|---|
 | AUTH | 69 | 58 | 84% |
 | QUEST | 34 | 29 | 85% |
-| RDV | 66 | 59 | 89% |
+| RDV | 67 | 60 | 90% |
 | ENTR | 84 | 76 | 90% |
 | CR | 75 | 67 | 89% |
 | ACTNOTIF | 74 | 66 | 89% |
 | DOSSIER | 85 | 68 | 80% |
 | RELEMERG | 100 | 86 | 86% |
-| LOT1 | 63 | 53 | 84% |
+| LOT1 | 64 | 54 | 84% |
 | PILOT | 59 | 24 | 41% |
 | REFLEX | 72 | 67 | 93% |
 | COLLAB | 64 | 53 | 83% |
@@ -32,8 +32,10 @@
 | CSRF | 4 | 4 | 100% |
 | OBS | 6 | 6 | 100% |
 | MON | 6 | 6 | 100% |
-| A11Y | 9 | 9 | 100% |
-| **Total** | **1265** | **1070** | **85%** |
+| A11Y | 8 | 8 | 100% |
+| SETTINGS | 4 | 4 | 100% |
+| UI_DIVERS | 3 | 3 | 100% |
+| **Total** | **1273** | **1078** | **85%** |
 
 ## Détail (cas ↔ fonctionnalité/endpoint ↔ test automatisé)
 
@@ -208,6 +210,7 @@
 | TC-RDV-064 | UI | moyenne | RendezVous ; RendezVous.tsx ligne 59 / ParcoursDetail.tsx ligne 118 ; GET /api/rdv/:id/ics | ⏳ |
 | TC-RDV-065 | UI | moyenne | RendezVous ; App.tsx Protected (lignes 113-114) ; pages Creneaux.tsx / RendezVous.tsx | ⏳ |
 | TC-RDV-066 | API | basse | features.ts:rdv (clé définie mais non câblée) ; mount /api/rdv (index.ts:45) sans requireFeature | ✅ api/rdv.test.ts |
+| TC-RDV-080 | API | haute | GET /api/dossiers/:id et /:id/synthese (dossier.ts), syntheseData (synthese.ts) — filtre r.dossier_id | ✅ api/rdv.test.ts |
 | TC-ENTR-001 | API | haute | entretien \| GET /api/entretien/phases | ✅ api/entr.test.ts |
 | TC-ENTR-002 | API | moyenne | entretien \| GET /api/entretien/phases | ✅ api/entr.test.ts |
 | TC-ENTR-003 | API | haute | entretien \| GET /api/entretien/phases | ✅ api/entr.test.ts |
@@ -689,6 +692,7 @@
 | TC-LOT1-061 | UI | haute | FeaturesContext.tsx useFeature — GET /api/auth/me/features | ⏳ |
 | TC-LOT1-062 | UI | moyenne | FeaturesContext.tsx — GET /api/auth/me/features | ⏳ |
 | TC-LOT1-063 | Unitaire | basse | userFeatures branche !row (features.ts) | ⏳ |
+| TC-LOT1-070 | API | haute | BUILTIN_PLAN_NAMES (seed.ts) ; gardes PATCH/DELETE /api/admin/plans/:id (admin.ts) | ✅ api/lot1.test.ts |
 | TC-PILOT-001 | API | haute | signaux_faibles · GET /api/pilotage/signaux | ✅ api/pilot.test.ts |
 | TC-PILOT-002 | API | haute | signaux_faibles · GET /api/pilotage/signaux | ✅ api/pilot.test.ts |
 | TC-PILOT-003 | API | haute | requireAuth · GET /api/pilotage/signaux | ✅ api/pilot.test.ts |
@@ -1044,9 +1048,9 @@
 | TC-ADOPT-009 | API | basse | feature falc — POST /api/adoption/falc (String(...)) | ✅ api/adopt.test.ts |
 | TC-ADOPT-010 | API | haute | requireAuth — POST /api/adoption/falc | ✅ api/adopt.test.ts |
 | TC-ADOPT-011 | API | moyenne | requireAuth — POST /api/adoption/falc | ✅ api/adopt.test.ts |
-| TC-ADOPT-012 | API | haute | requireFeature('falc') — POST /api/adoption/falc | ✅ api/adopt.test.ts |
-| TC-ADOPT-013 | API | haute | requireFeature('falc') / userFeatures — POST /api/adoption/falc | ✅ api/adopt.test.ts |
-| TC-ADOPT-014 | API | moyenne | requireFeature('falc') — POST /api/adoption/falc | ✅ api/adopt.test.ts |
+| TC-ADOPT-012 | API | haute | getFlag('falc_enabled') — POST /api/adoption/falc | ✅ api/adopt.test.ts |
+| TC-ADOPT-013 | API | haute | getFlag('falc_enabled') — POST /api/adoption/falc | ✅ api/adopt.test.ts |
+| TC-ADOPT-014 | API | moyenne | getFlag('falc_enabled') — POST /api/adoption/falc | ✅ api/adopt.test.ts |
 | TC-ADOPT-015 | API | moyenne | requireAuth + requireFeature('falc') — POST /api/adoption/falc | ✅ api/adopt.test.ts |
 | TC-ADOPT-016 | Unitaire | haute | adoption.ts — falcFallback() | ✅ unit/adoption.test.ts |
 | TC-ADOPT-017 | Unitaire | moyenne | adoption.ts — falcFallback() (filter p.length>3) | ✅ unit/adoption.test.ts |
@@ -1299,8 +1303,14 @@
 | TC-A11Y-002 | UI | moyenne | UI /connexion — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-003 | UI | moyenne | UI /inscription — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-004 | UI | moyenne | UI /methode — accessibilité | ✅ ui/accessibility.spec.ts |
-| TC-A11Y-005 | UI | moyenne | UI /presentation — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-006 | UI | moyenne | UI /accessibilite — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-010 | UI | moyenne | UI /espace — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-011 | UI | moyenne | UI /admin — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-012 | UI | moyenne | UI /admin/wiki — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-SET-001 | API | haute | GET /api/admin/settings (requireRole admin) | ✅ api/settings.test.ts |
+| TC-SET-002 | API | haute | GET /api/admin/settings (requireRole admin) | ✅ api/settings.test.ts |
+| TC-SET-003 | API | haute | GET /api/admin/settings — allSettings() (settings.ts) | ✅ api/settings.test.ts |
+| TC-SET-004 | API | haute | PATCH /api/admin/settings (setFlag) + /api/context (publicFlags) | ✅ api/settings.test.ts |
+| TC-UI-370 | UI | moyenne | .page sans bloc englobant / contexte d'empilement persistant ; .modal-overlay position:fixed (index.css) | ✅ ui/accompagnateur.spec.ts |
+| TC-UI-371 | UI | moyenne | AuthMenu (événement boussole:tour) → OnboardingManager.launchCurrent → tours.ts | ✅ ui/tour.spec.ts |
+| TC-UI-372 | UI | moyenne | OnboardingManager (prompt 1re visite, localStorage boussole_tour_<clé>) ; tours.ts | ✅ ui/tour.spec.ts |

@@ -2881,6 +2881,22 @@
           ],
           "attendu": "Les endpoints répondent normalement (200/201) : le routeur /api/rdv n'applique AUCUN requireFeature('rdv') ; le gating par offre n'est donc pas effectif sur ce domaine (écart à documenter). Aucune réponse 403 'Fonctionnalité non disponible'.",
           "tracabilite": "features.ts:rdv (clé définie mais non câblée) ; mount /api/rdv (index.ts:45) sans requireFeature"
+        },
+        {
+          "id": "TC-RDV-080",
+          "titre": "Isolation multi-parcours (anti-IDOR) : un dossier ne révèle QUE ses propres RDV",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de contrôle d'accès / IDOR (cloisonnement des données entre parcours d'un même accompagné)",
+          "preconditions": "Un accompagné (testP) a DEUX parcours avec deux accompagnateurs distincts (dossierP_A avec accA, dossierP_B avec accB). Un RDV est réservé sous chaque parcours.",
+          "donnees": "Réservations : créneau de accA sous dossierP_A ; créneau de accB sous dossierP_B.",
+          "etapes": [
+            "testP réserve un RDV sous dossierP_A (créneau accA) et un sous dossierP_B (créneau accB).",
+            "accA consulte GET /api/dossiers/{dossierP_A} et GET /api/dossiers/{dossierP_A}/synthese."
+          ],
+          "attendu": "Les RDV remontés ne contiennent QUE celui de dossierP_A (filtrage par r.dossier_id) ; le RDV de dossierP_B n'apparaît jamais, ni dans le détail ni dans la synthèse.",
+          "tracabilite": "GET /api/dossiers/:id et /:id/synthese (dossier.ts), syntheseData (synthese.ts) — filtre r.dossier_id"
         }
       ],
       "areaKey": "rdv"
@@ -11149,6 +11165,23 @@
           "attendu": "La requête JOIN ne renvoie aucune ligne (pas de plan) → Set = ALL_FEATURE_KEYS (niveau max).",
           "technique": "test unitaire ; couverture de branche (row undefined)",
           "tracabilite": "userFeatures branche !row (features.ts)"
+        },
+        {
+          "id": "TC-LOT1-070",
+          "titre": "Plan socle protégé : PATCH/DELETE → 403, flag builtin exposé, plan intact",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de contrôle d'accès (verrou des plans socle gérés par le code)",
+          "preconditions": "Les 3 plans socle (Découverte/Essentiel/Pro) sont réalignés au démarrage ; admin connecté.",
+          "donnees": "Le plan « Pro » récupéré via GET /api/admin/plans.",
+          "etapes": [
+            "GET /api/admin/plans : repérer « Pro » et son flag builtin.",
+            "PATCH /api/admin/plans/{idPro} puis DELETE /api/admin/plans/{idPro}.",
+            "Re-lire la liste des plans."
+          ],
+          "attendu": "builtin = true ; PATCH et DELETE renvoient 403 ; le plan « Pro » reste présent et inchangé (mêmes fonctionnalités).",
+          "tracabilite": "BUILTIN_PLAN_NAMES (seed.ts) ; gardes PATCH/DELETE /api/admin/plans/:id (admin.ts)"
         }
       ],
       "areaKey": "lot1"
@@ -17165,51 +17198,52 @@
         },
         {
           "id": "TC-ADOPT-012",
-          "titre": "FALC gating : utilisateur sur plan sans 'falc' → 403",
+          "titre": "FALC gating négatif : réglage global désactivé → 403 pour tout le monde",
           "niveau": "api",
           "type": "acces",
           "priorite": "haute",
-          "preconditions": "Un compte affecté à un plan dont la liste de features NE contient PAS 'falc' (ex. plan Découverte/socle si falc absent, ou plan créé sans 'falc'). Connecté avec ce compte.",
+          "preconditions": "Le mode FALC est piloté par un réglage GLOBAL admin (falc_enabled), désactivé par défaut. On le désactive le temps du test.",
           "donnees": "Body { \"texte\": \"Texte de test.\" }",
           "etapes": [
-            "POST /api/adoption/falc avec une session valide mais sans la feature falc dans le plan",
-            "Lire le statut et le corps"
+            "PATCH /api/admin/settings { falc_enabled: false }",
+            "POST /api/adoption/falc avec une session valide (n'importe quel compte)",
+            "Lire le statut et le corps, puis réactiver le réglage"
           ],
-          "attendu": "HTTP 403 ; { error: 'Fonctionnalité non disponible dans votre offre' } (requireFeature('falc') bloque).",
-          "technique": "Test basé sur les rôles / requireFeature",
-          "tracabilite": "requireFeature('falc') — POST /api/adoption/falc"
+          "attendu": "HTTP 403 ; message évoquant « facile à lire » (l'endpoint est gardé par le drapeau global falc_enabled).",
+          "technique": "Test de contrôle d'accès (réglage global)",
+          "tracabilite": "getFlag('falc_enabled') — POST /api/adoption/falc"
         },
         {
           "id": "TC-ADOPT-013",
-          "titre": "FALC gating positif : compte sans plan a accès (aucun plan = tout activé)",
+          "titre": "FALC gating positif : réglage global actif, compte sans plan → 200",
           "niveau": "api",
           "type": "acces",
           "priorite": "haute",
-          "preconditions": "Compte démo sans plan affecté (ex. accompagne Amine) — userFeatures renvoie ALL_FEATURE_KEYS.",
+          "preconditions": "Réglage global falc_enabled activé (en beforeAll). Compte démo sans plan (ex. accompagne Amine).",
           "donnees": "Body { \"texte\": \"Texte de test.\" }",
           "etapes": [
-            "POST /api/adoption/falc avec ce compte",
-            "Lire le statut"
-          ],
-          "attendu": "HTTP 200 (la feature 'falc' est implicitement accordée car userFeatures renvoie toutes les clés quand u.plan_id est nul).",
-          "technique": "Test basé sur les rôles (cas par défaut)",
-          "tracabilite": "requireFeature('falc') / userFeatures — POST /api/adoption/falc"
-        },
-        {
-          "id": "TC-ADOPT-014",
-          "titre": "FALC gating positif : plan Pro (toutes features) a accès",
-          "niveau": "api",
-          "type": "acces",
-          "priorite": "moyenne",
-          "preconditions": "Compte affecté au plan Pro qui inclut 'falc'.",
-          "donnees": "Body { \"texte\": \"Texte de test.\" }",
-          "etapes": [
-            "POST /api/adoption/falc avec un compte sur plan Pro",
+            "POST /api/adoption/falc avec ce compte (réglage global actif)",
             "Lire le statut"
           ],
           "attendu": "HTTP 200 ; réponse { texte, source } valide.",
-          "technique": "Test basé sur les rôles",
-          "tracabilite": "requireFeature('falc') — POST /api/adoption/falc"
+          "technique": "Test de contrôle d'accès (cas nominal)",
+          "tracabilite": "getFlag('falc_enabled') — POST /api/adoption/falc"
+        },
+        {
+          "id": "TC-ADOPT-014",
+          "titre": "FALC : le réglage global prime sur le plan (plan « Découverte » sans falc → 200)",
+          "niveau": "api",
+          "type": "acces",
+          "priorite": "moyenne",
+          "preconditions": "Réglage global falc_enabled activé. Compte jetable affecté au plan « Découverte » (qui NE contient PAS 'falc').",
+          "donnees": "Body { \"texte\": \"Texte de test.\" }",
+          "etapes": [
+            "POST /api/adoption/falc avec le compte « Découverte » (réglage global actif)",
+            "Lire le statut"
+          ],
+          "attendu": "HTTP 200 : le réglage global remplace le gating par plan ; le plan n'a plus d'effet sur FALC.",
+          "technique": "Test de contrôle d'accès (réglage global prioritaire)",
+          "tracabilite": "getFlag('falc_enabled') — POST /api/adoption/falc"
         },
         {
           "id": "TC-ADOPT-015",
@@ -22265,23 +22299,6 @@
           "tracabilite": "UI /methode — accessibilité"
         },
         {
-          "id": "TC-A11Y-005",
-          "titre": "Accessibilité : /presentation sans violation critique/sérieuse (axe WCAG 2.1 AA)",
-          "niveau": "ui",
-          "type": "accessibilité",
-          "priorite": "moyenne",
-          "technique": "audit automatisé axe-core (WCAG 2.1 niveau AA)",
-          "preconditions": "Aucune (page publique).",
-          "donnees": "Page /presentation.",
-          "etapes": [
-            "Ouvrir la page.",
-            "Naviguer vers /presentation et attendre le chargement.",
-            "Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa)."
-          ],
-          "attendu": "Aucune violation d impact « critical » ou « serious ».",
-          "tracabilite": "UI /presentation — accessibilité"
-        },
-        {
           "id": "TC-A11Y-006",
           "titre": "Accessibilité : /accessibilite sans violation critique/sérieuse (axe WCAG 2.1 AA)",
           "niveau": "ui",
@@ -22351,6 +22368,127 @@
         }
       ],
       "areaKey": "a11y"
+    },
+    {
+      "area": "Réglages généraux globaux (bascules transversales admin)",
+      "endpoints": [
+        { "method": "GET", "path": "/api/admin/settings", "role": "admin", "summary": "Lit les drapeaux globaux (FALC, multilingue)" },
+        { "method": "PATCH", "path": "/api/admin/settings", "role": "admin", "summary": "Met à jour un ou plusieurs drapeaux globaux" }
+      ],
+      "cases": [
+        {
+          "id": "TC-SET-001",
+          "titre": "Accès anonyme à /api/admin/settings refusé (401)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de contrôle d'accès (non authentifié)",
+          "preconditions": "API démarrée ; aucune session.",
+          "donnees": "Aucune.",
+          "etapes": ["GET /api/admin/settings sans cookie."],
+          "attendu": "HTTP 401.",
+          "tracabilite": "GET /api/admin/settings (requireRole admin)"
+        },
+        {
+          "id": "TC-SET-002",
+          "titre": "Accès accompagnateur à /api/admin/settings refusé (403)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de contrôle d'accès basé sur les rôles",
+          "preconditions": "Compte de démo accompagnateur (camille) connectable.",
+          "donnees": "Session accompagnateur.",
+          "etapes": ["GET /api/admin/settings avec un cookie accompagnateur."],
+          "attendu": "HTTP 403.",
+          "tracabilite": "GET /api/admin/settings (requireRole admin)"
+        },
+        {
+          "id": "TC-SET-003",
+          "titre": "Admin → 200 + forme (drapeaux booléens)",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat (structure / types de la réponse)",
+          "preconditions": "Compte admin connectable.",
+          "donnees": "Session admin.",
+          "etapes": ["GET /api/admin/settings avec un cookie admin."],
+          "attendu": "HTTP 200 ; settings.falc_enabled et settings.multilingue_enabled de type boolean.",
+          "tracabilite": "GET /api/admin/settings — allSettings() (settings.ts)"
+        },
+        {
+          "id": "TC-SET-004",
+          "titre": "PATCH bascule un drapeau et /api/context le reflète",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test d'effet de bord (état exposé au front via /api/context)",
+          "preconditions": "Compte admin connectable.",
+          "donnees": "Drapeau multilingue_enabled (jamais touché ailleurs, pour éviter les courses).",
+          "etapes": [
+            "PATCH /api/admin/settings { multilingue_enabled: true } puis GET /api/context.",
+            "PATCH /api/admin/settings { multilingue_enabled: false } puis GET /api/context."
+          ],
+          "attendu": "Après activation, context.flags.multilingue = true ; après désactivation, false.",
+          "tracabilite": "PATCH /api/admin/settings (setFlag) + /api/context (publicFlags)"
+        }
+      ],
+      "areaKey": "settings"
+    },
+    {
+      "area": "UI transverse — modales & visite guidée",
+      "endpoints": [],
+      "cases": [
+        {
+          "id": "TC-UI-370",
+          "titre": "Modale non coupée quand la page est scrollée (Dossier)",
+          "niveau": "ui",
+          "type": "non-régression",
+          "priorite": "moyenne",
+          "technique": "test de positionnement (la modale position:fixed reste ancrée au viewport)",
+          "preconditions": "Accompagnateur connecté ; un dossier avec questionnaire détaillé ; viewport court (page défilable).",
+          "donnees": "Aucune.",
+          "etapes": [
+            "Ouvrir un dossier, défiler en bas de page.",
+            "Ouvrir la modale « Questions & réponses ».",
+            "Mesurer la position de .modal-overlay et de la boîte modale."
+          ],
+          "attendu": "L'overlay couvre le viewport (y ≈ 0) et le haut de la modale est visible (non coupé) malgré le scroll.",
+          "tracabilite": ".page sans bloc englobant / contexte d'empilement persistant ; .modal-overlay position:fixed (index.css)"
+        },
+        {
+          "id": "TC-UI-371",
+          "titre": "Lien « Visite guidée » du menu : lance la visite de l'écran courant",
+          "niveau": "ui",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test fonctionnel d'interface (déclenchement par le menu du compte)",
+          "preconditions": "Utilisateur connecté ; écran couvert par une visite (ex. /espace).",
+          "donnees": "Aucune.",
+          "etapes": [
+            "Ouvrir le menu du compte (.authmenu-btn).",
+            "Cliquer « Visite guidée »."
+          ],
+          "attendu": "La visite de l'écran courant s'affiche (1re étape de l'écran) ; « Passer » la ferme.",
+          "tracabilite": "AuthMenu (événement boussole:tour) → OnboardingManager.launchCurrent → tours.ts"
+        },
+        {
+          "id": "TC-UI-372",
+          "titre": "Première visite d'un écran : proposition Oui/Non, « Oui » lance la visite",
+          "niveau": "ui",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test fonctionnel d'interface (proposition à la première arrivée)",
+          "preconditions": "Utilisateur connecté ; propositions automatiques réactivées ; écran jamais visité (flag absent).",
+          "donnees": "Écran /tableau-de-bord.",
+          "etapes": [
+            "Naviguer vers l'écran pour la première fois.",
+            "Vérifier la proposition, cliquer « Oui »."
+          ],
+          "attendu": "Une proposition « Voulez-vous une visite guidée ? » apparaît ; « Oui » lance la visite de l'écran.",
+          "tracabilite": "OnboardingManager (prompt 1re visite, localStorage boussole_tour_<clé>) ; tours.ts"
+        }
+      ],
+      "areaKey": "ui_divers"
     }
   ]
 }

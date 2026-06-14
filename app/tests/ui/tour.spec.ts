@@ -5,7 +5,7 @@ import { login, DEMO } from './helpers'
 // à la première visite. NB : helpers.login neutralise les propositions automatiques
 // (boussole_tours_off) ; le test de proposition les réactive explicitement.
 test.describe('TOUR — visite guidée par écran', () => {
-  test('TC-UI-130 — le lien « Visite guidée » du menu lance la visite de l’écran courant', async ({ page }) => {
+  test('TC-UI-371 — le lien « Visite guidée » du menu lance la visite de l’écran courant', async ({ page }) => {
     await login(page, DEMO.mohamed)
     await page.goto('/espace')
     await expect(page.getByRole('link', { name: 'Mon espace' })).toBeVisible()
@@ -20,7 +20,7 @@ test.describe('TOUR — visite guidée par écran', () => {
     await expect(tour).toHaveCount(0)
   })
 
-  test('TC-UI-131 — première visite d’un écran : proposition Oui/Non, « Oui » lance la visite', async ({ page }) => {
+  test('TC-UI-372 — première visite d’un écran : proposition Oui/Non, « Oui » lance la visite', async ({ page }) => {
     await login(page, DEMO.mohamed)
     // Réactive les propositions automatiques (un addInitScript postérieur à celui de login() qui les coupe).
     await page.addInitScript(() => { try { localStorage.removeItem('boussole_tours_off'); localStorage.removeItem('boussole_tour_tableau-de-bord') } catch { /* ignore */ } })

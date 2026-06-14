@@ -2,6 +2,26 @@
 
 > Identifiant : BOUSSOLE-RAP-001. Historique des exécutions de la batterie de non-régression (le plus récent en premier).
 
+## Exécution du 2026-06-14 18:37:59
+
+**Verdict : ✅ VERT** — 1025/1030 tests au vert.
+
+| Couche | Total | Réussis | Échecs |
+|---|---|---|---|
+| Unitaire | 98 | 96 | 0 |
+| API | 828 | 828 | 0 |
+| UI (Playwright) | 104 | 101 | 0 |
+
+## Exécution du 2026-06-14 18:23:20
+
+**Verdict : ❌ ROUGE** — 1019/1030 tests au vert.
+
+| Couche | Total | Réussis | Échecs |
+|---|---|---|---|
+| Unitaire | 98 | 96 | 0 |
+| API | 828 | 828 | 0 |
+| UI (Playwright) | 104 | 95 | 6 |
+
 ## Exécution du 2026-06-14 16:39:14
 
 **Verdict : ✅ VERT** — 1019/1024 tests au vert.
@@ -24,9 +44,6 @@
 
 **Échecs :**
 - WIKI — espace documentaire admin-only TC-WIKI-015 — export PDF via pandoc (200, signature %PDF) (wiki.test.ts)
-# Rapport d'exécution — Boussole
-
-> Identifiant : BOUSSOLE-RAP-001. Historique des exécutions de la batterie de non-régression (le plus récent en premier).
 
 ## Exécution du 2026-06-14 14:09:12
 

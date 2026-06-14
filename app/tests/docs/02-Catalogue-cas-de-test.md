@@ -1,6 +1,6 @@
 # Catalogue de cas de test — Boussole
 
-> Généré automatiquement à partir de la conception ISTQB. 1265 cas de test sur 26 domaines.
+> Généré automatiquement à partir de la conception ISTQB. 1273 cas de test sur 28 domaines.
 > Identifiant : BOUSSOLE-CAT-001 · Voir le plan : [01-Plan-de-test.md](01-Plan-de-test.md) · La matrice : [03-Matrice-tracabilite.md](03-Matrice-tracabilite.md)
 
 ## Domaine AUTH — 69 cas
@@ -1586,7 +1586,7 @@
 - **Traçabilité :** questionnaire — Questionnaire.tsx (AiProgress)
 - **Automatisation :** ⏳ à automatiser
 
-## Domaine RDV — 66 cas
+## Domaine RDV — 67 cas
 
 **Endpoints couverts :**
 
@@ -2581,6 +2581,21 @@
   2. Appeler les endpoints rdv
 - **Résultat attendu :** Les endpoints répondent normalement (200/201) : le routeur /api/rdv n'applique AUCUN requireFeature('rdv') ; le gating par offre n'est donc pas effectif sur ce domaine (écart à documenter). Aucune réponse 403 'Fonctionnalité non disponible'.
 - **Traçabilité :** features.ts:rdv (clé définie mais non câblée) ; mount /api/rdv (index.ts:45) sans requireFeature
+- **Automatisation :** ✅ api/rdv.test.ts
+
+### TC-RDV-080 — Isolation multi-parcours (anti-IDOR) : un dossier ne révèle QUE ses propres RDV
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de contrôle d'accès / IDOR (cloisonnement des données entre parcours d'un même accompagné) |
+
+- **Préconditions :** Un accompagné (testP) a DEUX parcours avec deux accompagnateurs distincts (dossierP_A avec accA, dossierP_B avec accB). Un RDV est réservé sous chaque parcours.
+- **Données :** Réservations : créneau de accA sous dossierP_A ; créneau de accB sous dossierP_B.
+- **Étapes :**
+  1. testP réserve un RDV sous dossierP_A (créneau accA) et un sous dossierP_B (créneau accB).
+  2. accA consulte GET /api/dossiers/{dossierP_A} et GET /api/dossiers/{dossierP_A}/synthese.
+- **Résultat attendu :** Les RDV remontés ne contiennent QUE celui de dossierP_A (filtrage par r.dossier_id) ; le RDV de dossierP_B n'apparaît jamais, ni dans le détail ni dans la synthèse.
+- **Traçabilité :** GET /api/dossiers/:id et /:id/synthese (dossier.ts), syntheseData (synthese.ts) — filtre r.dossier_id
 - **Automatisation :** ✅ api/rdv.test.ts
 
 ## Domaine ENTR — 84 cas
@@ -8885,7 +8900,7 @@
 - **Traçabilité :** transparence/fil_rouge | GET /transparence + PATCH partage
 - **Automatisation :** ✅ api/relemerg.test.ts
 
-## Domaine LOT1 — 63 cas
+## Domaine LOT1 — 64 cas
 
 **Endpoints couverts :**
 
@@ -9829,6 +9844,22 @@
 - **Résultat attendu :** La requête JOIN ne renvoie aucune ligne (pas de plan) → Set = ALL_FEATURE_KEYS (niveau max).
 - **Traçabilité :** userFeatures branche !row (features.ts)
 - **Automatisation :** ⏳ à automatiser
+
+### TC-LOT1-070 — Plan socle protégé : PATCH/DELETE → 403, flag builtin exposé, plan intact
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de contrôle d'accès (verrou des plans socle gérés par le code) |
+
+- **Préconditions :** Les 3 plans socle (Découverte/Essentiel/Pro) sont réalignés au démarrage ; admin connecté.
+- **Données :** Le plan « Pro » récupéré via GET /api/admin/plans.
+- **Étapes :**
+  1. GET /api/admin/plans : repérer « Pro » et son flag builtin.
+  2. PATCH /api/admin/plans/{idPro} puis DELETE /api/admin/plans/{idPro}.
+  3. Re-lire la liste des plans.
+- **Résultat attendu :** builtin = true ; PATCH et DELETE renvoient 403 ; le plan « Pro » reste présent et inchangé (mêmes fonctionnalités).
+- **Traçabilité :** BUILTIN_PLAN_NAMES (seed.ts) ; gardes PATCH/DELETE /api/admin/plans/:id (admin.ts)
+- **Automatisation :** ✅ api/lot1.test.ts
 
 ## Domaine PILOT — 59 cas
 
@@ -15221,49 +15252,50 @@
 - **Traçabilité :** requireAuth — POST /api/adoption/falc
 - **Automatisation :** ✅ api/adopt.test.ts
 
-### TC-ADOPT-012 — FALC gating : utilisateur sur plan sans 'falc' → 403
+### TC-ADOPT-012 — FALC gating négatif : réglage global désactivé → 403 pour tout le monde
 
 | Niveau | Type | Priorité | Technique |
 |---|---|---|---|
-| API | acces | haute | Test basé sur les rôles / requireFeature |
+| API | acces | haute | Test de contrôle d'accès (réglage global) |
 
-- **Préconditions :** Un compte affecté à un plan dont la liste de features NE contient PAS 'falc' (ex. plan Découverte/socle si falc absent, ou plan créé sans 'falc'). Connecté avec ce compte.
+- **Préconditions :** Le mode FALC est piloté par un réglage GLOBAL admin (falc_enabled), désactivé par défaut. On le désactive le temps du test.
 - **Données :** Body { "texte": "Texte de test." }
 - **Étapes :**
-  1. POST /api/adoption/falc avec une session valide mais sans la feature falc dans le plan
-  2. Lire le statut et le corps
-- **Résultat attendu :** HTTP 403 ; { error: 'Fonctionnalité non disponible dans votre offre' } (requireFeature('falc') bloque).
-- **Traçabilité :** requireFeature('falc') — POST /api/adoption/falc
+  1. PATCH /api/admin/settings { falc_enabled: false }
+  2. POST /api/adoption/falc avec une session valide (n'importe quel compte)
+  3. Lire le statut et le corps, puis réactiver le réglage
+- **Résultat attendu :** HTTP 403 ; message évoquant « facile à lire » (l'endpoint est gardé par le drapeau global falc_enabled).
+- **Traçabilité :** getFlag('falc_enabled') — POST /api/adoption/falc
 - **Automatisation :** ✅ api/adopt.test.ts
 
-### TC-ADOPT-013 — FALC gating positif : compte sans plan a accès (aucun plan = tout activé)
+### TC-ADOPT-013 — FALC gating positif : réglage global actif, compte sans plan → 200
 
 | Niveau | Type | Priorité | Technique |
 |---|---|---|---|
-| API | acces | haute | Test basé sur les rôles (cas par défaut) |
+| API | acces | haute | Test de contrôle d'accès (cas nominal) |
 
-- **Préconditions :** Compte démo sans plan affecté (ex. accompagne Amine) — userFeatures renvoie ALL_FEATURE_KEYS.
+- **Préconditions :** Réglage global falc_enabled activé (en beforeAll). Compte démo sans plan (ex. accompagne Amine).
 - **Données :** Body { "texte": "Texte de test." }
 - **Étapes :**
-  1. POST /api/adoption/falc avec ce compte
-  2. Lire le statut
-- **Résultat attendu :** HTTP 200 (la feature 'falc' est implicitement accordée car userFeatures renvoie toutes les clés quand u.plan_id est nul).
-- **Traçabilité :** requireFeature('falc') / userFeatures — POST /api/adoption/falc
-- **Automatisation :** ✅ api/adopt.test.ts
-
-### TC-ADOPT-014 — FALC gating positif : plan Pro (toutes features) a accès
-
-| Niveau | Type | Priorité | Technique |
-|---|---|---|---|
-| API | acces | moyenne | Test basé sur les rôles |
-
-- **Préconditions :** Compte affecté au plan Pro qui inclut 'falc'.
-- **Données :** Body { "texte": "Texte de test." }
-- **Étapes :**
-  1. POST /api/adoption/falc avec un compte sur plan Pro
+  1. POST /api/adoption/falc avec ce compte (réglage global actif)
   2. Lire le statut
 - **Résultat attendu :** HTTP 200 ; réponse { texte, source } valide.
-- **Traçabilité :** requireFeature('falc') — POST /api/adoption/falc
+- **Traçabilité :** getFlag('falc_enabled') — POST /api/adoption/falc
+- **Automatisation :** ✅ api/adopt.test.ts
+
+### TC-ADOPT-014 — FALC : le réglage global prime sur le plan (plan « Découverte » sans falc → 200)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | acces | moyenne | Test de contrôle d'accès (réglage global prioritaire) |
+
+- **Préconditions :** Réglage global falc_enabled activé. Compte jetable affecté au plan « Découverte » (qui NE contient PAS 'falc').
+- **Données :** Body { "texte": "Texte de test." }
+- **Étapes :**
+  1. POST /api/adoption/falc avec le compte « Découverte » (réglage global actif)
+  2. Lire le statut
+- **Résultat attendu :** HTTP 200 : le réglage global remplace le gating par plan ; le plan n'a plus d'effet sur FALC.
+- **Traçabilité :** getFlag('falc_enabled') — POST /api/adoption/falc
 - **Automatisation :** ✅ api/adopt.test.ts
 
 ### TC-ADOPT-015 — FALC accès multi-rôles : accompagnateur et admin (sans plan) peuvent appeler
@@ -19215,7 +19247,7 @@
 - **Traçabilité :** GET /api/monitoring/business — fonctions businessKpis()/snapshot() (api/src/monitoring.ts)
 - **Automatisation :** ✅ api/monitoring.test.ts
 
-## Domaine A11Y — 9 cas
+## Domaine A11Y — 8 cas
 
 ### TC-A11Y-001 — Accessibilité : / (accueil) sans violation critique/sérieuse (axe WCAG 2.1 AA)
 
@@ -19281,22 +19313,6 @@
 - **Traçabilité :** UI /methode — accessibilité
 - **Automatisation :** ✅ ui/accessibility.spec.ts
 
-### TC-A11Y-005 — Accessibilité : /presentation sans violation critique/sérieuse (axe WCAG 2.1 AA)
-
-| Niveau | Type | Priorité | Technique |
-|---|---|---|---|
-| UI | accessibilité | moyenne | audit automatisé axe-core (WCAG 2.1 niveau AA) |
-
-- **Préconditions :** Aucune (page publique).
-- **Données :** Page /presentation.
-- **Étapes :**
-  1. Ouvrir la page.
-  2. Naviguer vers /presentation et attendre le chargement.
-  3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
-- **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
-- **Traçabilité :** UI /presentation — accessibilité
-- **Automatisation :** ✅ ui/accessibility.spec.ts
-
 ### TC-A11Y-006 — Accessibilité : /accessibilite sans violation critique/sérieuse (axe WCAG 2.1 AA)
 
 | Niveau | Type | Priorité | Technique |
@@ -19360,4 +19376,116 @@
 - **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
 - **Traçabilité :** UI /admin/wiki — accessibilité
 - **Automatisation :** ✅ ui/accessibility.spec.ts
+
+## Domaine SETTINGS — 4 cas
+
+**Endpoints couverts :**
+
+- `GET /api/admin/settings` · rôle: admin — Lit les drapeaux globaux (FALC, multilingue)
+- `PATCH /api/admin/settings` · rôle: admin — Met à jour un ou plusieurs drapeaux globaux
+
+### TC-SET-001 — Accès anonyme à /api/admin/settings refusé (401)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de contrôle d'accès (non authentifié) |
+
+- **Préconditions :** API démarrée ; aucune session.
+- **Données :** Aucune.
+- **Étapes :**
+  1. GET /api/admin/settings sans cookie.
+- **Résultat attendu :** HTTP 401.
+- **Traçabilité :** GET /api/admin/settings (requireRole admin)
+- **Automatisation :** ✅ api/settings.test.ts
+
+### TC-SET-002 — Accès accompagnateur à /api/admin/settings refusé (403)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de contrôle d'accès basé sur les rôles |
+
+- **Préconditions :** Compte de démo accompagnateur (camille) connectable.
+- **Données :** Session accompagnateur.
+- **Étapes :**
+  1. GET /api/admin/settings avec un cookie accompagnateur.
+- **Résultat attendu :** HTTP 403.
+- **Traçabilité :** GET /api/admin/settings (requireRole admin)
+- **Automatisation :** ✅ api/settings.test.ts
+
+### TC-SET-003 — Admin → 200 + forme (drapeaux booléens)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat (structure / types de la réponse) |
+
+- **Préconditions :** Compte admin connectable.
+- **Données :** Session admin.
+- **Étapes :**
+  1. GET /api/admin/settings avec un cookie admin.
+- **Résultat attendu :** HTTP 200 ; settings.falc_enabled et settings.multilingue_enabled de type boolean.
+- **Traçabilité :** GET /api/admin/settings — allSettings() (settings.ts)
+- **Automatisation :** ✅ api/settings.test.ts
+
+### TC-SET-004 — PATCH bascule un drapeau et /api/context le reflète
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test d'effet de bord (état exposé au front via /api/context) |
+
+- **Préconditions :** Compte admin connectable.
+- **Données :** Drapeau multilingue_enabled (jamais touché ailleurs, pour éviter les courses).
+- **Étapes :**
+  1. PATCH /api/admin/settings { multilingue_enabled: true } puis GET /api/context.
+  2. PATCH /api/admin/settings { multilingue_enabled: false } puis GET /api/context.
+- **Résultat attendu :** Après activation, context.flags.multilingue = true ; après désactivation, false.
+- **Traçabilité :** PATCH /api/admin/settings (setFlag) + /api/context (publicFlags)
+- **Automatisation :** ✅ api/settings.test.ts
+
+## Domaine UI_DIVERS — 3 cas
+
+### TC-UI-370 — Modale non coupée quand la page est scrollée (Dossier)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | non-régression | moyenne | test de positionnement (la modale position:fixed reste ancrée au viewport) |
+
+- **Préconditions :** Accompagnateur connecté ; un dossier avec questionnaire détaillé ; viewport court (page défilable).
+- **Données :** Aucune.
+- **Étapes :**
+  1. Ouvrir un dossier, défiler en bas de page.
+  2. Ouvrir la modale « Questions & réponses ».
+  3. Mesurer la position de .modal-overlay et de la boîte modale.
+- **Résultat attendu :** L'overlay couvre le viewport (y ≈ 0) et le haut de la modale est visible (non coupé) malgré le scroll.
+- **Traçabilité :** .page sans bloc englobant / contexte d'empilement persistant ; .modal-overlay position:fixed (index.css)
+- **Automatisation :** ✅ ui/accompagnateur.spec.ts
+
+### TC-UI-371 — Lien « Visite guidée » du menu : lance la visite de l'écran courant
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | fonctionnel | moyenne | test fonctionnel d'interface (déclenchement par le menu du compte) |
+
+- **Préconditions :** Utilisateur connecté ; écran couvert par une visite (ex. /espace).
+- **Données :** Aucune.
+- **Étapes :**
+  1. Ouvrir le menu du compte (.authmenu-btn).
+  2. Cliquer « Visite guidée ».
+- **Résultat attendu :** La visite de l'écran courant s'affiche (1re étape de l'écran) ; « Passer » la ferme.
+- **Traçabilité :** AuthMenu (événement boussole:tour) → OnboardingManager.launchCurrent → tours.ts
+- **Automatisation :** ✅ ui/tour.spec.ts
+
+### TC-UI-372 — Première visite d'un écran : proposition Oui/Non, « Oui » lance la visite
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | fonctionnel | moyenne | test fonctionnel d'interface (proposition à la première arrivée) |
+
+- **Préconditions :** Utilisateur connecté ; propositions automatiques réactivées ; écran jamais visité (flag absent).
+- **Données :** Écran /tableau-de-bord.
+- **Étapes :**
+  1. Naviguer vers l'écran pour la première fois.
+  2. Vérifier la proposition, cliquer « Oui ».
+- **Résultat attendu :** Une proposition « Voulez-vous une visite guidée ? » apparaît ; « Oui » lance la visite de l'écran.
+- **Traçabilité :** OnboardingManager (prompt 1re visite, localStorage boussole_tour_<clé>) ; tours.ts
+- **Automatisation :** ✅ ui/tour.spec.ts
 

@@ -56,9 +56,10 @@ if (allFailures.length) {
 const reportPath = path.join(DOCS, '04-Rapport-execution.md')
 const header = `# Rapport d'exécution — Boussole\n\n> Identifiant : BOUSSOLE-RAP-001. Historique des exécutions de la batterie de non-régression (le plus récent en premier).\n`
 let prev = ''
-// split().join('') retire TOUTES les occurrences du bandeau (un .replace() n'enlève que la 1re,
-// ce qui laissait s'accumuler des en-têtes dupliqués au fil des exécutions).
-try { prev = fs.readFileSync(reportPath, 'utf8').split(header).join('') } catch { /* premier rapport */ }
+// Retire TOUTES les occurrences du bandeau (sinon des en-têtes dupliqués s'accumulent au fil des
+// exécutions). Regex tolérante à l'apostrophe (droite ' ou typographique ’) pour ne rien laisser passer.
+const HEADER_RE = /# Rapport d['’]exécution — Boussole\n\n> Identifiant : BOUSSOLE-RAP-001\.[^\n]*\n/g
+try { prev = fs.readFileSync(reportPath, 'utf8').replace(HEADER_RE, '') } catch { /* premier rapport */ }
 fs.mkdirSync(DOCS, { recursive: true })
 fs.writeFileSync(reportPath, header + section + prev)
 
