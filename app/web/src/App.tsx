@@ -30,6 +30,7 @@ import AutoEvaluation from './pages/AutoEvaluation'
 import PlanAction from './pages/PlanAction'
 import MonPlanAction from './pages/MonPlanAction'
 import Admin from './pages/Admin'
+import Observability from './pages/Observability'
 import WikiLayout from './pages/wiki/WikiLayout'
 import WikiHome from './pages/wiki/WikiHome'
 import WikiPage from './pages/wiki/WikiPage'
@@ -140,6 +141,7 @@ export default function App() {
             <Route path="/plan-action/:dossierId" element={<Protected role="accompagnateur"><PlanAction /></Protected>} />
             <Route path="/mon-plan-action" element={<Protected role="accompagne"><MonPlanAction /></Protected>} />
             <Route path="/admin" element={<Protected role="admin"><Admin /></Protected>} />
+            <Route path="/admin/observability" element={<Protected role="admin"><Observability /></Protected>} />
             {/* Wiki documentaire interne — ADMIN ONLY (la garde sur la coquille couvre l'index et les pages) */}
             <Route path="/admin/wiki" element={<Protected role="admin"><WikiLayout /></Protected>}>
               <Route index element={<WikiHome />} />

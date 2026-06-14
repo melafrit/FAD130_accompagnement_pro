@@ -81,16 +81,20 @@ export default function Admin() {
       <p className="kicker">Administration</p>
       <h1 className="page-title">Gestion des comptes</h1>
 
-      <Link
-        to="/admin/wiki"
-        className="card"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', textDecoration: 'none', margin: '0 0 18px' }}
-      >
-        <span>
-          <strong>📚 Wiki projet</strong> — documentation officielle (cadrage, architecture, sécurité, exploitation, guides…).
-        </span>
-        <span className="btn btn-primary">Ouvrir le wiki →</span>
-      </Link>
+      <div className="admin-banners">
+        <Link to="/admin/wiki" className="card admin-banner">
+          <span>
+            <strong>📚 Wiki projet</strong> — documentation officielle (cadrage, architecture, sécurité, exploitation, guides…).
+          </span>
+          <span className="btn btn-primary">Ouvrir le wiki →</span>
+        </Link>
+        <Link to="/admin/observability" className="card admin-banner">
+          <span>
+            <strong>📊 Observabilité</strong> — métriques du service, latence, taux d'erreur et journal des erreurs serveur.
+          </span>
+          <span className="btn btn-primary">Ouvrir le tableau de bord →</span>
+        </Link>
+      </div>
 
       {msg && <p className="form-success">{msg}</p>}
 

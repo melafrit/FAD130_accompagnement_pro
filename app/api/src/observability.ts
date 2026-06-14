@@ -12,19 +12,21 @@ import { db } from './db'
 export const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
 
 const startedAt = Date.now()
-const counters = { total: 0, c2xx: 0, c3xx: 0, c4xx: 0, c5xx: 0 }
+const counters = { total: 0, c2xx: 0, c3xx: 0, c4xx: 0, c5xx: 0, sumMs: 0 }
 
 /** Journalise chaque requête (méthode, chemin, statut, durée) et alimente les compteurs. */
 export function requestLogger(req: Request, res: Response, next: NextFunction): void {
   const t0 = Date.now()
   res.on('finish', () => {
+    const ms = Date.now() - t0
     counters.total++
+    counters.sumMs += ms
     const c = res.statusCode
     if (c >= 500) counters.c5xx++
     else if (c >= 400) counters.c4xx++
     else if (c >= 300) counters.c3xx++
     else counters.c2xx++
-    const line = { method: req.method, path: req.path, status: c, ms: Date.now() - t0 }
+    const line = { method: req.method, path: req.path, status: c, ms }
     if (c >= 500) logger.error(line, 'réponse 5xx')
     else logger.info(line)
   })
@@ -65,15 +67,50 @@ function dbCount(sql: string): number {
 
 /** Instantané des métriques de service (lu par GET /api/metrics, admin). */
 export function metrics() {
+  const total = counters.total
+  const mem = process.memoryUsage()
   return {
+    service: 'boussole-api',
+    version: '0.1.0',
+    node: process.version,
+    started_at: new Date(startedAt).toISOString(),
     uptime_s: Math.round((Date.now() - startedAt) / 1000),
-    requests: { total: counters.total, '2xx': counters.c2xx, '3xx': counters.c3xx, '4xx': counters.c4xx, '5xx': counters.c5xx },
+    memory_mb: { rss: Math.round(mem.rss / 1048576), heap_used: Math.round(mem.heapUsed / 1048576) },
+    requests: {
+      total,
+      '2xx': counters.c2xx,
+      '3xx': counters.c3xx,
+      '4xx': counters.c4xx,
+      '5xx': counters.c5xx,
+      avg_ms: total ? Math.round(counters.sumMs / total) : 0,
+      error_rate: total ? Number((counters.c5xx / total).toFixed(4)) : 0,
+    },
     errors_logged: dbCount('SELECT COUNT(*) AS n FROM error_log'),
     db: {
       users: dbCount('SELECT COUNT(*) AS n FROM users'),
       dossiers: dbCount('SELECT COUNT(*) AS n FROM dossiers'),
+      sessions: dbCount('SELECT COUNT(*) AS n FROM sessions'),
       wiki_pages: dbCount('SELECT COUNT(*) AS n FROM wiki_pages'),
+      error_log: dbCount('SELECT COUNT(*) AS n FROM error_log'),
     },
     time: new Date().toISOString(),
   }
+}
+
+/** Dernières erreurs serveur journalisées (les plus récentes d'abord). */
+export function recentErrors(limit = 20) {
+  try {
+    return db
+      .prepare('SELECT id, methode, chemin, statut, message, user_id, cree_le FROM error_log ORDER BY id DESC LIMIT ?')
+      .all(Math.min(Math.max(1, limit), 100))
+  } catch { return [] }
+}
+
+/** Répartition des erreurs par chemin (endpoints les plus en erreur). */
+export function errorsByPath(limit = 10) {
+  try {
+    return db
+      .prepare('SELECT chemin, COUNT(*) AS n FROM error_log GROUP BY chemin ORDER BY n DESC LIMIT ?')
+      .all(Math.min(Math.max(1, limit), 50))
+  } catch { return [] }
 }

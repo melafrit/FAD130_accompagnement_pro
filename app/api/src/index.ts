@@ -31,7 +31,7 @@ import wikiRouter, { seedWiki, publicWikiRouter } from './wiki'
 import { globalLimiter, authLimiter, helmetConfig } from './security'
 import { csrfIssue, csrfProtect } from './csrf'
 import { scheduleBackups } from './backups'
-import { requestLogger, errorHandler, metrics, logger } from './observability'
+import { requestLogger, errorHandler, metrics, recentErrors, errorsByPath, logger } from './observability'
 import { requireAuth, requireRole } from './auth'
 import { seed } from './seed'
 
@@ -119,6 +119,12 @@ app.get('/api/health', (_req, res) => {
 // Métriques de service (observabilité) — réservé à l'administrateur
 app.get('/api/metrics', requireAuth, requireRole('admin'), (_req, res) => {
   res.json(metrics())
+})
+
+// Journal des erreurs serveur (récentes + répartition par endpoint) — réservé à l'administrateur
+app.get('/api/metrics/errors', requireAuth, requireRole('admin'), (req, res) => {
+  const limit = Number(req.query.limit) || 20
+  res.json({ recent: recentErrors(limit), byPath: errorsByPath(10) })
 })
 
 // Contexte public (page d'accueil / onglet Aide)

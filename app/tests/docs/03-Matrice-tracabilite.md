@@ -1,6 +1,6 @@
 # Matrice de traçabilité — Boussole
 
-> Identifiant : BOUSSOLE-MAT-001 · 1246 cas · 1051 automatisés (84%).
+> Identifiant : BOUSSOLE-MAT-001 · 1247 cas · 1052 automatisés (84%).
 > Régénérée à chaque exécution (un cas est « automatisé » dès que son ID apparaît dans le code de test).
 
 ## Synthèse de couverture par domaine
@@ -30,8 +30,8 @@
 | TWOFA | 6 | 6 | 100% |
 | SECU | 4 | 4 | 100% |
 | CSRF | 4 | 4 | 100% |
-| OBS | 5 | 5 | 100% |
-| **Total** | **1246** | **1051** | **84%** |
+| OBS | 6 | 6 | 100% |
+| **Total** | **1247** | **1052** | **84%** |
 
 ## Détail (cas ↔ fonctionnalité/endpoint ↔ test automatisé)
 
@@ -1283,3 +1283,4 @@
 | TC-OBS-003 | API | haute | GET /api/metrics | ✅ api/observability.test.ts |
 | TC-OBS-010 | Unitaire | moyenne | module api/src/observability — fonction metrics() | ✅ unit/observability.test.ts |
 | TC-OBS-011 | Unitaire | moyenne | module api/src/observability — fonction reportError() / journal error_log | ✅ unit/observability.test.ts |
+| TC-OBS-004 | API | moyenne | GET /api/metrics/errors | ✅ api/observability.test.ts |

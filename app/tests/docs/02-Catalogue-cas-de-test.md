@@ -1,6 +1,6 @@
 # Catalogue de cas de test — Boussole
 
-> Généré automatiquement à partir de la conception ISTQB. 1246 cas de test sur 24 domaines.
+> Généré automatiquement à partir de la conception ISTQB. 1247 cas de test sur 24 domaines.
 > Identifiant : BOUSSOLE-CAT-001 · Voir le plan : [01-Plan-de-test.md](01-Plan-de-test.md) · La matrice : [03-Matrice-tracabilite.md](03-Matrice-tracabilite.md)
 
 ## Domaine AUTH — 69 cas
@@ -18973,7 +18973,7 @@
 - **Traçabilité :** Middleware csrfProtect (api/src/csrf.ts) — methodes mutantes /api/*
 - **Automatisation :** ✅ unit/security.test.ts
 
-## Domaine OBS — 5 cas
+## Domaine OBS — 6 cas
 
 ### TC-OBS-001 — Accès anonyme à /api/metrics refusé (401)
 
@@ -19052,4 +19052,19 @@
 - **Résultat attendu :** Après l'appel, metrics().errors_logged vaut before + 1 (l'erreur a bien été persistée dans error_log).
 - **Traçabilité :** module api/src/observability — fonction reportError() / journal error_log
 - **Automatisation :** ✅ unit/observability.test.ts
+
+### TC-OBS-004 — Endpoint /api/metrics/errors : anonyme refusé (401), admin autorisé (200 + forme)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | moyenne | test de contrôle d accès / test du contrat |
+
+- **Préconditions :** Stack démarrée ; compte admin disponible.
+- **Données :** Sans cookie (anonyme) puis cookie admin ; paramètre limit=10.
+- **Étapes :**
+  1. GET /api/metrics/errors sans authentification.
+  2. S authentifier admin puis GET /api/metrics/errors?limit=10.
+- **Résultat attendu :** Anonyme -> HTTP 401 ; admin -> HTTP 200 avec { recent: tableau, byPath: tableau }.
+- **Traçabilité :** GET /api/metrics/errors
+- **Automatisation :** ✅ api/observability.test.ts
 

@@ -54,6 +54,7 @@ export default function AuthMenu() {
                 <>
                   <Link className="authmenu-item" to="/admin" role="menuitem" onClick={() => setOpen(false)}>⚙️ Administration</Link>
                   <Link className="authmenu-item" to="/admin/wiki" role="menuitem" onClick={() => setOpen(false)}>📚 Wiki projet</Link>
+                  <Link className="authmenu-item" to="/admin/observability" role="menuitem" onClick={() => setOpen(false)}>📊 Observabilité</Link>
                 </>
               )}
               <div className="authmenu-foot">

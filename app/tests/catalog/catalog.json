@@ -22013,6 +22013,22 @@
           ],
           "attendu": "Après l'appel, metrics().errors_logged vaut before + 1 (l'erreur a bien été persistée dans error_log).",
           "tracabilite": "module api/src/observability — fonction reportError() / journal error_log"
+        },
+        {
+          "id": "TC-OBS-004",
+          "titre": "Endpoint /api/metrics/errors : anonyme refusé (401), admin autorisé (200 + forme)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "moyenne",
+          "technique": "test de contrôle d accès / test du contrat",
+          "preconditions": "Stack démarrée ; compte admin disponible.",
+          "donnees": "Sans cookie (anonyme) puis cookie admin ; paramètre limit=10.",
+          "etapes": [
+            "GET /api/metrics/errors sans authentification.",
+            "S authentifier admin puis GET /api/metrics/errors?limit=10."
+          ],
+          "attendu": "Anonyme -> HTTP 401 ; admin -> HTTP 200 avec { recent: tableau, byPath: tableau }.",
+          "tracabilite": "GET /api/metrics/errors"
         }
       ],
       "areaKey": "obs"

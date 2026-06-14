@@ -191,14 +191,33 @@ Préfixes de logs « métier » utiles : `[Boussole]` (démarrage), `[seed]`, `[
 L'observabilité est **auto-hébergée** (sans dépendance tierce). Deux mécanismes complètent les logs :
 
 - **Journal d'erreurs persistant** — la fonction `reportError()` est le **point unique** de remontée d'erreur : elle écrit un log structuré **et** insère une ligne dans la table `error_log` (`methode`, `chemin`, `statut`, `message`, `user_id`, `cree_le`). Elle ne lève jamais (si la base est indisponible, le flux de réponse n'est pas cassé). Le **middleware d'erreur centralisé** (`errorHandler`, monté en dernier) respecte le statut porté par l'erreur (ex. body-parser pose `400` sur un JSON malformé) et n'alimente `error_log` que pour les **vraies erreurs serveur (5xx)**. Un adaptateur tiers (ex. Sentry) pourra être branché ultérieurement dans `reportError()` sans toucher au reste.
-- **Endpoint de métriques** — `GET /api/metrics` (**réservé admin** : `requireAuth` + `requireRole('admin')`) renvoie un instantané : `uptime_s`, compteurs de requêtes (`total`, `2xx`/`3xx`/`4xx`/`5xx`), `errors_logged` (nombre de lignes `error_log`) et quelques comptes de tables (`users`, `dossiers`, `wiki_pages`).
+- **Endpoint de métriques** — `GET /api/metrics` (**réservé admin**) renvoie un instantané détaillé : identité du service (`service`, `version`, `node`), `uptime_s`, `memory_mb` (`rss`, `heap_used`), compteurs de requêtes (`total`, `2xx`/`3xx`/`4xx`/`5xx`, **`avg_ms`** = latence moyenne, **`error_rate`** = part de 5xx), `errors_logged`, et comptes de tables (`users`, `dossiers`, `sessions`, `wiki_pages`, `error_log`).
+- **Endpoint du journal d'erreurs** — `GET /api/metrics/errors?limit=N` (**réservé admin**) renvoie `{ recent: [...], byPath: [...] }` : les dernières erreurs serveur et leur **répartition par endpoint**.
 
 ```bash
 # Métriques de service (cookie de session admin requis)
 curl -s https://boussole.elafrit.com/api/metrics -H "Cookie: boussole_token=<jeton-admin>"
 ```
 
-> **Statut — déjà développé** — Logs pino structurés, table `error_log`, point unique `reportError()`, middleware d'erreur centralisé et endpoint `/api/metrics` (admin) sont **livrés**. *Non livré* : tableau de bord de métriques externe (Grafana/Prometheus) et adaptateur Sentry réel (point d'extension préparé, non activé).
+### 5.4 Tableau de bord d'observabilité (interface admin)
+
+Une **interface graphique** intégrée est disponible pour l'administrateur sous **`/admin/observability`** (accès aussi via la bannière de la page *Administration* et le menu du compte). Elle interroge `/api/metrics` et `/api/metrics/errors`, avec **rafraîchissement automatique toutes les 10 s** (désactivable) et un bouton de rafraîchissement manuel.
+
+**Comment la lire :**
+
+| Bloc | Ce qu'il montre | Comment l'interpréter |
+|---|---|---|
+| **État du service** (pastille verte) | service, version, version de Node, durée depuis le démarrage, mémoire (RSS / heap) | Une mémoire RSS qui croît continûment entre deux redémarrages peut signaler une fuite. L'uptime se remet à zéro à chaque redéploiement. |
+| **Requêtes traitées** | nombre total de requêtes depuis le démarrage | Volume de trafic ; remis à zéro au redémarrage (compteurs en mémoire). |
+| **Latence moyenne** | temps de réponse moyen (ms) | Une hausse durable indique une dégradation (base, IA, charge). Repère plutôt les tendances que la valeur absolue. |
+| **Taux d'erreur 5xx** | part des réponses en erreur serveur | **Doit rester proche de 0 %.** Toute valeur non nulle déclenche un encadré orange : à investiguer. |
+| **Erreurs journalisées** | nombre de lignes dans `error_log` | Compteur cumulé persistant (survit aux redémarrages). |
+| **Réponses par classe** (barres) | répartition 2xx / 3xx / 4xx / 5xx | Beaucoup de 4xx = appels invalides/clients (souvent normal) ; des 5xx = bugs serveur à corriger en priorité. |
+| **Volumétrie des données** | nombre de lignes par table clé | Suivi de la croissance fonctionnelle (comptes, parcours, sessions…). |
+| **Dernières erreurs serveur** (tableau) | date, statut, méthode, chemin, message des dernières 5xx | Point de départ du diagnostic : le `chemin` et le `message` pointent l'endpoint et la cause. |
+| **Endpoints les plus en erreur** | top des chemins par nombre d'erreurs | Identifie un endpoint récurremment fautif à traiter. |
+
+> **Statut — déjà développé** — Logs pino structurés, table `error_log`, `reportError()`, middleware d'erreur centralisé, endpoints `/api/metrics` et `/api/metrics/errors`, et **tableau de bord admin `/admin/observability`** sont **livrés**. *Non livré (points d'extension préparés)* : adaptateur **Sentry** réel (branchable dans `reportError()` via `SENTRY_DSN`) et export **Prometheus/Grafana** (le format de `/api/metrics` pourrait y être adapté).
 
 ---
 
