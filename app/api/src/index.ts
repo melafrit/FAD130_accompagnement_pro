@@ -29,6 +29,7 @@ import ethiqueRouter, { sweepRetention } from './ethique'
 import adoptionRouter from './adoption'
 import wikiRouter, { seedWiki, publicWikiRouter } from './wiki'
 import { globalLimiter, authLimiter, helmetConfig } from './security'
+import { csrfIssue, csrfProtect } from './csrf'
 import { scheduleBackups } from './backups'
 import { seed } from './seed'
 
@@ -38,6 +39,8 @@ app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
 app.use(globalLimiter) // garde-fou global anti-abus (désactivé si RATE_LIMIT_DISABLED=1)
+app.use(csrfIssue) // pose le cookie csrf_token (lisible par le front)
+app.use(csrfProtect) // double-submit : vérifie l'en-tête sur les mutations (désactivé si CSRF_DISABLED=1)
 
 // Authentification (limiteur strict anti brute-force sur login/inscription/réinitialisation)
 app.use('/api/auth', authLimiter, authRouter)

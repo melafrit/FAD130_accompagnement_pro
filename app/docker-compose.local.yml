@@ -22,6 +22,7 @@ services:
       - ACCOMPAGNATEUR_EMAIL=elafrit.mohamed@gmail.com
       - SEED_PASSWORD=BoussoleDemo2026   # comptes de démo prêts à l'emploi (LOCAL uniquement)
       - RATE_LIMIT_DISABLED=1            # LOCAL : la batterie se connecte des centaines de fois (prod : activer)
+      - CSRF_DISABLED=1                 # LOCAL : helper de test & fetch bruts Playwright sans en-tête (prod : activer)
       # Clés optionnelles : si tu crées un fichier app/.env avec ces variables, elles sont injectées ici.
       # Sans clé, l'IA bascule sur le parcours de secours et les emails sont journalisés dans les logs.
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
