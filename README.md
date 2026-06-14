@@ -4,6 +4,7 @@
 
 *A web app that helps mentors guide students writing their dissertations: AI-assisted interviews, structured reports, action plans and reflective tools. French UI. Open source.*
 
+[![CI](https://github.com/melafrit/FAD130_accompagnement_pro/actions/workflows/ci.yml/badge.svg)](https://github.com/melafrit/FAD130_accompagnement_pro/actions/workflows/ci.yml)
 [![Code : AGPL-3.0](https://img.shields.io/badge/code-AGPL--3.0-blue.svg)](LICENSE)
 [![Docs : CC BY-NC-SA 4.0](https://img.shields.io/badge/docs-CC%20BY--NC--SA%204.0-lightgrey.svg)](LICENSE-CONTENT.txt)
 [![Stack](https://img.shields.io/badge/stack-React%20%C2%B7%20Express%20%C2%B7%20SQLite-success.svg)](#pile-technique)

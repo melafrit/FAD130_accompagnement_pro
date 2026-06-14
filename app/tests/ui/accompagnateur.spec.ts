@@ -273,6 +273,7 @@ test.describe('Entretien guidé', () => {
 
   // TC-UI-122 — clôturer l'entretien et générer le CR (modale, contrat IA)
   test('TC-UI-122 — clôturer l’entretien et générer le compte rendu (modale)', async ({ page }) => {
+    test.skip(process.env.CI_SKIP_IA === '1', 'Scénario de génération IA (latence variable) — neutralisé en CI')
     await login(page, DEMO.mohamed)
     await ouvrirDossierAmine(page)
     const repren = page.getByRole('button', { name: "Reprendre l'entretien en cours" })
@@ -536,6 +537,7 @@ test.describe('Pilotage du parcours (dossier)', () => {
 test.describe('Bilan de pratique', () => {
   // TC-UI-138 — générer la synthèse réflexive globale (contrat IA + repli)
   test('TC-UI-138 — bilan de pratique : générer la synthèse réflexive globale', async ({ page }) => {
+    test.skip(process.env.CI_SKIP_IA === '1', 'Scénario de génération IA (latence variable) — neutralisé en CI')
     await login(page, DEMO.mohamed)
     await page.goto('/bilan-pratique')
     await expect(page.getByRole('heading', { name: 'Bilan de ma pratique' })).toBeVisible()

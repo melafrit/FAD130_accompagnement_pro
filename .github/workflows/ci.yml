@@ -1,0 +1,84 @@
+name: CI — non-régression
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Annule un run précédent encore en cours sur la même réf.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  non-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      BOUSSOLE_BASE: http://localhost:8080
+      # Neutralise les 2 scénarios E2E de génération IA (latence variable). Le reste de la suite
+      # tourne sans clé Anthropic : l'IA bascule sur son repli déterministe.
+      CI_SKIP_IA: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # --- Stack applicative (Docker) : sert l'API et le front pour les tests d'intégration/UI ---
+      - name: Démarrer la stack (Docker Compose)
+        working-directory: app
+        run: |
+          docker compose -f docker-compose.local.yml up -d --build
+          echo "Attente de la disponibilité de l'API…"
+          for i in $(seq 1 90); do
+            if curl -sf http://localhost:8080/api/health | grep -q '"status":"ok"'; then
+              echo "API prête."; break
+            fi
+            sleep 2
+          done
+          curl -sf http://localhost:8080/api/health || {
+            echo "::error::API indisponible"; docker compose -f docker-compose.local.yml logs --tail 150; exit 1;
+          }
+
+      # --- Dépendances : app/api est nécessaire aux tests UNITAIRES (qui importent api/src) ---
+      - name: Installer les dépendances de l'API (pour les tests unitaires)
+        working-directory: app/api
+        run: npm ci
+
+      - name: Installer les dépendances de test
+        working-directory: app/tests
+        run: npm ci
+
+      - name: Installer le navigateur Playwright
+        working-directory: app/tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Tests unitaires (repli déterministe)
+        working-directory: app/tests
+        run: npx vitest run unit
+
+      - name: Tests d'intégration API
+        working-directory: app/tests
+        run: npx vitest run api
+
+      - name: Tests UI (Playwright, 3 rôles)
+        working-directory: app/tests
+        run: npx playwright test
+
+      - name: Logs de l'API en cas d'échec
+        if: failure()
+        working-directory: app
+        run: docker compose -f docker-compose.local.yml logs --tail 200 boussole-api
+
+      - name: Rapport Playwright (artefact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: app/tests/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
