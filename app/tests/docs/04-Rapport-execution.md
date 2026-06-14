@@ -2,6 +2,16 @@
 
 > Identifiant : BOUSSOLE-RAP-001. Historique des exécutions de la batterie de non-régression (le plus récent en premier).
 
+## Exécution du 2026-06-14 14:09:12
+
+**Verdict : ✅ VERT** — 1018/1022 tests au vert.
+
+| Couche | Total | Réussis | Échecs |
+|---|---|---|---|
+| Unitaire | 98 | 96 | 0 |
+| API | 822 | 822 | 0 |
+| UI (Playwright) | 102 | 100 | 0 |
+
 ## Exécution du 2026-06-14 11:49:47
 
 **Verdict : ✅ VERT** — 1001/1003 tests au vert.
@@ -80,9 +90,6 @@
 
 **Échecs :**
 - adopt — POST /api/adoption/falc (FALC) TC-ADOPT-009 — FALC : champ non-string coercé par String() (nombre → 200, tableau → 200/400 sans crash) (adopt.test.ts)
-# Rapport d'exécution — Boussole
-
-> Identifiant : BOUSSOLE-RAP-001. Historique des exécutions de la batterie de non-régression (le plus récent en premier).
 
 ## Exécution du 2026-06-13 23:18:13
 

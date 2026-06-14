@@ -171,9 +171,10 @@ curl -s https://boussole.elafrit.com/api/health
 | Front | `GET /` | HTTP 200, `index.html` | Vérifier Nginx, build web |
 | Contexte public | `GET /api/context` | HTTP 200 | Diagnostic chaîne proxy |
 | Métriques | `GET /api/metrics` (admin) | HTTP 200, JSON compteurs | Diagnostic charge / erreurs |
+| Santé dépendances | `GET /api/monitoring/health` (admin) | HTTP 200, voyants `ok` | Voir l'onglet *Santé technique* (§ 5.4) |
 | TLS | certificat `boussole.elafrit.com` | valide > 15 j | Vérifier logs Caddy / renouvellement |
 
-> **Hypothèse — confiance : moyenne** — Aucun healthcheck Docker (`HEALTHCHECK` / `healthcheck:` Compose) ni supervision externe (Uptime Kuma, cron de monitoring) n'est présent dans le code. *Information non identifiée dans le code* : recommandation de l'ajouter (cf. Recommandations).
+> **À noter** — Une **supervision interne active** est livrée (cf. § 5.4 onglet *Santé technique* et § 5.5 alertes email) : sondes base/sauvegardes/taux d'erreur, voyants admin et alertes sur changement d'état. En revanche, aucun **healthcheck Docker** (`HEALTHCHECK` / `healthcheck:` Compose) ni **sonde externe indépendante** (Uptime Kuma) n'est présent : la supervision interne ne détecte pas une panne qui empêcherait le processus Node lui-même de répondre (un observateur tiers reste recommandé — cf. Recommandations).
 
 ### 5.2 Logs structurés (pino)
 
@@ -199,11 +200,13 @@ L'observabilité est **auto-hébergée** (sans dépendance tierce). Deux mécani
 curl -s https://boussole.elafrit.com/api/metrics -H "Cookie: boussole_token=<jeton-admin>"
 ```
 
-### 5.4 Tableau de bord d'observabilité (interface admin)
+### 5.4 Tableau de bord de supervision (interface admin)
 
-Une **interface graphique** intégrée est disponible pour l'administrateur sous **`/admin/observability`** (accès aussi via la bannière de la page *Administration* et le menu du compte). Elle interroge `/api/metrics` et `/api/metrics/errors`, avec **rafraîchissement automatique toutes les 10 s** (désactivable) et un bouton de rafraîchissement manuel.
+Une **interface graphique** intégrée est disponible pour l'administrateur sous **`/admin/supervision`** (accès aussi via la bannière de la page *Administration* et le menu du compte). C'est une **section à trois onglets** qui regroupe toute la supervision en un seul endroit. L'ancienne adresse `/admin/observability` **redirige** désormais vers cette section (onglet *Observabilité*).
 
-**Comment la lire :**
+#### Onglet 1 — Observabilité (métriques techniques & erreurs)
+
+Interroge `/api/metrics` et `/api/metrics/errors`, avec **rafraîchissement automatique toutes les 10 s** (désactivable) et un bouton de rafraîchissement manuel.
 
 | Bloc | Ce qu'il montre | Comment l'interpréter |
 |---|---|---|
@@ -217,7 +220,37 @@ Une **interface graphique** intégrée est disponible pour l'administrateur sous
 | **Dernières erreurs serveur** (tableau) | date, statut, méthode, chemin, message des dernières 5xx | Point de départ du diagnostic : le `chemin` et le `message` pointent l'endpoint et la cause. |
 | **Endpoints les plus en erreur** | top des chemins par nombre d'erreurs | Identifie un endpoint récurremment fautif à traiter. |
 
-> **Statut — déjà développé** — Logs pino structurés, table `error_log`, `reportError()`, middleware d'erreur centralisé, endpoints `/api/metrics` et `/api/metrics/errors`, et **tableau de bord admin `/admin/observability`** sont **livrés**. *Non livré (points d'extension préparés)* : adaptateur **Sentry** réel (branchable dans `reportError()` via `SENTRY_DSN`) et export **Prometheus/Grafana** (le format de `/api/metrics` pourrait y être adapté).
+#### Onglet 2 — Santé technique (dépendances & alertes)
+
+Interroge `GET /api/monitoring/health` (réservé admin, rafraîchissement 10 s). Chaque **dépendance** est présentée comme un **voyant** coloré : `ok` (vert), `warn` (orange), `down` (rouge) ou `unknown` (gris). Un bandeau **« État global »** résume le pire état observé.
+
+| Dépendance | Type de sonde | Vert (`ok`) | Orange (`warn`) | Rouge (`down`) |
+|---|---|---|---|---|
+| **IA Claude (Anthropic)** | **passive** — résultat du dernier appel réel | dernier appel réussi | — | dernier appel en échec (le détail donne l'erreur) |
+| **Email (Brevo)** | **passive** — résultat du dernier envoi réel | dernier envoi réussi | — | dernier envoi en échec |
+| **Base de données (SQLite)** | **active** — `SELECT 1` à chaque appel | base accessible | — | base inaccessible |
+| **Sauvegardes** | **active** — âge du dernier fichier de backup | dernière sauvegarde < 36 h | aucune sauvegarde / > 36 h | — |
+| **Taux d'erreur serveur** | **active** — 5xx sur 15 min (`error_log`) | aucune erreur récente | ≥ 1 erreur | ≥ seuil `ALERT_5XX_15MIN` (défaut 10) |
+
+> Les sondes **passives** restent `unknown` tant qu'aucun appel réel n'a eu lieu depuis le démarrage : c'est normal sur une instance fraîche. Elles reflètent la **réalité d'usage** (un vrai appel Claude/Brevo), pas un ping artificiel — ce qui évite de consommer du quota juste pour tester.
+
+#### Onglet 3 — Indicateurs métier (usage & tendances)
+
+Interroge `GET /api/monitoring/business?days=N`. Les KPI sont regroupés en **quatre familles** : *Adoption & comptes*, *Activité d'accompagnement*, *Production de livrables*, *Engagement & complétion* (dont les taux dérivés `taux_completion` et `taux_actions_faites`). Un sélecteur **7 / 30 / 90 jours** ajuste la fenêtre des **courbes de tendance**.
+
+Les tendances s'appuient sur un **instantané quotidien** (`captureDailySnapshot()` → table `metrics_daily`) capturé au démarrage puis toutes les 24 h. Tant qu'il y a moins de deux jours d'historique, les courbes affichent un message d'attente : **c'est attendu sur une instance récente**, l'historique se constitue jour après jour.
+
+### 5.5 Alertes techniques par email (anti-spam)
+
+Une tâche planifiée (`evaluateAndAlert()`, toutes les **10 min**) compare l'état courant de chaque dépendance à l'état mémorisé dans la table `alert_state`. **Seuls les changements d'état** vers `warn`/`down` déclenchent un **email à `ADMIN_EMAIL`** ; tant que l'état ne change pas, aucun nouvel email n'est envoyé (anti-spam). Le retour à `ok` est mémorisé sans notification. Sans `ADMIN_EMAIL` configuré, l'évaluation tourne mais n'envoie rien.
+
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `ADMIN_EMAIL` | destinataire des alertes de supervision | *(aucun → pas d'envoi)* |
+| `ALERT_5XX_15MIN` | seuil de 5xx sur 15 min faisant passer le taux d'erreur en `down` | `10` |
+| `BACKUP_DIR` | répertoire scruté pour l'âge des sauvegardes | `./data/backups` |
+
+> **Statut — déjà développé** — Logs pino structurés, table `error_log`, `reportError()`, middleware d'erreur centralisé, endpoints `/api/metrics`, `/api/metrics/errors`, `/api/monitoring/health` et `/api/monitoring/business`, **alertes email sur changement d'état** et **tableau de bord admin `/admin/supervision`** (3 onglets) sont **livrés**. *Non livré (points d'extension préparés)* : adaptateur **Sentry** réel (branchable dans `reportError()` via `SENTRY_DSN`) et export **Prometheus/Grafana** (le format de `/api/metrics` pourrait y être adapté).
 
 ---
 
@@ -440,7 +473,7 @@ Pour les opérations métier de support (réinitialisation d'accès, RGPD, gesti
 
 > **Hypothèse — confiance : élevée** — Le service est conçu et exploité en **mono-instance** ; le planificateur interne (dont la sauvegarde quotidienne) et SQLite mono-fichier l'imposent. Aucune montée en charge horizontale n'est prévue ni supportée en l'état.
 
-> **Hypothèse — confiance : moyenne** — La supervision « vivacité » repose encore sur des contrôles manuels (`curl /api/health`, `docker logs`). En revanche, l'**observabilité interne** est livrée (logs pino structurés, table `error_log`, `GET /api/metrics`). Aucun outil de monitoring/alerting **externe** automatisé (Uptime Kuma, Prometheus) n'est présent dans le code.
+> **À noter** — L'**observabilité et le monitoring internes** sont livrés : logs pino structurés, table `error_log`, `GET /api/metrics`, sondes de santé `GET /api/monitoring/health`, KPI métier `GET /api/monitoring/business`, **tableau de bord admin à 3 onglets** et **alertes email sur changement d'état** (cf. § 5.4–5.5). Reste à compléter par une **sonde externe indépendante** (Uptime Kuma, Prometheus) et un `HEALTHCHECK` Docker, pour couvrir le cas où le processus Node lui-même ne répondrait plus.
 
 > **Hypothèse — confiance : élevée** — La sauvegarde locale quotidienne avec rétention est **livrée** (`backups.ts`). En revanche, la **copie hors-site** (cadence, rétention, destination distante) reste **recommandée et non implémentée** : *information non identifiée dans le code*. Les RPO/RTO (§7) sont des cibles proposées.
 
@@ -468,7 +501,7 @@ Pour les opérations métier de support (réinitialisation d'accès, RGPD, gesti
 ## Recommandations
 
 1. **Exfiltrer les sauvegardes hors-site** : la sauvegarde quotidienne locale est livrée (`backups.ts`, `BACKUP_RETENTION_DAYS`) ; ajouter une copie hors-site de `./data/backups` (VPS distinct / stockage objet), rétention 30 jours. Tester la restauration trimestriellement.
-2. **Ajouter une supervision externe** : `HEALTHCHECK` Docker sur `/api/health` + sonde externe (Uptime Kuma ou cron d'alerte) ; alerte sur expiration TLS et sur le compteur `5xx` / `errors_logged` de `/api/metrics`.
+2. **Compléter par une supervision externe** : le monitoring interne (voyants + alertes email, § 5.4–5.5) couvre les dépendances et le taux d'erreur, mais pas une panne totale du processus Node. Ajouter un `HEALTHCHECK` Docker sur `/api/health` + une sonde **externe indépendante** (Uptime Kuma ou cron d'alerte) ; alerter aussi sur l'expiration TLS.
 3. **Fixer tous les secrets de production** dans un coffre : `JWT_SECRET`, clés Anthropic, Brevo, et **VAPID stables** pour des push durables.
 4. **Garder les garde-fous actifs en prod** : ne pas définir `RATE_LIMIT_DISABLED` ni `CSRF_DISABLED` (réservés au local/test) ; calibrer `RATE_LIMIT_*` selon le trafic réel.
 5. **Documenter et versionner `app/.env`** (modèle `.env.example` sans valeurs) pour accélérer la reprise après sinistre.

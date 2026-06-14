@@ -88,11 +88,11 @@ export default function Admin() {
           </span>
           <span className="btn btn-primary">Ouvrir le wiki →</span>
         </Link>
-        <Link to="/admin/observability" className="card admin-banner">
+        <Link to="/admin/supervision" className="card admin-banner">
           <span>
-            <strong>📊 Observabilité</strong> — métriques du service, latence, taux d'erreur et journal des erreurs serveur.
+            <strong>📊 Supervision</strong> — observabilité technique, santé des dépendances (IA, email, base, sauvegardes) et indicateurs métier.
           </span>
-          <span className="btn btn-primary">Ouvrir le tableau de bord →</span>
+          <span className="btn btn-primary">Ouvrir la supervision →</span>
         </Link>
       </div>
 

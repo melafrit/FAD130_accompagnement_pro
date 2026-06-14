@@ -32,6 +32,7 @@ import { globalLimiter, authLimiter, helmetConfig } from './security'
 import { csrfIssue, csrfProtect } from './csrf'
 import { scheduleBackups } from './backups'
 import { requestLogger, errorHandler, metrics, recentErrors, errorsByPath, logger } from './observability'
+import { healthStatus, businessKpis, evaluateAndAlert, captureDailySnapshot } from './monitoring'
 import { requireAuth, requireRole } from './auth'
 import { seed } from './seed'
 
@@ -127,6 +128,16 @@ app.get('/api/metrics/errors', requireAuth, requireRole('admin'), (req, res) => 
   res.json({ recent: recentErrors(limit), byPath: errorsByPath(10) })
 })
 
+// Supervision — santé technique (temps réel) — réservé à l'administrateur
+app.get('/api/monitoring/health', requireAuth, requireRole('admin'), (_req, res) => {
+  res.json(healthStatus())
+})
+
+// Supervision — KPI métier + tendances — réservé à l'administrateur
+app.get('/api/monitoring/business', requireAuth, requireRole('admin'), (req, res) => {
+  res.json(businessKpis(Number(req.query.days) || 30))
+})
+
 // Contexte public (page d'accueil / onglet Aide)
 app.get('/api/context', (_req, res) => {
   res.json({
@@ -150,6 +161,12 @@ try { seedWiki() } catch (e) { console.error('[wiki] seed échec :', e) }
 
 // Sauvegardes locales horodatées de la base (quotidiennes, avec rétention)
 scheduleBackups()
+
+// Supervision : instantané KPI quotidien (au démarrage puis toutes les 24 h) + évaluation des
+// alertes techniques (toutes les 10 min ; email à l'admin sur changement d'état dégradé).
+setTimeout(() => { try { captureDailySnapshot() } catch (e) { logger.error({ err: String(e) }, 'snapshot initial échec') } }, 8000)
+setInterval(() => { try { captureDailySnapshot() } catch (e) { logger.error({ err: String(e) }, 'snapshot échec') } }, 24 * 60 * 60 * 1000)
+setInterval(() => { try { evaluateAndAlert() } catch (e) { logger.error({ err: String(e) }, 'évaluation alertes échec') } }, 10 * 60 * 1000)
 
 // Rappels d'action : balayage périodique côté serveur, indépendant des clients connectés
 // (la consultation des notifications déclenche aussi un balayage immédiat, en complément).

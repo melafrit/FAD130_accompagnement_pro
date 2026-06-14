@@ -279,6 +279,16 @@ L'observabilité est **auto-hébergée, sans tiers** : logs structurés `pino`, 
 | Méthode | Endpoint | Description | Auth / rôle | Réponse | Erreurs |
 | --- | --- | --- | --- | --- | --- |
 | GET | `/api/metrics` | Métriques d'exploitation : uptime, compteurs de requêtes 2xx/3xx/4xx/5xx, nombre d'erreurs, comptes de tables. | `admin` | `200 { uptime, requests:{…}, errors, tables:{…} }` | `401/403` |
+| GET | `/api/metrics/errors?limit=N` | Dernières erreurs serveur (5xx) + répartition par endpoint. | `admin` | `200 { recent:[…], byPath:[…] }` | `401/403` |
+
+## Supervision (monitoring) — `/api/monitoring` (livré)
+
+Santé **technique** des dépendances (Claude/Brevo en passif, base/sauvegardes/taux d'erreur en actif) et KPI **métier** historisés. Alimente le tableau de bord admin à 3 onglets (`/admin/supervision`). Une tâche planifiée (10 min) envoie un email à `ADMIN_EMAIL` sur **changement d'état** vers `warn`/`down` (anti-spam via `alert_state`). Instantané métier quotidien dans `metrics_daily` pour les tendances.
+
+| Méthode | Endpoint | Description | Auth / rôle | Réponse | Erreurs |
+| --- | --- | --- | --- | --- | --- |
+| GET | `/api/monitoring/health` | État temps réel de chaque dépendance : `{ status: 'ok'\|'warn'\|'down'\|'unknown', detail, since }`. | `admin` | `200 { claude, brevo, database, backups, error_rate, time }` | `401/403` |
+| GET | `/api/monitoring/business?days=N` | KPI métier courants (4 familles) + taux dérivés + séries historiques sur `N` jours. | `admin` | `200 { current:{…, taux_completion, taux_actions_faites}, series:[…], days }` | `401/403` |
 
 ## Routeurs transverses (résumé)
 

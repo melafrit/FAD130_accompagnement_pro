@@ -21264,6 +21264,57 @@
           "attendu": "Le helper api() leve une Error portant le champ 'error' du backend ; le composant l affiche (form-success/msg) sans crash de page.",
           "technique": "test du contrat (propagation d erreur api.ts)",
           "tracabilite": "lib/api.ts (throw new Error(msg)) + Admin.tsx/PlansManager/RgpdConsole catch"
+        },
+        {
+          "id": "TC-UI-360",
+          "titre": "Supervision : les 3 onglets s'affichent et basculent (Observabilité / Santé technique / Métier)",
+          "niveau": "ui",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test fonctionnel d'interface (navigation par onglets + rendu des données live)",
+          "preconditions": "Admin connecté. Stack démarrée (API + front). Jeu de démo seedé.",
+          "donnees": "Aucune donnée d'entrée ; navigation vers /admin/supervision.",
+          "etapes": [
+            "Se connecter en admin et ouvrir /admin/supervision.",
+            "Vérifier le titre « Supervision » et la présence de 3 onglets.",
+            "Onglet Observabilité (actif par défaut) : vérifier « Requêtes traitées ».",
+            "Cliquer « Santé technique » : vérifier « État global », « Base de données (SQLite) », « IA Claude (Anthropic) ».",
+            "Cliquer « Indicateurs métier » : vérifier « Adoption & comptes », « Tendances » et le bouton « 90 j »."
+          ],
+          "attendu": "Le titre et les 3 onglets sont visibles ; chaque onglet rend son panneau (KPI techniques / voyants de dépendances / familles de KPI + tendances) sans erreur.",
+          "tracabilite": "pages/Supervision.tsx + components/supervision/{ObservabilityPanel,TechHealthPanel,BusinessPanel}.tsx"
+        },
+        {
+          "id": "TC-UI-361",
+          "titre": "Supervision : l'ancien chemin /admin/observability redirige vers /admin/supervision",
+          "niveau": "ui",
+          "type": "non-régression",
+          "priorite": "moyenne",
+          "technique": "test de redirection (compatibilité de l'ancien chemin)",
+          "preconditions": "Admin connecté.",
+          "donnees": "Navigation directe vers /admin/observability.",
+          "etapes": [
+            "Se connecter en admin et ouvrir /admin/observability.",
+            "Observer l'URL finale et le contenu rendu."
+          ],
+          "attendu": "L'URL devient /admin/supervision et le titre « Supervision » s'affiche (route de redirection <Navigate replace>).",
+          "tracabilite": "App.tsx — Route /admin/observability → Navigate /admin/supervision"
+        },
+        {
+          "id": "TC-UI-362",
+          "titre": "Supervision : la fenêtre temporelle des tendances métier est sélectionnable (7 / 30 / 90 j)",
+          "niveau": "ui",
+          "type": "fonctionnel",
+          "priorite": "basse",
+          "technique": "test fonctionnel d'interaction (état actif du sélecteur de fenêtre)",
+          "preconditions": "Admin connecté ; onglet Indicateurs métier affiché.",
+          "donnees": "Clic sur le bouton « 7 j ».",
+          "etapes": [
+            "Ouvrir /admin/supervision puis l'onglet « Indicateurs métier ».",
+            "Cliquer le bouton « 7 j »."
+          ],
+          "attendu": "Le bouton « 7 j » prend la classe active (la requête /api/monitoring/business?days=7 est rejouée).",
+          "tracabilite": "components/supervision/BusinessPanel.tsx — sélecteur 7/30/90 j"
         }
       ],
       "areaKey": "ui_admin"
@@ -22032,6 +22083,114 @@
         }
       ],
       "areaKey": "obs"
+    },
+    {
+      "area": "Supervision — santé technique des dépendances & KPI métier",
+      "endpoints": [
+        { "method": "GET", "path": "/api/monitoring/health", "role": "admin", "summary": "État temps réel des dépendances (Claude, Brevo, base, sauvegardes, taux d'erreur)" },
+        { "method": "GET", "path": "/api/monitoring/business", "role": "admin", "summary": "KPI métier courants, taux dérivés et séries historiques (tendances)" }
+      ],
+      "cases": [
+        {
+          "id": "TC-MON-001",
+          "titre": "Accès anonyme à /api/monitoring/health refusé (401)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de sécurité / contrôle d'accès (utilisateur non authentifié)",
+          "preconditions": "API Boussole démarrée et accessible sur la base configurée (BOUSSOLE_BASE, défaut http://localhost:8080). Aucune session ouverte.",
+          "donnees": "Aucun corps de requête. Aucun cookie de session envoyé.",
+          "etapes": [
+            "Créer une nouvelle Session sans authentification (aucun cookie).",
+            "Envoyer GET /api/monitoring/health."
+          ],
+          "attendu": "Réponse HTTP 401 (non authentifié).",
+          "tracabilite": "GET /api/monitoring/health"
+        },
+        {
+          "id": "TC-MON-002",
+          "titre": "Accès à /api/monitoring/health interdit pour un accompagnateur (403)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de contrôle d'accès basé sur les rôles (utilisateur authentifié non administrateur)",
+          "preconditions": "API démarrée. Le compte de démo accompagnateur 'camille' (camille.laurent@boussole.demo) existe et peut se connecter.",
+          "donnees": "Session authentifiée en tant qu'accompagnateur DEMO.camille. Aucun corps de requête.",
+          "etapes": [
+            "Se connecter via asUser(DEMO.camille) (POST /api/auth/login).",
+            "Envoyer GET /api/monitoring/health avec le cookie de session."
+          ],
+          "attendu": "Réponse HTTP 403 (authentifié mais rôle non autorisé : endpoint réservé à l'administrateur).",
+          "tracabilite": "GET /api/monitoring/health"
+        },
+        {
+          "id": "TC-MON-003",
+          "titre": "Accès admin à /api/monitoring/health : 200 et santé de chaque dépendance",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat (vérification du statut, de la structure et du domaine de valeurs)",
+          "preconditions": "API démarrée. Le compte de démo administrateur 'admin' (mohamed@elafrit.com) existe et peut se connecter.",
+          "donnees": "Session authentifiée en tant qu'administrateur DEMO.admin. Paramètre de requête days=30.",
+          "etapes": [
+            "Se connecter via asUser(DEMO.admin) (POST /api/auth/login).",
+            "Envoyer GET /api/monitoring/health avec le cookie de session.",
+            "Pour chaque dépendance (claude, brevo, database, backups, error_rate), inspecter status et detail."
+          ],
+          "attendu": "Réponse HTTP 200. Chaque dépendance possède un status dans {ok, warn, down, unknown} et un detail de type string ; database.status vaut 'ok' sur la pile de test ; time est de type string.",
+          "tracabilite": "GET /api/monitoring/health — fonction healthStatus() (api/src/monitoring.ts)"
+        },
+        {
+          "id": "TC-MON-004",
+          "titre": "Accès anonyme à /api/monitoring/business refusé (401)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de sécurité / contrôle d'accès (utilisateur non authentifié)",
+          "preconditions": "API démarrée. Aucune session ouverte.",
+          "donnees": "Aucun corps de requête. Aucun cookie de session envoyé.",
+          "etapes": [
+            "Créer une nouvelle Session sans authentification.",
+            "Envoyer GET /api/monitoring/business."
+          ],
+          "attendu": "Réponse HTTP 401 (non authentifié).",
+          "tracabilite": "GET /api/monitoring/business"
+        },
+        {
+          "id": "TC-MON-005",
+          "titre": "Accès à /api/monitoring/business interdit pour un accompagnateur (403)",
+          "niveau": "api",
+          "type": "sécurité",
+          "priorite": "haute",
+          "technique": "test de contrôle d'accès basé sur les rôles (utilisateur authentifié non administrateur)",
+          "preconditions": "API démarrée. Le compte de démo accompagnateur 'camille' existe et peut se connecter.",
+          "donnees": "Session authentifiée en tant qu'accompagnateur DEMO.camille.",
+          "etapes": [
+            "Se connecter via asUser(DEMO.camille).",
+            "Envoyer GET /api/monitoring/business avec le cookie de session."
+          ],
+          "attendu": "Réponse HTTP 403 (rôle non autorisé : endpoint réservé à l'administrateur).",
+          "tracabilite": "GET /api/monitoring/business"
+        },
+        {
+          "id": "TC-MON-006",
+          "titre": "Accès admin à /api/monitoring/business : 200, KPI courants, taux dérivés et séries",
+          "niveau": "api",
+          "type": "fonctionnel",
+          "priorite": "haute",
+          "technique": "test du contrat + analyse des valeurs limites (taux dérivés bornés à [0, 100])",
+          "preconditions": "API démarrée. Compte admin 'admin' connectable. Jeu de données de démo chargé (inscriptions, parcours, actions…).",
+          "donnees": "Session admin DEMO.admin. Paramètre days=30.",
+          "etapes": [
+            "Se connecter via asUser(DEMO.admin).",
+            "Envoyer GET /api/monitoring/business?days=30.",
+            "Inspecter current (KPI + taux), series et days."
+          ],
+          "attendu": "HTTP 200. current contient les KPI numériques (inscriptions_total, accompagnateurs, accompagnes, parcours_total, entretiens, cr_publies, actions) ; taux_completion et taux_actions_faites ∈ [0, 100] ; inscriptions_total > 0 ; series est un tableau ; days = 30.",
+          "tracabilite": "GET /api/monitoring/business — fonctions businessKpis()/snapshot() (api/src/monitoring.ts)"
+        }
+      ],
+      "areaKey": "mon"
     },
     {
       "area": "Accessibilité (RGAA / WCAG 2.1 AA) — audit automatisé axe-core",

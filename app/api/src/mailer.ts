@@ -1,3 +1,5 @@
+import { recordDependency } from './depStatus'
+
 const BREVO_API_KEY = process.env.BREVO_API_KEY
 const MAIL_FROM = process.env.MAIL_FROM || 'contact@elafrit.com'
 const APP_URL = process.env.APP_URL || 'http://localhost:5173'
@@ -27,9 +29,13 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
       }),
     })
     if (!res.ok) {
+      recordDependency('brevo', false, `HTTP ${res.status}`)
       console.error(`[mailer] Échec Brevo (${res.status}) : ${await res.text()}`)
+    } else {
+      recordDependency('brevo', true)
     }
   } catch (e) {
+    recordDependency('brevo', false, e instanceof Error ? e.message : String(e))
     console.error('[mailer] Erreur réseau Brevo :', e)
   }
 }

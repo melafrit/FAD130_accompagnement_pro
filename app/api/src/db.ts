@@ -481,6 +481,21 @@ db.exec(`
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     cree_le TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Monitoring métier : instantané quotidien des KPI d'usage (pour les tendances).
+  CREATE TABLE IF NOT EXISTS metrics_daily (
+    jour    TEXT PRIMARY KEY,            -- YYYY-MM-DD
+    donnees TEXT NOT NULL,               -- JSON des compteurs du jour
+    cree_le TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Monitoring technique : dernier état d'alerte connu par dépendance (anti-spam des notifications).
+  CREATE TABLE IF NOT EXISTS alert_state (
+    cle          TEXT PRIMARY KEY,       -- claude | brevo | database | backups | error_rate
+    statut       TEXT NOT NULL,          -- ok | warn | down | unknown
+    depuis       TEXT NOT NULL DEFAULT (datetime('now')),
+    dernier_mail TEXT
+  );
 `)
 // Initialise l'ordre des actions héritées (avant le glisser-déposer) pour un tri déterministe
 try {

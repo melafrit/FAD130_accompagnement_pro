@@ -2,6 +2,8 @@
 // Fonctionne avec une clé (ANTHROPIC_API_KEY) ; sinon, un parcours de secours
 // déterministe prend le relais (l'app reste testable sans clé).
 
+import { recordDependency } from './depStatus'
+
 const KEY = process.env.ANTHROPIC_API_KEY
 const MODEL = process.env.ANTHROPIC_MODEL_REALTIME || 'claude-sonnet-4-6'
 
@@ -77,9 +79,11 @@ export async function questionnaireNext(history: QA[]): Promise<QuestionnaireSte
       }),
     })
     if (!res.ok) {
+      recordDependency('claude', false, `HTTP ${res.status}`)
       console.error(`[claude] HTTP ${res.status} : ${await res.text()}`)
       return fallbackNext(history)
     }
+    recordDependency('claude', true)
     const data = (await res.json()) as { content?: { type: string; text?: string }[] }
     const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text || '').join('')
     const json = JSON.parse(extractJson(text)) as Partial<QuestionnaireStep>
@@ -90,6 +94,7 @@ export async function questionnaireNext(history: QA[]): Promise<QuestionnaireSte
       recapitulatif: json.recapitulatif ?? null,
     }
   } catch (e) {
+    recordDependency('claude', false, e instanceof Error ? e.message : String(e))
     console.error('[claude] erreur :', e)
     return fallbackNext(history)
   }

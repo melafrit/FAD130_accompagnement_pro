@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { api } from '../lib/api'
+import { api } from '../../lib/api'
 
 type Metrics = {
   service: string; version: string; node: string; started_at: string; uptime_s: number
@@ -18,7 +17,8 @@ function fmtUptime(s: number): string {
   return [d ? `${d} j` : '', h ? `${h} h` : '', `${m} min`].filter(Boolean).join(' ')
 }
 
-export default function Observability() {
+/** Panneau « Observabilité » de la section Supervision (métriques techniques + erreurs). */
+export default function ObservabilityPanel() {
   const [m, setM] = useState<Metrics | null>(null)
   const [err, setErr] = useState<Errors | null>(null)
   const [auto, setAuto] = useState(true)
@@ -30,16 +30,11 @@ export default function Observability() {
       .then(([mm, ee]) => { setM(mm); setErr(ee); setUpdated(new Date().toLocaleTimeString()); setError('') })
       .catch((e) => setError(e instanceof Error ? e.message : 'Erreur de chargement'))
   }, [])
-
   useEffect(() => { load() }, [load])
-  useEffect(() => {
-    if (!auto) return
-    const id = setInterval(load, 10000)
-    return () => clearInterval(id)
-  }, [auto, load])
+  useEffect(() => { if (!auto) return; const id = setInterval(load, 10000); return () => clearInterval(id) }, [auto, load])
 
-  if (error) return <div className="page"><p className="form-error">{error}</p></div>
-  if (!m) return <div className="page"><p>Chargement des métriques…</p></div>
+  if (error) return <p className="form-error">{error}</p>
+  if (!m) return <p>Chargement des métriques…</p>
 
   const req = m.requests
   const classes = [
@@ -51,21 +46,16 @@ export default function Observability() {
   const maxClass = Math.max(1, ...classes.map((c) => c.v))
 
   return (
-    <div className="page obs">
-      <p className="kicker">Administration</p>
-      <div className="obs-head">
-        <h1 className="page-title">Observabilité</h1>
-        <div className="obs-controls">
-          <span className="obs-updated">Mise à jour : {updated || '—'}</span>
-          <label className="obs-auto"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Auto (10 s)</label>
-          <button className="btn btn-ghost btn-sm" onClick={load}>↻ Rafraîchir</button>
-        </div>
+    <div className="obs">
+      <div className="obs-controls obs-controls-right">
+        <span className="obs-updated">Mise à jour : {updated || '—'}</span>
+        <label className="obs-auto"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Auto (10 s)</label>
+        <button className="btn btn-ghost btn-sm" onClick={load}>↻ Rafraîchir</button>
       </div>
 
       <section className="card obs-status" aria-label="État du service">
         <span className="obs-dot" aria-hidden="true" /> Service <strong>{m.service}</strong> v{m.version} · Node {m.node}
-        · démarré il y a <strong>{fmtUptime(m.uptime_s)}</strong>
-        · mémoire <strong>{m.memory_mb.rss} Mo</strong> (heap {m.memory_mb.heap_used} Mo)
+        · démarré il y a <strong>{fmtUptime(m.uptime_s)}</strong> · mémoire <strong>{m.memory_mb.rss} Mo</strong> (heap {m.memory_mb.heap_used} Mo)
       </section>
 
       <section className="obs-kpis" aria-label="Indicateurs clés">
@@ -123,8 +113,6 @@ export default function Observability() {
           <p className="obs-bypath"><strong>Endpoints les plus en erreur :</strong> {err.byPath.map((p) => `${p.chemin} (${p.n})`).join(' · ')}</p>
         )}
       </section>
-
-      <p style={{ marginTop: 18 }}><Link className="btn btn-ghost" to="/admin">← Administration</Link></p>
     </div>
   )
 }

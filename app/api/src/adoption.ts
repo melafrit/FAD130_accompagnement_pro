@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import { requireAuth } from './auth'
 import { requireFeature } from './features'
+import { recordDependency } from './depStatus'
 
 // Adoption & accessibilité :
 //  - Mode FALC (Facile À Lire et à Comprendre) : reformulation IA d'un texte en langage simple
@@ -21,10 +22,11 @@ async function callClaude(system: string, user: string, maxTokens = 1200): Promi
         { type: 'text', text: system, cache_control: { type: 'ephemeral' } }, { type: 'text', text: user },
       ] }] }),
     })
-    if (!res.ok) return null
+    if (!res.ok) { recordDependency('claude', false, `HTTP ${res.status}`); return null }
     const data = (await res.json()) as { content?: { type: string; text?: string }[] }
+    recordDependency('claude', true)
     return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text || '').join('').trim() || null
-  } catch { return null }
+  } catch (e) { recordDependency('claude', false, e instanceof Error ? e.message : String(e)); return null }
 }
 
 // Repli déterministe : découpe en phrases courtes, présentées en puces.

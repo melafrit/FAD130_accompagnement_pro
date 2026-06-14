@@ -1,6 +1,6 @@
 # Matrice de traçabilité — Boussole
 
-> Identifiant : BOUSSOLE-MAT-001 · 1256 cas · 1061 automatisés (84%).
+> Identifiant : BOUSSOLE-MAT-001 · 1265 cas · 1070 automatisés (85%).
 > Régénérée à chaque exécution (un cas est « automatisé » dès que son ID apparaît dans le code de test).
 
 ## Synthèse de couverture par domaine
@@ -25,14 +25,15 @@
 | ADOPT | 26 | 20 | 77% |
 | UI_ACC | 59 | 47 | 80% |
 | UI_ACP | 72 | 56 | 78% |
-| UI_ADMIN | 53 | 50 | 94% |
+| UI_ADMIN | 56 | 53 | 95% |
 | WIKI | 23 | 23 | 100% |
 | TWOFA | 6 | 6 | 100% |
 | SECU | 4 | 4 | 100% |
 | CSRF | 4 | 4 | 100% |
 | OBS | 6 | 6 | 100% |
+| MON | 6 | 6 | 100% |
 | A11Y | 9 | 9 | 100% |
-| **Total** | **1256** | **1061** | **84%** |
+| **Total** | **1265** | **1070** | **85%** |
 
 ## Détail (cas ↔ fonctionnalité/endpoint ↔ test automatisé)
 
@@ -1242,6 +1243,9 @@
 | TC-UI-350 | Unitaire | moyenne | ethique.processEffacement | ✅ unit/ethique.test.ts |
 | TC-UI-351 | UI | basse | Admin.tsx onChange (load + loadPlans) + DELETE /admin/plans/:id | ✅ ui/admin.spec.ts |
 | TC-UI-352 | UI | moyenne | lib/api.ts (throw new Error(msg)) + Admin.tsx/PlansManager/RgpdConsole catch | ✅ ui/admin.spec.ts |
+| TC-UI-360 | UI | haute | pages/Supervision.tsx + components/supervision/{ObservabilityPanel,TechHealthPanel,BusinessPanel}.tsx | ✅ ui/supervision.spec.ts |
+| TC-UI-361 | UI | moyenne | App.tsx — Route /admin/observability → Navigate /admin/supervision | ✅ ui/supervision.spec.ts |
+| TC-UI-362 | UI | basse | components/supervision/BusinessPanel.tsx — sélecteur 7/30/90 j | ✅ ui/supervision.spec.ts |
 | TC-WIKI-001 | API | haute | GET /api/wiki/pages | ✅ api/wiki.test.ts |
 | TC-WIKI-002 | API | haute | GET /api/wiki/pages | ✅ api/wiki.test.ts |
 | TC-WIKI-003 | API | haute | GET /api/wiki/pages/:slug | ✅ api/wiki.test.ts |
@@ -1285,6 +1289,12 @@
 | TC-OBS-010 | Unitaire | moyenne | module api/src/observability — fonction metrics() | ✅ unit/observability.test.ts |
 | TC-OBS-011 | Unitaire | moyenne | module api/src/observability — fonction reportError() / journal error_log | ✅ unit/observability.test.ts |
 | TC-OBS-004 | API | moyenne | GET /api/metrics/errors | ✅ api/observability.test.ts |
+| TC-MON-001 | API | haute | GET /api/monitoring/health | ✅ api/monitoring.test.ts |
+| TC-MON-002 | API | haute | GET /api/monitoring/health | ✅ api/monitoring.test.ts |
+| TC-MON-003 | API | haute | GET /api/monitoring/health — fonction healthStatus() (api/src/monitoring.ts) | ✅ api/monitoring.test.ts |
+| TC-MON-004 | API | haute | GET /api/monitoring/business | ✅ api/monitoring.test.ts |
+| TC-MON-005 | API | haute | GET /api/monitoring/business | ✅ api/monitoring.test.ts |
+| TC-MON-006 | API | haute | GET /api/monitoring/business — fonctions businessKpis()/snapshot() (api/src/monitoring.ts) | ✅ api/monitoring.test.ts |
 | TC-A11Y-001 | UI | moyenne | UI / (accueil) — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-002 | UI | moyenne | UI /connexion — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-003 | UI | moyenne | UI /inscription — accessibilité | ✅ ui/accessibility.spec.ts |

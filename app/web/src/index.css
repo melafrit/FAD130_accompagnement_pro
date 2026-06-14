@@ -189,6 +189,55 @@ a { color: var(--bleu); }
 .obs-badge-err { background: #f6dcd9; color: #a23527; font-weight: 800; border-radius: 999px; padding: 1px 8px; font-size: 12px; }
 .obs-msg { color: #5a3030; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
 .obs-bypath { margin-top: 12px; font-size: 13px; color: #4a5560; }
+.obs-controls-right { justify-content: flex-end; margin: 0 0 14px; }
+
+/* ===== Section Supervision (onglets) ===== */
+.sup-intro { max-width: 760px; margin: 4px 0 18px; }
+.sup-tabs { display: flex; gap: 6px; border-bottom: 2px solid var(--bordure); margin-bottom: 18px; flex-wrap: wrap; }
+.sup-tab { appearance: none; background: transparent; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 10px 16px; font-family: inherit; font-size: 15px; font-weight: 700; color: var(--texte-doux); cursor: pointer; border-radius: 8px 8px 0 0; }
+.sup-tab:hover { background: var(--sauge-clair); color: var(--texte); }
+.sup-tab.active { color: var(--bleu-profond); border-bottom-color: var(--bleu-profond); }
+.sup-tab:focus-visible { outline: 2px solid var(--bleu-profond); outline-offset: 2px; }
+
+/* Santé technique : voyants */
+.sup-overall { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 15px; margin-bottom: 16px; }
+.sup-deps { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.sup-dep { display: flex; flex-direction: column; gap: 8px; }
+.sup-dep-head { display: flex; align-items: center; gap: 10px; }
+.sup-dep-head strong { flex: 1; }
+.sup-dep-detail { margin: 0; font-size: 13px; color: var(--texte-doux); }
+.sup-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.sup-dot-ok { background: #1d9a52; box-shadow: 0 0 0 3px rgba(29,154,82,.18); }
+.sup-dot-warn { background: #c77f0a; box-shadow: 0 0 0 3px rgba(199,127,10,.18); }
+.sup-dot-down { background: #c0392b; box-shadow: 0 0 0 3px rgba(192,57,43,.18); }
+.sup-dot-unknown { background: #8a96a3; box-shadow: 0 0 0 3px rgba(138,150,163,.18); }
+.sup-badge { font-size: 12px; font-weight: 800; border-radius: 999px; padding: 2px 10px; }
+.sup-badge-ok { background: #d8f0e1; color: #146c39; }
+.sup-badge-warn { background: #fbedd2; color: #8a5a06; }
+.sup-badge-down { background: #f6dcd9; color: #a23527; }
+.sup-badge-unknown { background: #e7ebef; color: #4a5560; }
+.sup-dep-ok { border-left: 4px solid #1d9a52; }
+.sup-dep-warn { border-left: 4px solid #c77f0a; }
+.sup-dep-down { border-left: 4px solid #c0392b; }
+.sup-dep-unknown { border-left: 4px solid #8a96a3; }
+.sup-overall-warn { border-color: #e0a93f; background: #fdf6e9; }
+.sup-overall-down { border-color: #e2b3ad; background: #fbecea; }
+
+/* Indicateurs métier : familles + tendances */
+.sup-biz { display: flex; flex-direction: column; gap: 16px; }
+.sup-biz .card h2 { margin-top: 0; font-size: 1.05rem; }
+.sup-trend-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sup-window { display: inline-flex; gap: 6px; }
+.sup-window .btn.active { background: var(--bleu-profond); color: #fff; }
+.sup-trends { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 12px; }
+.sup-trend-title { margin: 0 0 6px; font-weight: 700; font-size: 14px; color: var(--bleu-profond); }
+
+[data-theme="dark"] .sup-badge-ok { background: #173d29; color: #79d3a0; }
+[data-theme="dark"] .sup-badge-warn { background: #3d3015; color: #e3b66a; }
+[data-theme="dark"] .sup-badge-down { background: #3d1f1b; color: #f0928a; }
+[data-theme="dark"] .sup-badge-unknown { background: #25303b; color: #aab4bf; }
+[data-theme="dark"] .sup-overall-warn { background: #2c2616; }
+[data-theme="dark"] .sup-overall-down { background: #2c1c19; }
 
 /* ===== Accessibilité (RGAA) : badges et contrôles lisibles dans les deux thèmes ===== */
 .pill { display: inline-block; background: var(--sauge-clair); color: var(--texte); border-radius: 999px; padding: 2px 9px; font-weight: 600; }

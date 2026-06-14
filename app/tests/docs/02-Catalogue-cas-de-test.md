@@ -1,6 +1,6 @@
 # Catalogue de cas de test — Boussole
 
-> Généré automatiquement à partir de la conception ISTQB. 1256 cas de test sur 25 domaines.
+> Généré automatiquement à partir de la conception ISTQB. 1265 cas de test sur 26 domaines.
 > Identifiant : BOUSSOLE-CAT-001 · Voir le plan : [01-Plan-de-test.md](01-Plan-de-test.md) · La matrice : [03-Matrice-tracabilite.md](03-Matrice-tracabilite.md)
 
 ## Domaine AUTH — 69 cas
@@ -17550,7 +17550,7 @@
 - **Traçabilité :** GET /dossiers/mine/:id et endpoints dossier-scopés (cloisonnement accompagné)
 - **Automatisation :** ✅ ui/accompagne.spec.ts
 
-## Domaine UI_ADMIN — 53 cas
+## Domaine UI_ADMIN — 56 cas
 
 **Endpoints couverts :**
 
@@ -18371,6 +18371,54 @@
 - **Traçabilité :** lib/api.ts (throw new Error(msg)) + Admin.tsx/PlansManager/RgpdConsole catch
 - **Automatisation :** ✅ ui/admin.spec.ts
 
+### TC-UI-360 — Supervision : les 3 onglets s'affichent et basculent (Observabilité / Santé technique / Métier)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | fonctionnel | haute | test fonctionnel d'interface (navigation par onglets + rendu des données live) |
+
+- **Préconditions :** Admin connecté. Stack démarrée (API + front). Jeu de démo seedé.
+- **Données :** Aucune donnée d'entrée ; navigation vers /admin/supervision.
+- **Étapes :**
+  1. Se connecter en admin et ouvrir /admin/supervision.
+  2. Vérifier le titre « Supervision » et la présence de 3 onglets.
+  3. Onglet Observabilité (actif par défaut) : vérifier « Requêtes traitées ».
+  4. Cliquer « Santé technique » : vérifier « État global », « Base de données (SQLite) », « IA Claude (Anthropic) ».
+  5. Cliquer « Indicateurs métier » : vérifier « Adoption & comptes », « Tendances » et le bouton « 90 j ».
+- **Résultat attendu :** Le titre et les 3 onglets sont visibles ; chaque onglet rend son panneau (KPI techniques / voyants de dépendances / familles de KPI + tendances) sans erreur.
+- **Traçabilité :** pages/Supervision.tsx + components/supervision/{ObservabilityPanel,TechHealthPanel,BusinessPanel}.tsx
+- **Automatisation :** ✅ ui/supervision.spec.ts
+
+### TC-UI-361 — Supervision : l'ancien chemin /admin/observability redirige vers /admin/supervision
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | non-régression | moyenne | test de redirection (compatibilité de l'ancien chemin) |
+
+- **Préconditions :** Admin connecté.
+- **Données :** Navigation directe vers /admin/observability.
+- **Étapes :**
+  1. Se connecter en admin et ouvrir /admin/observability.
+  2. Observer l'URL finale et le contenu rendu.
+- **Résultat attendu :** L'URL devient /admin/supervision et le titre « Supervision » s'affiche (route de redirection <Navigate replace>).
+- **Traçabilité :** App.tsx — Route /admin/observability → Navigate /admin/supervision
+- **Automatisation :** ✅ ui/supervision.spec.ts
+
+### TC-UI-362 — Supervision : la fenêtre temporelle des tendances métier est sélectionnable (7 / 30 / 90 j)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | fonctionnel | basse | test fonctionnel d'interaction (état actif du sélecteur de fenêtre) |
+
+- **Préconditions :** Admin connecté ; onglet Indicateurs métier affiché.
+- **Données :** Clic sur le bouton « 7 j ».
+- **Étapes :**
+  1. Ouvrir /admin/supervision puis l'onglet « Indicateurs métier ».
+  2. Cliquer le bouton « 7 j ».
+- **Résultat attendu :** Le bouton « 7 j » prend la classe active (la requête /api/monitoring/business?days=7 est rejouée).
+- **Traçabilité :** components/supervision/BusinessPanel.tsx — sélecteur 7/30/90 j
+- **Automatisation :** ✅ ui/supervision.spec.ts
+
 ## Domaine WIKI — 23 cas
 
 ### TC-WIKI-001 — Accès anonyme à la liste des pages wiki refusé (401)
@@ -19067,6 +19115,105 @@
 - **Résultat attendu :** Anonyme -> HTTP 401 ; admin -> HTTP 200 avec { recent: tableau, byPath: tableau }.
 - **Traçabilité :** GET /api/metrics/errors
 - **Automatisation :** ✅ api/observability.test.ts
+
+## Domaine MON — 6 cas
+
+**Endpoints couverts :**
+
+- `GET /api/monitoring/health` · rôle: admin — État temps réel des dépendances (Claude, Brevo, base, sauvegardes, taux d'erreur)
+- `GET /api/monitoring/business` · rôle: admin — KPI métier courants, taux dérivés et séries historiques (tendances)
+
+### TC-MON-001 — Accès anonyme à /api/monitoring/health refusé (401)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de sécurité / contrôle d'accès (utilisateur non authentifié) |
+
+- **Préconditions :** API Boussole démarrée et accessible sur la base configurée (BOUSSOLE_BASE, défaut http://localhost:8080). Aucune session ouverte.
+- **Données :** Aucun corps de requête. Aucun cookie de session envoyé.
+- **Étapes :**
+  1. Créer une nouvelle Session sans authentification (aucun cookie).
+  2. Envoyer GET /api/monitoring/health.
+- **Résultat attendu :** Réponse HTTP 401 (non authentifié).
+- **Traçabilité :** GET /api/monitoring/health
+- **Automatisation :** ✅ api/monitoring.test.ts
+
+### TC-MON-002 — Accès à /api/monitoring/health interdit pour un accompagnateur (403)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de contrôle d'accès basé sur les rôles (utilisateur authentifié non administrateur) |
+
+- **Préconditions :** API démarrée. Le compte de démo accompagnateur 'camille' (camille.laurent@boussole.demo) existe et peut se connecter.
+- **Données :** Session authentifiée en tant qu'accompagnateur DEMO.camille. Aucun corps de requête.
+- **Étapes :**
+  1. Se connecter via asUser(DEMO.camille) (POST /api/auth/login).
+  2. Envoyer GET /api/monitoring/health avec le cookie de session.
+- **Résultat attendu :** Réponse HTTP 403 (authentifié mais rôle non autorisé : endpoint réservé à l'administrateur).
+- **Traçabilité :** GET /api/monitoring/health
+- **Automatisation :** ✅ api/monitoring.test.ts
+
+### TC-MON-003 — Accès admin à /api/monitoring/health : 200 et santé de chaque dépendance
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat (vérification du statut, de la structure et du domaine de valeurs) |
+
+- **Préconditions :** API démarrée. Le compte de démo administrateur 'admin' (mohamed@elafrit.com) existe et peut se connecter.
+- **Données :** Session authentifiée en tant qu'administrateur DEMO.admin. Paramètre de requête days=30.
+- **Étapes :**
+  1. Se connecter via asUser(DEMO.admin) (POST /api/auth/login).
+  2. Envoyer GET /api/monitoring/health avec le cookie de session.
+  3. Pour chaque dépendance (claude, brevo, database, backups, error_rate), inspecter status et detail.
+- **Résultat attendu :** Réponse HTTP 200. Chaque dépendance possède un status dans {ok, warn, down, unknown} et un detail de type string ; database.status vaut 'ok' sur la pile de test ; time est de type string.
+- **Traçabilité :** GET /api/monitoring/health — fonction healthStatus() (api/src/monitoring.ts)
+- **Automatisation :** ✅ api/monitoring.test.ts
+
+### TC-MON-004 — Accès anonyme à /api/monitoring/business refusé (401)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de sécurité / contrôle d'accès (utilisateur non authentifié) |
+
+- **Préconditions :** API démarrée. Aucune session ouverte.
+- **Données :** Aucun corps de requête. Aucun cookie de session envoyé.
+- **Étapes :**
+  1. Créer une nouvelle Session sans authentification.
+  2. Envoyer GET /api/monitoring/business.
+- **Résultat attendu :** Réponse HTTP 401 (non authentifié).
+- **Traçabilité :** GET /api/monitoring/business
+- **Automatisation :** ✅ api/monitoring.test.ts
+
+### TC-MON-005 — Accès à /api/monitoring/business interdit pour un accompagnateur (403)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | sécurité | haute | test de contrôle d'accès basé sur les rôles (utilisateur authentifié non administrateur) |
+
+- **Préconditions :** API démarrée. Le compte de démo accompagnateur 'camille' existe et peut se connecter.
+- **Données :** Session authentifiée en tant qu'accompagnateur DEMO.camille.
+- **Étapes :**
+  1. Se connecter via asUser(DEMO.camille).
+  2. Envoyer GET /api/monitoring/business avec le cookie de session.
+- **Résultat attendu :** Réponse HTTP 403 (rôle non autorisé : endpoint réservé à l'administrateur).
+- **Traçabilité :** GET /api/monitoring/business
+- **Automatisation :** ✅ api/monitoring.test.ts
+
+### TC-MON-006 — Accès admin à /api/monitoring/business : 200, KPI courants, taux dérivés et séries
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| API | fonctionnel | haute | test du contrat + analyse des valeurs limites (taux dérivés bornés à [0, 100]) |
+
+- **Préconditions :** API démarrée. Compte admin 'admin' connectable. Jeu de données de démo chargé (inscriptions, parcours, actions…).
+- **Données :** Session admin DEMO.admin. Paramètre days=30.
+- **Étapes :**
+  1. Se connecter via asUser(DEMO.admin).
+  2. Envoyer GET /api/monitoring/business?days=30.
+  3. Inspecter current (KPI + taux), series et days.
+- **Résultat attendu :** HTTP 200. current contient les KPI numériques (inscriptions_total, accompagnateurs, accompagnes, parcours_total, entretiens, cr_publies, actions) ; taux_completion et taux_actions_faites ∈ [0, 100] ; inscriptions_total > 0 ; series est un tableau ; days = 30.
+- **Traçabilité :** GET /api/monitoring/business — fonctions businessKpis()/snapshot() (api/src/monitoring.ts)
+- **Automatisation :** ✅ api/monitoring.test.ts
 
 ## Domaine A11Y — 9 cas
 
