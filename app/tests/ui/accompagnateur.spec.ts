@@ -190,6 +190,30 @@ test.describe('Dossier', () => {
     await expect(page.getByText('Chargement…')).toBeVisible()
     await expect(page.locator('.timeline')).toHaveCount(0)
   })
+
+  // TC-UI-128 — régression : une modale ouverte alors que la page est SCROLLÉE reste ancrée au
+  // viewport (non coupée). Garde-fou contre le retour du bloc englobant créé par .page (transform).
+  test('TC-UI-128 — modale non coupée quand la page est scrollée (Dossier)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 520 }) // viewport court → la page défile
+    await login(page, DEMO.mohamed)
+    const id = await dossierAccId(page, 'Amine')
+    await page.goto(`/dossier/${id}`)
+    await expect(page.locator('.timeline')).toBeVisible()
+    const qDetail = page.getByRole('button', { name: /Questions & réponses/ }).first()
+    if (await qDetail.count() === 0) { test.skip(true, 'pas de questionnaire détaillé sur ce dossier'); return }
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    await qDetail.click()
+    const overlay = page.locator('.modal-overlay')
+    await expect(overlay).toBeVisible()
+    // L'overlay (position:fixed) couvre le viewport, ancré en haut (y ≈ 0) — PAS la page scrollée.
+    const ob = await overlay.boundingBox()
+    expect(ob).not.toBeNull()
+    expect(Math.abs(ob!.y)).toBeLessThanOrEqual(2)
+    // Le haut de la boîte modale est visible dans le viewport (non coupé au-dessus).
+    const mb = await page.locator('.modal[role="dialog"]').boundingBox()
+    expect(mb).not.toBeNull()
+    expect(mb!.y).toBeGreaterThanOrEqual(0)
+  })
 })
 
 // ---------------------------------------------------------------------------
