@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import PlansManager from '../components/PlansManager'
 import RgpdConsole from '../components/RgpdConsole'
@@ -79,6 +80,18 @@ export default function Admin() {
     <div className="page">
       <p className="kicker">Administration</p>
       <h1 className="page-title">Gestion des comptes</h1>
+
+      <Link
+        to="/admin/wiki"
+        className="card"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', textDecoration: 'none', margin: '0 0 18px' }}
+      >
+        <span>
+          <strong>📚 Wiki projet</strong> — documentation officielle (cadrage, architecture, sécurité, exploitation, guides…).
+        </span>
+        <span className="btn btn-primary">Ouvrir le wiki →</span>
+      </Link>
+
       {msg && <p className="form-success">{msg}</p>}
 
       <div className="admin-table-wrap">
