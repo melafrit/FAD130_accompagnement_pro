@@ -4,6 +4,7 @@ import { api } from '../../lib/api'
 import WikiMarkdown from '../../components/wiki/WikiMarkdown'
 import WikiToc from '../../components/wiki/WikiToc'
 import WikiExportActions from '../../components/wiki/WikiExportActions'
+import WikiToolsPanel from '../../components/wiki/WikiToolsPanel'
 import WikiEditor, { type WikiFullPage } from '../../components/wiki/WikiEditor'
 import { WikiBreadcrumb, WikiStatusBadge } from '../../components/wiki/WikiBits'
 import type { WikiCtx } from './WikiLayout'
@@ -27,6 +28,10 @@ export default function WikiPage() {
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Page introuvable') })
     return () => { cancelled = true }
   }, [slug])
+
+  function reloadPage() {
+    api<{ page: WikiFullPage }>(`/wiki/pages/${slug}`).then((d) => setPage(d.page)).catch(() => { /* ignore */ })
+  }
 
   async function remove() {
     if (!page) return
@@ -53,11 +58,14 @@ export default function WikiPage() {
           <WikiStatusBadge statut={page.statut} />
         </div>
         {!editing && (
-          <div className="wiki-article-tools">
-            <WikiExportActions slug={page.slug} />
-            <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>✎ Modifier</button>
-            <button className="btn btn-ghost btn-sm wiki-danger" onClick={remove}>🗑 Supprimer</button>
-          </div>
+          <>
+            <div className="wiki-article-tools">
+              <WikiExportActions slug={page.slug} />
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>✎ Modifier</button>
+              <button className="btn btn-ghost btn-sm wiki-danger" onClick={remove}>🗑 Supprimer</button>
+            </div>
+            <WikiToolsPanel slug={page.slug} onRestored={reloadPage} />
+          </>
         )}
       </header>
 

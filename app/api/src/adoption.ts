@@ -41,7 +41,9 @@ router.post('/falc', requireAuth, requireFeature('falc'), async (req: Request, r
     'mots simples et courants, voix active, pas de jargon, pas de sigles non expliqués. Tu gardes tout le sens. ' +
     'Tu peux utiliser des puces. Tu réponds uniquement avec le texte réécrit, en français.'
   const out = await callClaude(system, `Réécris ce texte en facile à lire :\n\n${texte.slice(0, 4000)}`, 1200)
-  res.json({ texte: out || falcFallback(texte), source: out ? 'ia' : 'heuristique' })
+  // Garantit une sortie non vide : IA, sinon repli heuristique, sinon le texte d'entrée lui-même
+  // (le repli peut être vide pour une entrée sans phrase « réelle », ex. « a,b »).
+  res.json({ texte: out || falcFallback(texte) || texte, source: out ? 'ia' : 'heuristique' })
 })
 
 export default router

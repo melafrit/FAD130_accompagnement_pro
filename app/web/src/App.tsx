@@ -33,6 +33,7 @@ import Admin from './pages/Admin'
 import WikiLayout from './pages/wiki/WikiLayout'
 import WikiHome from './pages/wiki/WikiHome'
 import WikiPage from './pages/wiki/WikiPage'
+import WikiPublic from './pages/wiki/WikiPublic'
 import Profil from './pages/Profil'
 import NotificationsBell from './components/NotificationsBell'
 import AuthMenu from './components/AuthMenu'
@@ -108,6 +109,8 @@ export default function App() {
         <main className="main" id="main">
           <Routes>
             <Route path="/" element={<Home />} />
+            {/* Wiki partagé publiquement en lecture seule (accès par jeton, sans authentification) */}
+            <Route path="/wiki/p/:token" element={<WikiPublic />} />
             <Route path="/connexion" element={<Login />} />
             <Route path="/inscription" element={<Register />} />
             <Route path="/verifier-email" element={<VerifyEmail />} />

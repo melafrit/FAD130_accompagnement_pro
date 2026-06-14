@@ -30,6 +30,18 @@ export default function WikiHome() {
     [pages],
   )
 
+  async function downloadAll(ext: 'md' | 'docx' | 'pdf') {
+    try {
+      const res = await fetch(`/api/wiki/export-all.${ext}`, { credentials: 'include' })
+      const ct = res.headers.get('content-type') || ''
+      if (!res.ok || ct.includes('application/json')) { const j = await res.json().catch(() => ({})); window.alert(j.error || `Export ${ext.toUpperCase()} indisponible.`); return }
+      const blob = await res.blob()
+      const href = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = href; a.download = `boussole-wiki-complet.${ext}`
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(href)
+    } catch { window.alert('Téléchargement impossible.') }
+  }
+
   async function create() {
     setBusy(true); setErr('')
     const finalSlug = (slug || slugify(titre)).trim()
@@ -57,7 +69,15 @@ export default function WikiHome() {
             Espace réservé aux administrateurs · {pages.length} pages.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowNew((v) => !v)}>+ Nouvelle page</button>
+        <div className="wiki-home-actions">
+          <button className="btn btn-primary" onClick={() => setShowNew((v) => !v)}>+ Nouvelle page</button>
+          <div className="wiki-export">
+            <span className="wiki-export-label">Exporter tout&nbsp;:</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => downloadAll('md')}>⬇ MD</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => downloadAll('docx')}>⬇ DOCX</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => downloadAll('pdf')}>⬇ PDF</button>
+          </div>
+        </div>
       </header>
 
       {showNew && (

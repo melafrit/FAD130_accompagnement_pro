@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express'
 import { spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { db } from './db'
 import { requireAuth, requireRole } from './auth'
@@ -15,6 +16,19 @@ router.use(requireAuth, requireRole('admin'))
 
 interface U { id: number; role: string }
 const getUser = (req: Request): U => (req as Request & { user?: U }).user as U
+
+/** Crée un instantané (version) de la page avant qu'elle ne soit modifiée. */
+function snapshotVersion(pageId: number, auteurId: number | null): void {
+  const cur = db.prepare('SELECT titre, resume, contenu_md, statut FROM wiki_pages WHERE id=?').get(pageId) as
+    | { titre: string; resume: string | null; contenu_md: string; statut: string }
+    | undefined
+  if (!cur) return
+  const next = (db.prepare('SELECT COALESCE(MAX(version),0)+1 AS v FROM wiki_page_versions WHERE page_id=?').get(pageId) as { v: number }).v
+  db.prepare(
+    `INSERT INTO wiki_page_versions (page_id, version, titre, resume, contenu_md, statut, auteur_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  ).run(pageId, next, cur.titre, cur.resume, cur.contenu_md, cur.statut, auteurId)
+}
 
 const STATUTS = ['redige', 'partiel', 'brouillon', 'deprecie'] as const
 const slugRe = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -99,6 +113,7 @@ router.patch('/pages/:slug', (req: Request, res: Response) => {
   const fields = parsed.data
   const keys = Object.keys(fields) as (keyof typeof fields)[]
   if (keys.length === 0) { res.status(400).json({ error: 'Aucune modification fournie' }); return }
+  snapshotVersion(current.id, getUser(req).id) // historise l'état AVANT modification
   const set = keys.map((k) => `${k}=@${k}`).join(', ')
   db.prepare(`UPDATE wiki_pages SET ${set}, maj_le=datetime('now'), maj_par=@maj_par WHERE id=@id`)
     .run({ ...fields, id: current.id, maj_par: getUser(req).id })
@@ -110,6 +125,64 @@ router.patch('/pages/:slug', (req: Request, res: Response) => {
 router.delete('/pages/:slug', (req: Request, res: Response) => {
   const info = db.prepare('DELETE FROM wiki_pages WHERE slug=?').run(req.params.slug)
   if (info.changes === 0) { res.status(404).json({ error: 'Page introuvable' }); return }
+  res.json({ ok: true })
+})
+
+// ------------------------------------------------------------------
+// Historique de versions
+// ------------------------------------------------------------------
+function pageIdBySlug(slug: string): number | undefined {
+  return (db.prepare('SELECT id FROM wiki_pages WHERE slug=?').get(slug) as { id: number } | undefined)?.id
+}
+
+router.get('/pages/:slug/versions', (req: Request, res: Response) => {
+  const id = pageIdBySlug(req.params.slug)
+  if (!id) { res.status(404).json({ error: 'Page introuvable' }); return }
+  const versions = db
+    .prepare('SELECT version, titre, statut, cree_le, auteur_id, length(contenu_md) AS taille FROM wiki_page_versions WHERE page_id=? ORDER BY version DESC')
+    .all(id)
+  res.json({ versions })
+})
+
+router.get('/pages/:slug/versions/:version', (req: Request, res: Response) => {
+  const id = pageIdBySlug(req.params.slug)
+  if (!id) { res.status(404).json({ error: 'Page introuvable' }); return }
+  const v = db.prepare('SELECT * FROM wiki_page_versions WHERE page_id=? AND version=?').get(id, Number(req.params.version))
+  if (!v) { res.status(404).json({ error: 'Version introuvable' }); return }
+  res.json({ version: v })
+})
+
+router.post('/pages/:slug/versions/:version/restore', (req: Request, res: Response) => {
+  const id = pageIdBySlug(req.params.slug)
+  if (!id) { res.status(404).json({ error: 'Page introuvable' }); return }
+  const v = db.prepare('SELECT titre, resume, contenu_md, statut FROM wiki_page_versions WHERE page_id=? AND version=?')
+    .get(id, Number(req.params.version)) as { titre: string; resume: string | null; contenu_md: string; statut: string } | undefined
+  if (!v) { res.status(404).json({ error: 'Version introuvable' }); return }
+  snapshotVersion(id, getUser(req).id) // historise l'état courant avant restauration
+  db.prepare(`UPDATE wiki_pages SET titre=?, resume=?, contenu_md=?, statut=?, maj_le=datetime('now'), maj_par=? WHERE id=?`)
+    .run(v.titre, v.resume, v.contenu_md, v.statut, getUser(req).id, id)
+  const page = db.prepare('SELECT * FROM wiki_pages WHERE id=?').get(id)
+  res.json({ page })
+})
+
+// ------------------------------------------------------------------
+// Partage public en lecture seule (opt-in par page, lien tokenisé)
+// ------------------------------------------------------------------
+router.post('/pages/:slug/share', (req: Request, res: Response) => {
+  const id = pageIdBySlug(req.params.slug)
+  if (!id) { res.status(404).json({ error: 'Page introuvable' }); return }
+  let token = (db.prepare('SELECT public_token FROM wiki_pages WHERE id=?').get(id) as { public_token: string | null }).public_token
+  if (!token) {
+    token = randomUUID().replace(/-/g, '')
+    db.prepare('UPDATE wiki_pages SET public_token=? WHERE id=?').run(token, id)
+  }
+  res.json({ token, url: `/wiki/p/${token}` })
+})
+
+router.delete('/pages/:slug/share', (req: Request, res: Response) => {
+  const id = pageIdBySlug(req.params.slug)
+  if (!id) { res.status(404).json({ error: 'Page introuvable' }); return }
+  db.prepare('UPDATE wiki_pages SET public_token=NULL WHERE id=?').run(id)
   res.json({ ok: true })
 })
 
@@ -189,6 +262,66 @@ router.get('/export/:slug.pdf', async (req: Request, res: Response) => {
   } catch (e) {
     res.status(503).json({ error: 'Export PDF serveur indisponible. Utilisez « Imprimer » (PDF du navigateur).', detail: String(e instanceof Error ? e.message : e).slice(0, 300) })
   }
+})
+
+// ------------------------------------------------------------------
+// Export GLOBAL : tout le wiki en un seul document (Markdown / DOCX / PDF)
+// ------------------------------------------------------------------
+function fullWikiMarkdown(): string {
+  const pages = db.prepare('SELECT * FROM wiki_pages ORDER BY categorie, ordre, titre').all() as PageRow[]
+  const garde =
+    `% Boussole — Documentation du projet (UE FAD130, Cnam)\n% ${WIKI_AUTEUR}\n\n` +
+    `> ${WIKI_LICENCE}\n\n# Sommaire\n\n` +
+    pages.map((p) => `- ${p.categorie} — ${p.titre}`).join('\n') +
+    '\n\n'
+  const corps = pages
+    .map((p) => `\n\n<!-- ${p.slug} -->\n\n` + (p.contenu_md || `# ${p.titre}\n`))
+    .join('\n\n---\n\n')
+  return garde + corps + `\n\n---\n\n*${WIKI_LICENCE}*  \n*${WIKI_AUTEUR}*\n`
+}
+
+router.get('/export-all.md', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
+  res.setHeader('Content-Disposition', 'attachment; filename="boussole-wiki-complet.md"')
+  res.send(fullWikiMarkdown())
+})
+
+router.get('/export-all.docx', async (_req: Request, res: Response) => {
+  try {
+    const buf = await runPandoc(fullWikiMarkdown(), ['-f', 'gfm', '-t', 'docx', '--toc', '--toc-depth=2', '-V', 'lang=fr', '-o', '-'])
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    res.setHeader('Content-Disposition', 'attachment; filename="boussole-wiki-complet.docx"')
+    res.send(buf)
+  } catch (e) {
+    res.status(503).json({ error: 'Export DOCX indisponible (pandoc absent).', detail: String(e instanceof Error ? e.message : e).slice(0, 300) })
+  }
+})
+
+router.get('/export-all.pdf', async (_req: Request, res: Response) => {
+  try {
+    const buf = await runPandoc(fullWikiMarkdown(), ['-f', 'gfm', '-t', 'pdf', '--pdf-engine=wkhtmltopdf', '--toc', '-V', 'lang=fr', '-o', '-'])
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', 'attachment; filename="boussole-wiki-complet.pdf"')
+    res.send(buf)
+  } catch (e) {
+    res.status(503).json({ error: 'Export PDF serveur indisponible.', detail: String(e instanceof Error ? e.message : e).slice(0, 300) })
+  }
+})
+
+/**
+ * Routeur PUBLIC (sans authentification) : lecture seule d'une page partagée par son jeton.
+ * Monté séparément (avant le routeur admin) sur /api/wiki/public. N'expose QUE les pages
+ * explicitement partagées par un administrateur (public_token non nul).
+ */
+export const publicWikiRouter = Router()
+publicWikiRouter.get('/:token', (req: Request, res: Response) => {
+  const token = String(req.params.token || '')
+  if (!/^[a-f0-9]{16,40}$/i.test(token)) { res.status(404).json({ error: 'Lien invalide' }); return }
+  const page = db
+    .prepare('SELECT slug, categorie, titre, resume, contenu_md, maj_le FROM wiki_pages WHERE public_token=?')
+    .get(token)
+  if (!page) { res.status(404).json({ error: 'Page non partagée ou lien révoqué' }); return }
+  res.json({ page })
 })
 
 /**

@@ -318,6 +318,16 @@ flowchart LR
 
 Le diagramme montre la double provenance du contenu : le **seed** (fichier `.md` → générateur → base, sans écrasement) et l'**édition en ligne** (PATCH direct en base). Une fois une page éditée, elle est la **source de vérité** ; le `.md` de référence ne sert qu'au premier amorçage et à la traçabilité Git.
 
+### 6.6 Partage public, historique de versions et export global
+
+| Capacité | Où | Comportement |
+|---|---|---|
+| **Partage public (opt-in)** | bouton **🔗 Partager** d'une page | Génère un **lien tokenisé** en lecture seule (`/wiki/p/<jeton>`), accessible **sans authentification**. Les autres pages restent privées. **Révocable** à tout moment (le lien cesse de fonctionner). |
+| **Historique de versions** | bouton **🕓 Historique** | Un **instantané** est créé **avant chaque modification** (et avant chaque restauration). Permet de **consulter** et **restaurer** une version antérieure. |
+| **Export global** | accueil du wiki → **Exporter tout** | Concatène l'ensemble des pages en **un seul document** Markdown / DOCX / PDF (page de garde + sommaire + licence). |
+
+> **Sécurité du partage.** Seules les pages explicitement partagées par un admin (jeton non nul) sont exposées ; le contenu sensible (page *Sécurité*, *Business case*…) reste **privé par défaut**. Pensez à **révoquer** un lien devenu inutile. Côté API : `POST/DELETE /api/wiki/pages/:slug/share`, route publique `GET /api/wiki/public/:token`, versions sous `/api/wiki/pages/:slug/versions`.
+
 ---
 
 ## 7. Actions sensibles et bonnes pratiques

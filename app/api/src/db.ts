@@ -213,6 +213,8 @@ for (const stmt of [
   // Traçabilité du traitement d'une demande d'effacement (anonymiser / supprimer)
   'ALTER TABLE demandes_effacement ADD COLUMN traite_le TEXT',
   'ALTER TABLE demandes_effacement ADD COLUMN action TEXT',
+  // Wiki : jeton de partage public en lecture seule (NULL = non partagé)
+  'ALTER TABLE wiki_pages ADD COLUMN public_token TEXT',
 ]) {
   try {
     db.exec(stmt)
@@ -443,8 +445,23 @@ db.exec(`
     contenu_md TEXT NOT NULL DEFAULT '',
     statut     TEXT NOT NULL DEFAULT 'redige' CHECK (statut IN ('redige','partiel','brouillon','deprecie')),
     ordre      INTEGER NOT NULL DEFAULT 0,
+    public_token TEXT,
     maj_le     TEXT NOT NULL DEFAULT (datetime('now')),
     maj_par    INTEGER REFERENCES users(id) ON DELETE SET NULL
+  );
+
+  -- Historique de versions d'une page de wiki : un instantané est créé avant chaque modification.
+  CREATE TABLE IF NOT EXISTS wiki_page_versions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    page_id    INTEGER NOT NULL REFERENCES wiki_pages(id) ON DELETE CASCADE,
+    version    INTEGER NOT NULL,
+    titre      TEXT NOT NULL,
+    resume     TEXT,
+    contenu_md TEXT NOT NULL,
+    statut     TEXT NOT NULL,
+    cree_le    TEXT NOT NULL DEFAULT (datetime('now')),
+    auteur_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE (page_id, version)
   );
 `)
 // Initialise l'ordre des actions héritées (avant le glisser-déposer) pour un tri déterministe

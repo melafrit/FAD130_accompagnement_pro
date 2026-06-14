@@ -27,7 +27,7 @@ import visualisationRouter from './visualisation'
 import confortRouter from './confort'
 import ethiqueRouter, { sweepRetention } from './ethique'
 import adoptionRouter from './adoption'
-import wikiRouter, { seedWiki } from './wiki'
+import wikiRouter, { seedWiki, publicWikiRouter } from './wiki'
 import { seed } from './seed'
 
 const app = express()
@@ -95,7 +95,8 @@ app.use('/api/ethique', ethiqueRouter)
 // Adoption & accessibilité (reformulation FALC)
 app.use('/api/adoption', adoptionRouter)
 
-// Wiki documentaire interne (ADMIN ONLY) : pages Markdown éditables + export pandoc
+// Wiki documentaire interne : partage public (lecture seule, AVANT la garde admin), puis routeur admin
+app.use('/api/wiki/public', publicWikiRouter)
 app.use('/api/wiki', wikiRouter)
 
 // Santé du service (checks de déploiement)
