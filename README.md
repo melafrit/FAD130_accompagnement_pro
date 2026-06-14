@@ -28,3 +28,16 @@ Production des livrables d'évaluation de l'UE à partir d'une situation réelle
 
 - **12 juin 2026** — présentation orale (5–7 min)
 - **19 juin 2026** — dépôt final des livrables
+
+## Auteur & licence
+
+**Auteur unique et titulaire des droits : Mohamed El Afrit** — https://www.mohamedelafrit.com
+
+Ce projet, dont l'application web **Boussole**, est **open source** sous double licence :
+
+- **Code source** → [GNU AGPL-3.0](LICENSE). Toute version modifiée mise à disposition via un réseau (service en ligne) doit en publier le code source.
+- **Documentation & contenu** (pages du wiki, exports, dossiers) → [Creative Commons BY-NC-SA 4.0](LICENSE-CONTENT.txt) : attribution obligatoire, **pas d'usage commercial**, partage dans les mêmes conditions.
+
+En tant que titulaire exclusif des droits, l'auteur se réserve le droit d'accorder des **licences commerciales distinctes** (double licence). Pour tout usage commercial : https://www.mohamedelafrit.com
+
+© 2026 Mohamed El Afrit. Boussole™.

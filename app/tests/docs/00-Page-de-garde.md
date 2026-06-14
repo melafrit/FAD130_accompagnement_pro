@@ -14,8 +14,9 @@ lang: fr
 | **Cadre** | Cnam, UE **FAD130** |
 | **Document** | Batterie de tests exhaustifs & porte de non-régression |
 | **Référence** | BOUSSOLE-QA-2026 |
-| **Auteur** | Mohamed El Afrit |
+| **Auteur** | Mohamed El Afrit — https://www.mohamedelafrit.com (auteur unique, titulaire des droits) |
 | **Date** | 13 juin 2026 |
+| **Licence** | Projet open source : code sous **AGPL-3.0**, documentation sous **CC BY-NC-SA 4.0** (attribution, pas d'usage commercial, partage à l'identique). © 2026 Mohamed El Afrit. |
 | **Référentiels** | ISTQB (terminologie & techniques de conception), IEEE 829 (structure documentaire) |
 | **Périmètre** | Couverture exhaustive : unitaire (repli déterministe), intégration API (contrat HTTP, contrôle d'accès, validation), bout-en-bout UI (Playwright, 3 rôles) |
 

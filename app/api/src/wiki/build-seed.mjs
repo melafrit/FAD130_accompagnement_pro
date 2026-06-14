@@ -30,6 +30,7 @@ const MANIFEST = [
   { slug: 'risk-register', categorie: 'Pilotage produit', ordre: 18, statut: 'redige', titre: 'Registre des risques', resume: 'Risques projet cotés (impact, probabilité, criticité) et mitigations.' },
   { slug: 'technical-debt', categorie: 'Pilotage produit', ordre: 19, statut: 'redige', titre: 'Dette technique', resume: 'Dette identifiée par domaine, impact, priorité, recommandation et effort.' },
   { slug: 'adr', categorie: 'Pilotage produit', ordre: 20, statut: 'redige', titre: 'Décisions d’architecture (ADR)', resume: 'Registre des décisions d’architecture structurantes du projet.' },
+  { slug: 'about-license', categorie: 'Guides & référence', ordre: 20, statut: 'redige', titre: 'À propos, auteur & licence', resume: 'Auteur (Mohamed El Afrit), statut open source et licences (AGPL-3.0 + CC BY-NC-SA 4.0).' },
   { slug: 'admin-guide', categorie: 'Guides & référence', ordre: 21, statut: 'redige', titre: 'Guide administrateur', resume: 'Utilisateurs, rôles, plans, console RGPD et exploitation du wiki.' },
   { slug: 'user-guide', categorie: 'Guides & référence', ordre: 22, statut: 'redige', titre: 'Guide utilisateur', resume: 'Prise en main et parcours pas à pas (accompagnateur et accompagné).' },
   { slug: 'glossary', categorie: 'Guides & référence', ordre: 23, statut: 'redige', titre: 'Glossaire', resume: 'Définitions métier, produit, techniques, sécurité et projet.' },

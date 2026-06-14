@@ -134,6 +134,11 @@
   .wiki-editor-split { grid-template-columns: 1fr; }
 }
 
+/* ---- Pied de page licence (wiki) ---- */
+.wiki-licence-footer { margin-top: 32px; padding-top: 14px; border-top: 1px solid var(--bordure); font-size: 12.5px; color: var(--texte-doux); }
+.wiki-licence-footer p { margin: 3px 0; }
+.wiki-licence-footer a { color: var(--bleu); }
+
 /* ---- Impression : ne garder que le contenu de la page ---- */
 @media print {
   header, .footer, .nav, .authmenu, .skip-link, .onboarding, .notifications-bell,

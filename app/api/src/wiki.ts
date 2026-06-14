@@ -119,9 +119,16 @@ router.delete('/pages/:slug', (req: Request, res: Response) => {
 function pageBySlug(slug: string): PageRow | undefined {
   return db.prepare('SELECT * FROM wiki_pages WHERE slug=?').get(slug) as PageRow | undefined
 }
+const WIKI_AUTEUR = 'Auteur : Mohamed El Afrit — https://www.mohamedelafrit.com'
+const WIKI_LICENCE =
+  'Documentation © 2026 Mohamed El Afrit. Distribuée sous licence Creative Commons Attribution - Pas d’Utilisation Commerciale - Partage dans les Mêmes Conditions 4.0 (CC BY-NC-SA 4.0). Le code de l’application Boussole est, lui, sous licence AGPL-3.0.'
+
 function fullMarkdown(p: PageRow): string {
   const meta = `<!-- Boussole — Wiki projet · ${p.titre} · catégorie ${p.categorie} · maj ${p.maj_le} -->\n\n`
-  return meta + (p.contenu_md || `# ${p.titre}\n\n*(page vide)*\n`)
+  const entete = `> **Boussole — Documentation du projet (UE FAD130, Cnam)**  \n> ${WIKI_AUTEUR}  \n> ${WIKI_LICENCE}\n\n---\n\n`
+  const corps = p.contenu_md || `# ${p.titre}\n\n*(page vide)*\n`
+  const pied = `\n\n---\n\n*${WIKI_LICENCE}*  \n*${WIKI_AUTEUR}*\n`
+  return meta + entete + corps + pied
 }
 function asciiName(slug: string, ext: string): string {
   return `boussole-${slug}`.replace(/[^a-z0-9-]/gi, '-') + '.' + ext

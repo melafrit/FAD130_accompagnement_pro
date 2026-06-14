@@ -68,12 +68,24 @@ export default function WikiPage() {
           onCancel={() => setEditing(false)}
         />
       ) : (
-        <div className="wiki-article-body">
-          <div className="wiki-article-content" ref={contentRef}>
-            <WikiMarkdown markdown={page.contenu_md} />
+        <>
+          <div className="wiki-article-body">
+            <div className="wiki-article-content" ref={contentRef}>
+              <WikiMarkdown markdown={page.contenu_md} />
+            </div>
+            <WikiToc containerRef={contentRef} markdown={page.contenu_md} />
           </div>
-          <WikiToc containerRef={contentRef} markdown={page.contenu_md} />
-        </div>
+          <footer className="wiki-licence-footer">
+            <p>
+              <strong>Boussole</strong> — Documentation du projet (UE FAD130, Cnam) · <strong>Auteur : Mohamed El Afrit</strong> ·{' '}
+              <a href="https://www.mohamedelafrit.com" target="_blank" rel="noopener noreferrer">mohamedelafrit.com</a>
+            </p>
+            <p>
+              © 2026 Mohamed El Afrit · Projet <strong>open source</strong> — contenu sous licence{' '}
+              <strong>CC&nbsp;BY-NC-SA&nbsp;4.0</strong>, code sous <strong>AGPL-3.0</strong>.
+            </p>
+          </footer>
+        </>
       )}
     </div>
   )

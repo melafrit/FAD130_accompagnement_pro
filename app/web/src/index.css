@@ -138,6 +138,7 @@ a { color: var(--bleu); }
 .footer p { margin: 0; color: var(--texte-doux); font-size: 14px; text-align: center; }
 .footer-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 14px; }
 .footer-links a { color: var(--bleu); }
+.footer-licence { display: inline-block; margin-top: 8px; font-size: 12px; opacity: .85; }
 
 /* Navigation : utilisateur connecté */
 .nav-user { color: var(--texte-doux); font-size: 14px; }

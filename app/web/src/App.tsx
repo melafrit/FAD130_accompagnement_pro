@@ -80,7 +80,11 @@ function Footer() {
         <strong>Boussole</strong> — application développée dans le cadre de l'UE <strong>FAD130</strong> (Cnam).<br />
         Auteur : <strong>Mohamed&nbsp;EL&nbsp;AFRIT</strong> —{' '}
         <a href="https://www.mohamedelafrit.com" target="_blank" rel="noopener noreferrer">www.mohamedelafrit.com</a>{' '}
-        · © 2026
+        · © 2026<br />
+        <span className="footer-licence">
+          Projet <strong>open source</strong> — code sous licence <strong>AGPL-3.0</strong>, documentation sous{' '}
+          <strong>CC&nbsp;BY-NC-SA&nbsp;4.0</strong>. © 2026 Mohamed&nbsp;El&nbsp;Afrit, tous droits réservés.
+        </span>
       </p>
     </footer>
   )
