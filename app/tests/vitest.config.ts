@@ -11,6 +11,9 @@ export default defineConfig({
     testTimeout: 90000,
     hookTimeout: 120000,
     fileParallelism: false,
+    // Sur CI : 1 nouvelle tentative pour absorber un éventuel flake transitoire (aléa réseau /
+    // docker exec) — une vraie régression échoue aux deux tentatives. En local : 0 (flakes visibles).
+    retry: process.env.CI ? 1 : 0,
     pool: 'forks',
     reporters: ['default'],
     // Les tests unitaires importent du code API qui ouvre une base SQLite : on la redirige

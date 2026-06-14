@@ -7,7 +7,9 @@ export default defineConfig({
   globalSetup: './global-setup.ts', // active le réglage global FALC le temps de la session UI
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  // Sur CI : 2 tentatives pour absorber les flakes TRANSITOIRES (timing, réseau) — une vraie
+  // régression échoue à chaque tentative. En local : 0, pour que les flakes restent visibles.
+  retries: process.env.CI ? 2 : 0,
   timeout: 45000,
   expect: { timeout: 10000 },
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],

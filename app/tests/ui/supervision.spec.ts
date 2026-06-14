@@ -21,8 +21,10 @@ test.describe('SUPERVISION — section /admin/supervision', () => {
     // Onglet 2 — Santé technique : voyants des dépendances + état global.
     await page.getByRole('tab', { name: 'Santé technique' }).click()
     await expect(page.getByText(/État global/)).toBeVisible({ timeout: 15000 })
-    await expect(page.getByText('Base de données (SQLite)')).toBeVisible()
-    await expect(page.getByText('IA Claude (Anthropic)')).toBeVisible()
+    // { exact: true } cible le libellé <strong> (texte exact) et non le détail qui peut le contenir
+    // (ex. état « inconnu » : « IA Claude (Anthropic) : aucun appel récent ») → évite la double-correspondance.
+    await expect(page.getByText('Base de données (SQLite)', { exact: true })).toBeVisible()
+    await expect(page.getByText('IA Claude (Anthropic)', { exact: true })).toBeVisible()
 
     // Onglet 3 — Indicateurs métier : familles de KPI + sélecteur de fenêtre.
     await page.getByRole('tab', { name: 'Indicateurs métier' }).click()
