@@ -316,7 +316,11 @@ db.exec(`
     accompagne_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     motif         TEXT,
     statut        TEXT NOT NULL DEFAULT 'en_attente',
-    cree_le       TEXT NOT NULL DEFAULT (datetime('now'))
+    cree_le       TEXT NOT NULL DEFAULT (datetime('now')),
+    -- Colonnes aussi présentes dans les ALTER de migration (pour les bases pré-existantes) ; ici
+    -- en clair pour que les bases NEUVES les aient (les ALTER ci-dessus s'exécutent avant ce CREATE).
+    action        TEXT,
+    traite_le     TEXT
   );
 
   -- Plans d'abonnement : chaque plan active un sous-ensemble de fonctionnalités (features = JSON de clés)
