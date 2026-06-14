@@ -455,6 +455,20 @@ html[data-falc="on"] .btn { padding: 10px 16px; }
 }
 .onboarding-fab:hover { background: #1d6a96; }
 
+/* Bouton « Visite guidée » dans le menu du compte : aligné sur le style des liens .authmenu-item */
+.authmenu-item-btn { width: 100%; text-align: left; background: none; border: none; font: inherit; cursor: pointer; }
+
+/* Proposition de visite guidée à la 1re arrivée sur un écran (toast non bloquant, en bas) */
+.tour-prompt {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 950;
+  max-width: 420px; width: calc(100% - 32px);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--blanc); border: 1px solid var(--bordure); border-radius: 12px;
+  padding: 12px 16px; box-shadow: 0 12px 40px rgba(0,0,0,.22);
+}
+.tour-prompt-txt { margin: 0; font-size: 14px; flex: 1 1 180px; }
+.tour-prompt-actions { display: flex; gap: 8px; margin-left: auto; }
+
 /* === Attestation de fin (document imprimable) === */
 .attestation { border: 2px solid var(--bleu-profond, #16324f); border-radius: 12px; padding: 32px; text-align: center; }
 .att-brand { color: var(--bleu-profond, #16324f); font-weight: 700; letter-spacing: .04em; margin: 0; }

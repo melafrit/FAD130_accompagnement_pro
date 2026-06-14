@@ -1,36 +1,22 @@
 import { useEffect, useState } from 'react'
 
-interface Step { title: string; body: string; selector?: string }
-
-const STEPS: Record<string, Step[]> = {
-  accompagne: [
-    { title: 'Bienvenue sur Boussole 👋', body: 'Boussole t’accompagne pas à pas dans l’écriture de ton mémoire professionnel. Voici l’essentiel en quelques étapes.' },
-    { title: 'Mon espace', body: 'Retrouve ici tous tes parcours, tes rendez-vous et tes comptes rendus.', selector: '[data-tour="espace"]' },
-    { title: 'Ton parcours guidé', body: 'Questionnaire initial, entretiens, plan d’action puis synthèse : chaque étape te rapproche de l’autonomie.' },
-    { title: 'Tes outils', body: 'Le résumé « Où j’en suis », ta météo, la roue des émotions et le mode « facile à lire » t’aident à avancer sereinement.' },
-  ],
-  accompagnateur: [
-    { title: 'Bienvenue sur Boussole 👋', body: 'Boussole t’aide à conduire des entretiens justes et à produire des comptes rendus structurés, avec l’appui de l’IA.' },
-    { title: 'Ton tableau de bord', body: 'Suis tous tes accompagnés, les signaux de décrochage et ton impact en un coup d’œil.', selector: '[data-tour="espace"]' },
-    { title: 'L’entretien guidé', body: 'Six phases, un co-pilote IA et un coach de posture : tu restes maître de l’entretien, l’IA te seconde.' },
-    { title: 'Ta réflexivité', body: 'Miroir de posture, débriefing, bilan de pratique et mutualisation entre pairs pour progresser dans la durée.' },
-  ],
-  admin: [
-    { title: 'Console d’administration', body: 'Gère les comptes, les plans d’abonnement (et donc les fonctionnalités activées) et la confidentialité (RGPD).' },
-  ],
-}
+export interface TourStep { title: string; body: string; selector?: string }
 
 interface Rect { top: number; left: number; width: number; height: number }
 
-export default function OnboardingTour({ role, onClose }: { role: string; onClose: () => void }) {
-  const steps = STEPS[role] || STEPS.accompagne
+/**
+ * Rendu d'une visite guidée : surlignage de l'élément ciblé (data-tour) + carte explicative,
+ * navigation pas à pas. Composant générique piloté par une liste d'étapes (visite globale par
+ * rôle OU visite de l'écran courant — cf. OnboardingManager / tours.ts).
+ */
+export default function OnboardingTour({ steps, onClose }: { steps: TourStep[]; onClose: () => void }) {
   const [i, setI] = useState(0)
   const [rect, setRect] = useState<Rect | null>(null)
   const step = steps[i]
 
   useEffect(() => {
     let r: Rect | null = null
-    if (step.selector) {
+    if (step?.selector) {
       const el = document.querySelector(step.selector) as HTMLElement | null
       if (el) {
         el.scrollIntoView({ block: 'center', behavior: 'smooth' })
@@ -39,7 +25,7 @@ export default function OnboardingTour({ role, onClose }: { role: string; onClos
       }
     }
     setRect(r)
-  }, [i, step.selector])
+  }, [i, step?.selector])
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -47,6 +33,7 @@ export default function OnboardingTour({ role, onClose }: { role: string; onClos
     return () => window.removeEventListener('keydown', k)
   }, [onClose])
 
+  if (!step) return null
   const last = i === steps.length - 1
   const cardStyle: React.CSSProperties = rect
     ? { position: 'fixed', top: Math.min(rect.top + rect.height + 12, window.innerHeight - 220), left: Math.max(12, Math.min(rect.left, window.innerWidth - 340)), width: 320 }

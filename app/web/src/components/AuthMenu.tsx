@@ -57,6 +57,12 @@ export default function AuthMenu() {
                   <Link className="authmenu-item" to="/admin/supervision" role="menuitem" onClick={() => setOpen(false)}>📊 Supervision</Link>
                 </>
               )}
+              <button
+                type="button"
+                className="authmenu-item authmenu-item-btn"
+                role="menuitem"
+                onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent('boussole:tour')) }}
+              >🧭 Visite guidée</button>
               <div className="authmenu-foot">
                 <button className="btn btn-ghost" role="menuitem" onClick={onLogout}>Déconnexion</button>
               </div>

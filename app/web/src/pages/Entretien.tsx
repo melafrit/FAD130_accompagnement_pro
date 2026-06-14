@@ -198,7 +198,7 @@ export default function Entretien() {
       <div className="page">
         <h1 className="page-title">Entretien clôturé ✅</h1>
         <p className="lead">Génère et mets en forme le compte rendu de cet entretien (éditable), puis publie-le à l’accompagné quand il est prêt. Tu pourras le rouvrir plus tard depuis le dossier.</p>
-        <button className="btn btn-primary" onClick={() => setShowCr(true)}>📄 Ouvrir le compte rendu</button>
+        <button className="btn btn-primary" data-tour="generer-cr" onClick={() => setShowCr(true)}>📄 Ouvrir le compte rendu</button>
         <p style={{ marginTop: 20 }}><button className="btn btn-ghost" onClick={retour}>Retour au dossier</button></p>
         <ErrorBoundary onReset={() => setShowCr(false)}>
           <Suspense fallback={null}>
@@ -247,7 +247,7 @@ export default function Entretien() {
         <p className="phase-obj">{phase.objectif}</p>
         <div className="phase-grid">
           <div><h4>⚠️ Vigilance</h4><ul>{phase.vigilance.map((v, i) => <li key={i}>{v}</li>)}</ul></div>
-          <div>
+          <div data-tour="ajouter-question">
             <h4>💬 Questions à poser <span className="muted">(＋ ajouter · ✎ modifier)</span></h4>
             {banque?.[current]?.length ? (
               <ul className="phase-q phase-q-perso">{banque[current].map((q, i) => (
@@ -317,7 +317,7 @@ export default function Entretien() {
         <CoachPosture question={newQ} onReformuler={editSuggestion} />
       </div>
 
-      <div className="notes-block">
+      <div className="notes-block" data-tour="micro">
         <div className="notes-head">
           <h3>Notes générales de la phase <span className="muted">(facultatif · 🎙 pour dicter)</span></h3>
         </div>

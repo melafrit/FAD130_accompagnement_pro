@@ -22,6 +22,7 @@ export async function login(page: Page, account: { email: string; password: stri
   await page.addInitScript(() => {
     try {
       ;['accompagnateur', 'accompagne', 'admin'].forEach((r) => localStorage.setItem(`boussole_onboarding_${r}`, '1'))
+      localStorage.setItem('boussole_tours_off', '1') // neutralise les propositions de visite par écran
     } catch { /* localStorage indisponible */ }
   })
   await page.goto('/connexion')
