@@ -28,16 +28,19 @@ import confortRouter from './confort'
 import ethiqueRouter, { sweepRetention } from './ethique'
 import adoptionRouter from './adoption'
 import wikiRouter, { seedWiki, publicWikiRouter } from './wiki'
+import { globalLimiter, authLimiter, helmetConfig } from './security'
+import { scheduleBackups } from './backups'
 import { seed } from './seed'
 
 const app = express()
-app.use(helmet())
+app.use(helmet(helmetConfig))
 app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
+app.use(globalLimiter) // garde-fou global anti-abus (désactivé si RATE_LIMIT_DISABLED=1)
 
-// Authentification
-app.use('/api/auth', authRouter)
+// Authentification (limiteur strict anti brute-force sur login/inscription/réinitialisation)
+app.use('/api/auth', authLimiter, authRouter)
 
 // Questionnaire initial (Claude)
 app.use('/api/questionnaire', questionnaireRouter)
@@ -124,6 +127,9 @@ seed().catch((e) => console.error('[seed] échec :', e))
 
 // Contenu de référence du wiki documentaire (idempotent : n'écrase jamais les éditions)
 try { seedWiki() } catch (e) { console.error('[wiki] seed échec :', e) }
+
+// Sauvegardes locales horodatées de la base (quotidiennes, avec rétention)
+scheduleBackups()
 
 // Rappels d'action : balayage périodique côté serveur, indépendant des clients connectés
 // (la consultation des notifications déclenche aussi un balayage immédiat, en complément).
