@@ -15,11 +15,11 @@ import { createTestUser, deleteTestUser, type TestUser } from '../helpers/fixtur
 //  - Tous les comptes de test sont supprimés en afterAll (RGPD cascade).
 // =============================================================================
 
-// --- 21 identifiants d'indicateurs de la grille (3 critères × 7) ---
+// --- 20 identifiants d'indicateurs de la grille (barème officiel 7 / 7 / 6) ---
 const INDICATEUR_IDS = [
   '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7',
   '2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7',
-  '3.1', '3.2', '3.3', '3.4', '3.5', '3.6', '3.7',
+  '3.1', '3.2', '3.3', '3.4', '3.5', '3.6',
 ]
 
 describe('dossier (parcours · auto-évaluation · synthèse)', () => {
@@ -412,21 +412,23 @@ describe('dossier (parcours · auto-évaluation · synthèse)', () => {
     expect(r.json.criteres.length).toBe(3)
     expect(Array.isArray(r.json.zones)).toBe(true)
     expect(r.json.zones.length).toBe(4)
-    // 3 critères × 7 indicateurs = 21.
+    // Barème officiel FAD130 : 7 / 7 / 6 = 20 indicateurs (1 point chacun).
+    expect(r.json.criteres.map((c: any) => c.points)).toEqual([7, 7, 6])
+    expect(r.json.criteres.map((c: any) => c.indicateurs.length)).toEqual([7, 7, 6])
     let total = 0
     for (const c of r.json.criteres) {
       expect(c).toHaveProperty('id')
       expect(c).toHaveProperty('titre')
       expect(c).toHaveProperty('resume')
+      expect(c).toHaveProperty('points')
       expect(Array.isArray(c.indicateurs)).toBe(true)
-      expect(c.indicateurs.length).toBe(7)
       for (const i of c.indicateurs) {
         expect(i).toHaveProperty('id')
         expect(i).toHaveProperty('texte')
       }
       total += c.indicateurs.length
     }
-    expect(total).toBe(21)
+    expect(total).toBe(20)
     // Zones ordonnées : min 0/25/50/75.
     expect(r.json.zones.map((z: any) => z.min)).toEqual([0, 25, 50, 75])
     expect(r.json.zones.map((z: any) => z.label)).toEqual(['Émergent', 'En développement', 'Maîtrisé', 'Expert'])
@@ -490,15 +492,21 @@ describe('dossier (parcours · auto-évaluation · synthèse)', () => {
     })
     expect(r.status).toBe(200)
     expect(r.json.ok).toBe(true)
-    // note = round((80+60)/2 / 5 * 10) / 10 = round(70/5*10)/10 = round(140)/10 = 14.0
-    expect(r.json.note_globale).toBe(14)
+    // Barème pondéré 7/7/6 : C1 (seul 1.1=80) → 80/100×7 = 5.6 ; C2 (seul 2.1=60) → 60/100×7 = 4.2 ;
+    // C3 (aucun score) → 0. Note = 5.6 + 4.2 = 9.8 / 20.
+    expect(r.json.note_globale).toBe(9.8)
+    expect(r.json.parCritere).toEqual([
+      { critere: 1, sur: 7, score: 5.6 },
+      { critere: 2, sur: 7, score: 4.2 },
+      { critere: 3, sur: 6, score: null },
+    ])
     // Relecture : scores upsertés + commentaires globaux persistés.
     const back = await sA.get(`/api/autoeval/${dossier}`)
     expect(back.json.eval.scores['1.1']).toEqual({ score: 80, commentaire: 'ok' })
     expect(back.json.eval.scores['2.1']).toEqual({ score: 60, commentaire: null })
     expect(back.json.eval.commentaire_global).toBe('Forces…')
     expect(back.json.eval.analyse_questions).toBe('Questions ouvertes…')
-    expect(back.json.eval.note_globale).toBe(14)
+    expect(back.json.eval.note_globale).toBe(9.8)
   })
 
   it('TC-DOSS-034 — enregistrer : clamp des scores hors bornes [0,100]', async () => {
@@ -595,15 +603,15 @@ describe('dossier (parcours · auto-évaluation · synthèse)', () => {
     // Le brouillon courant est NOUVEAU (id différent de la version figée).
     expect(back.json.eval.statut).toBe('brouillon')
     expect(back.json.eval.id).not.toBe(draftAvant)
-    // Il reprend note/commentaires et les scores copiés.
-    expect(back.json.eval.note_globale).toBe(14)
+    // Il reprend note/commentaires et les scores copiés (note pondérée 7/7/6 : 5.6 + 4.2 = 9.8).
+    expect(back.json.eval.note_globale).toBe(9.8)
     expect(back.json.eval.commentaire_global).toBe('Bilan v1')
     expect(back.json.eval.scores['1.1'].score).toBe(80)
     expect(back.json.eval.scores['2.1'].score).toBe(60)
     // L'ancien brouillon est désormais une version validée présente dans l'historique.
     expect(back.json.historique.length).toBe(1)
     expect(back.json.historique[0].id).toBe(draftAvant)
-    expect(back.json.historique[0].note_globale).toBe(14)
+    expect(back.json.historique[0].note_globale).toBe(9.8)
     expect(back.json.historique[0]).toHaveProperty('maj_le')
   })
 

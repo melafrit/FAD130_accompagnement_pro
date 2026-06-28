@@ -1,6 +1,6 @@
 # Catalogue de cas de test — Boussole
 
-> Généré automatiquement à partir de la conception ISTQB. 1273 cas de test sur 28 domaines.
+> Généré automatiquement à partir de la conception ISTQB. 1274 cas de test sur 28 domaines.
 > Identifiant : BOUSSOLE-CAT-001 · Voir le plan : [01-Plan-de-test.md](01-Plan-de-test.md) · La matrice : [03-Matrice-tracabilite.md](03-Matrice-tracabilite.md)
 
 ## Domaine AUTH — 69 cas
@@ -6573,8 +6573,8 @@
 - **Données :** GET /api/autoeval/grille
 - **Étapes :**
   1. GET /api/autoeval/grille
-- **Résultat attendu :** 200 { criteres:[3 critères], zones:[4 zones] } ; 3 critères × 7 indicateurs = 21 indicateurs au total ; chaque critère a id,titre,resume,indicateurs[{id,texte}] ; zones ordonnées min 0/25/50/75 (Émergent/En développement/Maîtrisé/Expert).
-- **Traçabilité :** auto_evaluation · GET /api/autoeval/grille
+- **Résultat attendu :** 200 { criteres:[3 critères], zones:[4 zones] } ; barème officiel 7/7/6 = 20 indicateurs (chaque critère porte un champ points ∈ {7,7,6} et 7/7/6 indicateurs) ; chaque critère a id,titre,resume,points,indicateurs[{id,texte}] ; zones ordonnées min 0/25/50/75 (Émergent/En développement/Maîtrisé/Expert).
+- **Traçabilité :** auto_evaluation · GET /api/autoeval/grille (grille.ts, barème officiel FAD130)
 - **Automatisation :** ✅ api/dossier.test.ts
 
 ### TC-DOSS-029 — Grille : rôle accompagné → 403
@@ -6637,14 +6637,14 @@
 
 | Niveau | Type | Priorité | Technique |
 |---|---|---|---|
-| API | fonctionnel | haute | test du contrat + valeurs limites (calcul note) |
+| API | fonctionnel | haute | test du contrat + valeurs limites (calcul de note pondérée) |
 
 - **Préconditions :** Accompagnateur propriétaire ; brouillon existant.
 - **Données :** POST /api/autoeval/:id { scores:[{indicateur:'1.1',score:80,commentaire:'ok'},{indicateur:'2.1',score:60,commentaire:null}], commentaire_global:'Forces…', analyse_questions:'Questions ouvertes…' }
 - **Étapes :**
   1. POST /api/autoeval/<id> avec 2 scores
-- **Résultat attendu :** 200 { ok:true, note_globale: 1.4 } ; note = round((80+60)/2/5*10)/10 = 1.4 ; relecture GET /:id renvoie les scores upsertés et commentaires globaux persistés.
-- **Traçabilité :** auto_evaluation · POST /api/autoeval/:id
+- **Résultat attendu :** 200 { ok:true, note_globale: 9.8, parCritere:[{1,/7,5.6},{2,/7,4.2},{3,/6,null}] } ; note pondérée 7/7/6 : C1 (1.1=80) → 5.6, C2 (2.1=60) → 4.2, C3 (aucun) → null ; total 9.8/20 ; relecture GET /:id renvoie les scores upsertés et commentaires globaux persistés.
+- **Traçabilité :** auto_evaluation · POST /api/autoeval/:id (computeBreakdown, barème 7/7/6)
 - **Automatisation :** ✅ api/dossier.test.ts
 
 ### TC-DOSS-034 — Enregistrer : clamp des scores hors bornes [0,100]
@@ -19441,7 +19441,7 @@
 - **Traçabilité :** PATCH /api/admin/settings (setFlag) + /api/context (publicFlags)
 - **Automatisation :** ✅ api/settings.test.ts
 
-## Domaine UI_DIVERS — 3 cas
+## Domaine UI_DIVERS — 4 cas
 
 ### TC-UI-370 — Modale non coupée quand la page est scrollée (Dossier)
 
@@ -19488,4 +19488,19 @@
 - **Résultat attendu :** Une proposition « Voulez-vous une visite guidée ? » apparaît ; « Oui » lance la visite de l'écran.
 - **Traçabilité :** OnboardingManager (prompt 1re visite, localStorage boussole_tour_<clé>) ; tours.ts
 - **Automatisation :** ✅ ui/tour.spec.ts
+
+### TC-UI-373 — Auto-évaluation : barème officiel 7/7/6 et note /20
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | fonctionnel | moyenne | test fonctionnel d'interface (alignement de la grille sur le barème officiel FAD130) |
+
+- **Préconditions :** Accompagnateur connecté ; un dossier lui appartenant.
+- **Données :** Écran /dossier/:id/auto-evaluation.
+- **Étapes :**
+  1. Ouvrir l'écran d'auto-évaluation d'un dossier.
+  2. Vérifier l'affichage des 3 critères, de la note /20 et du barème pondéré.
+- **Résultat attendu :** Les 3 critères officiels s'affichent ; la note est exprimée /20 avec la mention « barème 7/7/6 » ; le critère 3 (6 points) affiche « /6 ».
+- **Traçabilité :** AutoEvaluation.tsx (sous-scores 7/7/6, note /20) ; grille.ts / autoeval.ts
+- **Automatisation :** ✅ ui/accompagnateur.spec.ts
 

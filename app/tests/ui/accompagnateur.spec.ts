@@ -214,6 +214,22 @@ test.describe('Dossier', () => {
     expect(mb).not.toBeNull()
     expect(mb!.y).toBeGreaterThanOrEqual(0)
   })
+
+  // TC-UI-373 — écran auto-évaluation : grille alignée sur le barème officiel 7/7/6, note /20.
+  test('TC-UI-373 — auto-évaluation : barème officiel 7/7/6 et note /20', async ({ page }) => {
+    await login(page, DEMO.mohamed)
+    const id = await dossierAccId(page, 'Amine')
+    await page.goto(`/dossier/${id}/auto-evaluation`)
+    await expect(page.getByRole('heading', { name: /Mon auto-évaluation/ })).toBeVisible()
+    // Les 3 critères de la grille officielle.
+    await expect(page.getByText(/Critère 1 — Positionnement dans la relation/)).toBeVisible()
+    await expect(page.getByText(/Critère 3 — Positionnement professionnel/)).toBeVisible()
+    // Note /20 + barème pondéré 7/7/6 affichés.
+    await expect(page.getByText(/Note globale/)).toBeVisible()
+    await expect(page.getByText(/barème 7\/7\/6/)).toBeVisible()
+    // Le critère 3 vaut 6 points (vs 7) → son récapitulatif affiche « /6 ».
+    await expect(page.locator('.ae-crit-fold').filter({ hasText: 'Critère 3' }).locator('.ae-moy')).toContainText('/6')
+  })
 })
 
 // ---------------------------------------------------------------------------

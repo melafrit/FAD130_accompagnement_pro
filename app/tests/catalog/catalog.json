@@ -7464,9 +7464,9 @@
           "etapes": [
             "GET /api/autoeval/grille"
           ],
-          "attendu": "200 { criteres:[3 critères], zones:[4 zones] } ; 3 critères × 7 indicateurs = 21 indicateurs au total ; chaque critère a id,titre,resume,indicateurs[{id,texte}] ; zones ordonnées min 0/25/50/75 (Émergent/En développement/Maîtrisé/Expert).",
+          "attendu": "200 { criteres:[3 critères], zones:[4 zones] } ; barème officiel 7/7/6 = 20 indicateurs (chaque critère porte un champ points ∈ {7,7,6} et 7/7/6 indicateurs) ; chaque critère a id,titre,resume,points,indicateurs[{id,texte}] ; zones ordonnées min 0/25/50/75 (Émergent/En développement/Maîtrisé/Expert).",
           "technique": "test du contrat",
-          "tracabilite": "auto_evaluation · GET /api/autoeval/grille"
+          "tracabilite": "auto_evaluation · GET /api/autoeval/grille (grille.ts, barème officiel FAD130)"
         },
         {
           "id": "TC-DOSS-029",
@@ -7539,9 +7539,9 @@
           "etapes": [
             "POST /api/autoeval/<id> avec 2 scores"
           ],
-          "attendu": "200 { ok:true, note_globale: 1.4 } ; note = round((80+60)/2/5*10)/10 = 1.4 ; relecture GET /:id renvoie les scores upsertés et commentaires globaux persistés.",
-          "technique": "test du contrat + valeurs limites (calcul note)",
-          "tracabilite": "auto_evaluation · POST /api/autoeval/:id"
+          "attendu": "200 { ok:true, note_globale: 9.8, parCritere:[{1,/7,5.6},{2,/7,4.2},{3,/6,null}] } ; note pondérée 7/7/6 : C1 (1.1=80) → 5.6, C2 (2.1=60) → 4.2, C3 (aucun) → null ; total 9.8/20 ; relecture GET /:id renvoie les scores upsertés et commentaires globaux persistés.",
+          "technique": "test du contrat + valeurs limites (calcul de note pondérée)",
+          "tracabilite": "auto_evaluation · POST /api/autoeval/:id (computeBreakdown, barème 7/7/6)"
         },
         {
           "id": "TC-DOSS-034",
@@ -22486,6 +22486,22 @@
           ],
           "attendu": "Une proposition « Voulez-vous une visite guidée ? » apparaît ; « Oui » lance la visite de l'écran.",
           "tracabilite": "OnboardingManager (prompt 1re visite, localStorage boussole_tour_<clé>) ; tours.ts"
+        },
+        {
+          "id": "TC-UI-373",
+          "titre": "Auto-évaluation : barème officiel 7/7/6 et note /20",
+          "niveau": "ui",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test fonctionnel d'interface (alignement de la grille sur le barème officiel FAD130)",
+          "preconditions": "Accompagnateur connecté ; un dossier lui appartenant.",
+          "donnees": "Écran /dossier/:id/auto-evaluation.",
+          "etapes": [
+            "Ouvrir l'écran d'auto-évaluation d'un dossier.",
+            "Vérifier l'affichage des 3 critères, de la note /20 et du barème pondéré."
+          ],
+          "attendu": "Les 3 critères officiels s'affichent ; la note est exprimée /20 avec la mention « barème 7/7/6 » ; le critère 3 (6 points) affiche « /6 ».",
+          "tracabilite": "AutoEvaluation.tsx (sous-scores 7/7/6, note /20) ; grille.ts / autoeval.ts"
         }
       ],
       "areaKey": "ui_divers"

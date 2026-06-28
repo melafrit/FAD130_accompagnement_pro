@@ -1,6 +1,6 @@
 # Matrice de traçabilité — Boussole
 
-> Identifiant : BOUSSOLE-MAT-001 · 1273 cas · 1078 automatisés (85%).
+> Identifiant : BOUSSOLE-MAT-001 · 1274 cas · 1079 automatisés (85%).
 > Régénérée à chaque exécution (un cas est « automatisé » dès que son ID apparaît dans le code de test).
 
 ## Synthèse de couverture par domaine
@@ -34,8 +34,8 @@
 | MON | 6 | 6 | 100% |
 | A11Y | 8 | 8 | 100% |
 | SETTINGS | 4 | 4 | 100% |
-| UI_DIVERS | 3 | 3 | 100% |
-| **Total** | **1273** | **1078** | **85%** |
+| UI_DIVERS | 4 | 4 | 100% |
+| **Total** | **1274** | **1079** | **85%** |
 
 ## Détail (cas ↔ fonctionnalité/endpoint ↔ test automatisé)
 
@@ -471,12 +471,12 @@
 | TC-DOSS-025 | API | haute | synthese · POST /api/dossiers/:id/rouvrir | ✅ api/dossier.test.ts |
 | TC-DOSS-026 | API | moyenne | owns() · POST /api/dossiers/:id/rouvrir | ✅ api/dossier.test.ts |
 | TC-DOSS-027 | API | moyenne | synthese · POST /api/dossiers/:id/cloturer + /rouvrir | ✅ api/dossier.test.ts |
-| TC-DOSS-028 | API | haute | auto_evaluation · GET /api/autoeval/grille | ✅ api/dossier.test.ts |
+| TC-DOSS-028 | API | haute | auto_evaluation · GET /api/autoeval/grille (grille.ts, barème officiel FAD130) | ✅ api/dossier.test.ts |
 | TC-DOSS-029 | API | moyenne | requireRole('accompagnateur') · GET /api/autoeval/grille | ✅ api/dossier.test.ts |
 | TC-DOSS-030 | API | basse | requireAuth · GET /api/autoeval/grille | ✅ api/dossier.test.ts |
 | TC-DOSS-031 | API | haute | auto_evaluation · GET /api/autoeval/:id (getOrCreateDraft) | ✅ api/dossier.test.ts |
 | TC-DOSS-032 | API | haute | owns() · GET /api/autoeval/:id | ✅ api/dossier.test.ts |
-| TC-DOSS-033 | API | haute | auto_evaluation · POST /api/autoeval/:id | ✅ api/dossier.test.ts |
+| TC-DOSS-033 | API | haute | auto_evaluation · POST /api/autoeval/:id (computeBreakdown, barème 7/7/6) | ✅ api/dossier.test.ts |
 | TC-DOSS-034 | API | haute | auto_evaluation · clampScore · POST /api/autoeval/:id | ✅ api/dossier.test.ts |
 | TC-DOSS-035 | API | moyenne | auto_evaluation · clampScore · POST /api/autoeval/:id | ✅ api/dossier.test.ts |
 | TC-DOSS-036 | API | moyenne | auto_evaluation · INDICATEUR_IDS · POST /api/autoeval/:id | ✅ api/dossier.test.ts |
@@ -1314,3 +1314,4 @@
 | TC-UI-370 | UI | moyenne | .page sans bloc englobant / contexte d'empilement persistant ; .modal-overlay position:fixed (index.css) | ✅ ui/accompagnateur.spec.ts |
 | TC-UI-371 | UI | moyenne | AuthMenu (événement boussole:tour) → OnboardingManager.launchCurrent → tours.ts | ✅ ui/tour.spec.ts |
 | TC-UI-372 | UI | moyenne | OnboardingManager (prompt 1re visite, localStorage boussole_tour_<clé>) ; tours.ts | ✅ ui/tour.spec.ts |
+| TC-UI-373 | UI | moyenne | AutoEvaluation.tsx (sous-scores 7/7/6, note /20) ; grille.ts / autoeval.ts | ✅ ui/accompagnateur.spec.ts |

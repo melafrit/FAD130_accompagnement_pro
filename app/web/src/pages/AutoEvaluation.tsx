@@ -8,7 +8,7 @@ import AiProgress from '../components/AiProgress'
 import DictaTextarea from '../components/DictaTextarea'
 
 interface Indicateur { id: string; texte: string }
-interface Critere { id: number; titre: string; resume: string; indicateurs: Indicateur[] }
+interface Critere { id: number; titre: string; resume: string; points: number; indicateurs: Indicateur[] }
 interface Zone { label: string; min: number; couleur: string }
 interface ScoreVal { score: number | null; commentaire: string | null }
 interface EvalData { id: number; statut: string; note_globale: number | null; commentaire_global: string | null; analyse_questions: string | null; maj_le: string; scores: Record<string, ScoreVal> }
@@ -50,11 +50,14 @@ export default function AutoEvaluation() {
   }, [id])
 
   const allScores = Object.values(scores).map((s) => s.score).filter((v): v is number => typeof v === 'number')
-  const globalPct = allScores.length ? allScores.reduce((a, b) => a + b, 0) / allScores.length : null
   function critAvg(c: Critere): number {
     const vs = c.indicateurs.map((i) => scores[i.id]?.score).filter((v): v is number => typeof v === 'number')
     return vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : 0
   }
+  // Barème officiel 7/7/6 : sous-score d'un critère sur ses points, puis note /20 pondérée.
+  function critPoints(c: Critere): number { return Math.round((critAvg(c) / 100) * c.points * 10) / 10 }
+  const note20 = criteres.length && allScores.length ? Math.round(criteres.reduce((a, c) => a + critPoints(c), 0) * 10) / 10 : null
+  const globalPct = note20 != null ? (note20 / 20) * 100 : null // jauge : note ramenée en %
 
   function setScore(key: string, v: number) {
     setScores((s) => ({ ...s, [key]: { score: v, commentaire: s[key]?.commentaire ?? null } }))
@@ -78,7 +81,7 @@ export default function AutoEvaluation() {
   }
   async function appelIA() {
     const dejaSaisi = Object.values(scores).some((s) => s.score != null || (s.commentaire || '').trim() !== '')
-    if (dejaSaisi && !window.confirm('L’IA va proposer un score et un commentaire pour les 21 indicateurs et remplacer ta saisie actuelle (tu pourras tout réajuster avant de valider). Continuer ?')) return
+    if (dejaSaisi && !window.confirm('L’IA va proposer un score et un commentaire pour les 20 indicateurs et remplacer ta saisie actuelle (tu pourras tout réajuster avant de valider). Continuer ?')) return
     setAiBusy(true); setMsg('')
     try {
       const r = await api<{ available: boolean; message?: string; scores?: { indicateur: string; score: number | null; commentaire: string | null }[]; commentaire_global?: string; analyse_questions?: string }>(`/autoeval/${id}/ia`, { method: 'POST' })
@@ -120,7 +123,7 @@ export default function AutoEvaluation() {
           <section className="ae-ia">
             <button className="btn btn-primary" onClick={appelIA} disabled={aiBusy}>✨ Pré-remplir avec l’IA</button>
             <p className="hint">L’IA lit tout le dossier (questionnaire, entretiens et <strong>questions posées</strong>, plan d’action) et propose un score + un commentaire par indicateur, ainsi qu’une analyse du type de tes questions.<br /><strong>L’IA suggère, tu décides</strong> : tu peux tout éditer avant de valider.</p>
-            {aiBusy && <AiProgress steps={['Lecture du dossier (questionnaire, entretiens, questions)…', 'Évaluation des 21 indicateurs…', 'Analyse du type de tes questions…', 'Rédaction des commentaires…']} />}
+            {aiBusy && <AiProgress steps={['Lecture du dossier (questionnaire, entretiens, questions)…', 'Évaluation des 20 indicateurs (barème 7/7/6)…', 'Analyse du type de tes questions…', 'Rédaction des commentaires…']} />}
           </section>
         </div>
         <div className="ae-charts-top">
@@ -144,7 +147,7 @@ export default function AutoEvaluation() {
             <summary>
               <span className="chevron" aria-hidden="true">▸</span>
               <span className="ae-crit-titre">Critère {c.id} — {c.titre}</span>
-              <span className="ae-moy">{c.indicateurs.filter((i) => scores[i.id]?.score != null).length}/7 · {Math.round(critAvg(c))}/100</span>
+              <span className="ae-moy">{c.indicateurs.filter((i) => scores[i.id]?.score != null).length}/{c.indicateurs.length} · <strong>{critPoints(c)}/{c.points}</strong></span>
             </summary>
             <div className="ae-crit-body">
               <p className="ae-crit-resume">{c.resume}</p>
@@ -182,7 +185,10 @@ export default function AutoEvaluation() {
       </section>
 
       <div className="ae-actions">
-        <span className="ae-note">Note globale : <strong>{globalPct != null ? Math.round(globalPct) : '—'}/100</strong> <span className="muted">({allScores.length}/21 notés)</span></span>
+        <span className="ae-note">
+          Note globale : <strong>{note20 != null ? note20 : '—'}/20</strong>{' '}
+          <span className="muted">(barème 7/7/6{criteres.length ? ' — ' + criteres.map((c) => `${critPoints(c)}/${c.points}`).join(' · ') : ''} · {allScores.length}/{criteres.reduce((a, c) => a + c.indicateurs.length, 0) || 20} notés)</span>
+        </span>
         <div className="ae-actions-btns">
           <button className="btn btn-ghost" onClick={save} disabled={busy}>💾 Enregistrer</button>
           <button className="btn btn-primary" onClick={valider} disabled={busy}>✓ Valider cette version</button>

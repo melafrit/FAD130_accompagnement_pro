@@ -24,10 +24,24 @@ type ScoreMap = Record<string, { score: number | null; commentaire: string | nul
 function clampScore(v: unknown): number | null {
   return typeof v === 'number' && isFinite(v) ? Math.max(0, Math.min(100, v)) : null
 }
-function computeNote(map: ScoreMap): number | null {
-  const vals = Object.values(map).map((s) => s.score).filter((v): v is number => typeof v === 'number')
+
+// Sous-score d'un critère, sur son barème officiel (7, 7 ou 6 points) :
+// moyenne de ses indicateurs notés (0–100) ramenée à ses points.
+function critereScore(map: ScoreMap, c: (typeof GRILLE)[number]): number | null {
+  const vals = c.indicateurs.map((i) => map[i.id]?.score).filter((v): v is number => typeof v === 'number')
   if (!vals.length) return null
-  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length / 5) * 10) / 10
+  const avg = vals.reduce((a, b) => a + b, 0) / vals.length
+  return Math.round((avg / 100) * c.points * 10) / 10
+}
+
+/** Note /20 pondérée selon le barème officiel (7/7/6) + sous-scores par critère. */
+function computeBreakdown(map: ScoreMap): { note: number | null; parCritere: { critere: number; sur: number; score: number | null }[] } {
+  const parCritere = GRILLE.map((c) => ({ critere: c.id, sur: c.points, score: critereScore(map, c) }))
+  const note = parCritere.every((p) => p.score == null) ? null : Math.round(parCritere.reduce((a, p) => a + (p.score || 0), 0) * 10) / 10
+  return { note, parCritere }
+}
+function computeNote(map: ScoreMap): number | null {
+  return computeBreakdown(map).note
 }
 
 function getOrCreateDraft(dossierId: number): number {
@@ -84,7 +98,8 @@ router.get('/:id', requireAuth, requireRole('accompagnateur'), (req: Request, re
   const historique = db
     .prepare("SELECT id, note_globale, maj_le FROM auto_evaluations WHERE dossier_id=? AND statut='validee' ORDER BY maj_le, id")
     .all(id) as { id: number; note_globale: number | null; maj_le: string }[]
-  res.json({ eval: { ...head, scores: loadScores(evalId) }, historique })
+  const scores = loadScores(evalId)
+  res.json({ eval: { ...head, scores, parCritere: computeBreakdown(scores).parCritere }, historique })
 })
 
 // --- Enregistrer (met à jour le brouillon) ---
@@ -99,7 +114,7 @@ router.post('/:id', requireAuth, requireRole('accompagnateur'), (req: Request, r
   const scores = Array.isArray(req.body?.scores) ? (req.body.scores as ScoreIn[]) : []
   saveDraft(evalId, scores, req.body?.commentaire_global, req.body?.analyse_questions)
   const note = (db.prepare('SELECT note_globale FROM auto_evaluations WHERE id=?').get(evalId) as { note_globale: number | null }).note_globale
-  res.json({ ok: true, note_globale: note })
+  res.json({ ok: true, note_globale: note, parCritere: computeBreakdown(loadScores(evalId)).parCritere })
 })
 
 // --- Valider : fige la version courante dans l'historique et repart d'un nouveau brouillon ---
@@ -162,20 +177,22 @@ const ZONES_TXT = ZONES.map((z, i) => `- ${z.min}–${ZONES[i + 1] ? ZONES[i + 1
 const INSTRUCTIONS =
   `Tu assistes un accompagnateur (UE FAD130, Cnam) dans l'AUTO-évaluation de SA pratique d'accompagnement, à partir des traces d'un dossier (questionnaire, entretiens, plan d'action). ` +
   `Tu ne juges pas l'accompagné : tu évalues la posture de l'ACCOMPAGNATEUR au regard de la grille ci-dessous. Tu proposes ; c'est lui qui validera.\n\n` +
-  `Grille — 21 indicateurs formulés en « je » (la personne évaluée est l'accompagnateur) :\n${GRILLE_TXT}\n\n` +
+  `Cette grille reprend la GRILLE OFFICIELLE de fin de formation FAD130, pondérée 7 / 7 / 6 = 20 points (Critère 1 = 7 pts, Critère 2 = 7 pts, Critère 3 = 6 pts). ` +
+  `Chaque indicateur vaut 1 point — 20 indicateurs formulés en « je » (la personne évaluée est l'accompagnateur) :\n${GRILLE_TXT}\n\n` +
   `Échelle de score 0–100 (4 zones) :\n${ZONES_TXT}\n\n` +
-  `Pour CHAQUE indicateur (les 21), propose : un "score" entier 0–100 et un "commentaire" bref (1–2 phrases) à la première personne (« je »), STRICTEMENT fondé sur les traces fournies. ` +
+  `Pour CHAQUE indicateur (les 20), propose : un "score" entier 0–100 et un "commentaire" bref (1–2 phrases) à la première personne (« je »), STRICTEMENT fondé sur les traces fournies. ` +
   `Si une trace manque pour juger un indicateur, propose un score prudent (autour de 50) et signale explicitement le manque d'éléments dans le commentaire. ` +
+  `Garde à l'esprit les « questions à se poser » de la grille officielle : la JUSTIFICATION des stratégies/méthodes/outils privilégiés, la VIGILANCE sur son positionnement et sa RÉÉVALUATION dans le temps (indic. 1.6, 1.7), l'ajustement sensible/INTUITIF et l'équilibre stratégique↔méthodique↔intuitif (2.7), et l'ANALYSE CRITIQUE de la fonction — rayonnement, tensions, évolutions, place sociale (3.5). ` +
   `Tu disposes aussi des QUESTIONS effectivement posées par l'accompagnateur (listées par phase) : évalue leur TYPE et leur qualité ` +
   `(ouvertes vs fermées, reformulation, relances, induction vs « geste écologique », dosage des attitudes de Porter) et tiens-en compte ` +
   `explicitement dans la notation des indicateurs concernés (notamment 1.4, 2.1, 2.4, 2.5, 2.6). ` +
-  `Ajoute un "commentaire_global" (3–5 phrases) dégageant forces et axes de progrès, ` +
-  `puis un champ "analyse_questions" (3–5 phrases) qualifiant spécifiquement la qualité et la variété de tes questions, avec un conseil concret.`
+  `Ajoute un "commentaire_global" (3–5 phrases) dégageant forces et axes de progrès critère par critère, ` +
+  `puis un champ "analyse_questions" (3–5 phrases) qualifiant spécifiquement la qualité et la variété des questions posées, avec un conseil concret.`
 
 async function suggererGrille(dossierId: number): Promise<{ scores: ScoreIn[]; commentaire_global: string; analyse_questions: string } | null> {
   if (!KEY) return null
   const context = buildContext(dossierId)
-  const schema = `Réponds en JSON STRICT, sans aucun texte autour : {"scores":[{"indicateur":"1.1","score":0,"commentaire":"…"}, … les 21 indicateurs …],"commentaire_global":"…","analyse_questions":"…"}`
+  const schema = `Réponds en JSON STRICT, sans aucun texte autour : {"scores":[{"indicateur":"1.1","score":0,"commentaire":"…"}, … les 20 indicateurs …],"commentaire_global":"…","analyse_questions":"…"}`
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
