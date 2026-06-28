@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Livrables FAD108 : Explorer son parcours en vue d'accompagner les transformations identitaires, relationnelles, professionnelles</title>
+  <title>Livrables FAD130 : Accompagner le parcours de formation et de transition professionnelle</title>
   <!-- Inclusion de Font Awesome pour les icônes -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <style>
@@ -37,6 +37,11 @@
       padding-bottom: 10px;
       margin-bottom: 20px;
     }
+    .section-intro {
+      margin: 0 0 16px;
+      color: #555;
+      line-height: 1.5;
+    }
     .item {
       display: flex;
       justify-content: space-between;
@@ -56,6 +61,7 @@
       margin-right: 10px;
       transition: background-color 0.3s, color 0.3s;
       font-size: 0.9em;
+      white-space: nowrap;
     }
     .file-links a:hover {
       background-color: #004080;
@@ -64,6 +70,34 @@
     /* Style icônes */
     .file-links a .fa {
       margin-right: 5px;
+    }
+    /* Encadré comptes de démonstration */
+    .demo {
+      background-color: #eef4fb;
+      border-left: 4px solid #004080;
+      border-radius: 4px;
+      padding: 14px 18px;
+      margin-top: 14px;
+    }
+    .demo-title {
+      margin: 0 0 10px;
+      font-weight: 600;
+      color: #004080;
+    }
+    .demo ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .demo li {
+      margin: 6px 0;
+      line-height: 1.6;
+    }
+    .demo code {
+      background-color: #fff;
+      border: 1px solid #d6e0ec;
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 0.92em;
     }
     @media (max-width: 600px) {
       .item {
@@ -78,80 +112,60 @@
 </head>
 <body>
   <div class="header">
-    <h1>Livrables FAD108 : Explorer son parcours en vue d'accompagner les transformations identitaires, relationnelles, professionnelles</h1>
-	<h3>Réalisé par : Mohamed Amine EL AFRIT</h3>
+    <h1>Livrables FAD130 : Accompagner le parcours de formation et de transition professionnelle</h1>
+    <h3>Réalisé par : Mohamed Amine EL AFRIT</h3>
   </div>
   <div class="container">
     <!-- Section des productions écrites -->
     <div class="section">
       <h2>Productions écrites</h2>
       <div class="item">
-        <span>Site web</span>
+        <span>Rapport d'auto-évaluation de fin de formation</span>
         <div class="file-links">
-          <a href="site_mohamed_elafrit_fad108" target="_blank">
-            <i class="fa fa-file-www-o" aria-hidden="true"></i> WWW
-          </a>
-        </div>
-      </div>
-      <div class="item">
-        <span>Histoire de vie</span>
-        <div class="file-links">
-          <a href="./site_mohamed_elafrit_fad108/assets/docs/Histoire_de_vie.docx" target="_blank">
+          <a href="./docx/Auto-evaluation_FAD130.docx" target="_blank" rel="noopener">
             <i class="fa fa-file-word-o" aria-hidden="true"></i> DOCX
           </a>
-          <a href="./site_mohamed_elafrit_fad108/assets/docs/Histoire_de_vie.pdf" target="_blank">
+          <a href="./docx/Auto-evaluation_FAD130.pdf" target="_blank" rel="noopener">
             <i class="fa fa-file-pdf-o" aria-hidden="true"></i> PDF
-          </a>
-        </div>
-      </div>
-      <div class="item">
-        <span>Livret d'exercices de bilan de parcours</span>
-        <div class="file-links">
-          <a href="./site_mohamed_elafrit_fad108/assets/docs/Livret_FAD108.docx" target="_blank">
-            <i class="fa fa-file-word-o" aria-hidden="true"></i> DOCX
-          </a>
-          <a href="./site_mohamed_elafrit_fad108/assets/docs/Livret_FAD108.pdf" target="_blank">
-            <i class="fa fa-file-pdf-o" aria-hidden="true"></i> PDF
-          </a>
-        </div>
-      </div>
-      <div class="item">
-        <span>Tableaux du livret d'exercices</span>
-        <div class="file-links">
-          <a href="./site_mohamed_elafrit_fad108/assets/docs/Tableaux_du_livret_exercice.xlsx" target="_blank">
-            <i class="fa fa-file-excel-o" aria-hidden="true"></i> XLSX
           </a>
         </div>
       </div>
     </div>
 
-    <!-- Section des productions orales -->
+    <!-- Section de la production orale -->
     <div class="section">
       <h2>Production orale</h2>
+      <p class="section-intro">La production orale s'appuie sur la méthode d'accompagnement mise en œuvre dans l'application Boussole. Elle est décrite sur la page suivante :</p>
       <div class="item">
-        <span>Production orale</span>
+        <span>Méthode d'accompagnement (support de la production orale)</span>
         <div class="file-links">
-          <!-- <a href="./site_mohamed_elafrit_fad108/assets/docs/FAD108_presentation_orale.pptx" target="_blank">
-            <i class="fa fa-file-powerpoint-o" aria-hidden="true"></i> PPTX
-          </a> -->
-          <a href="./site_mohamed_elafrit_fad108/assets/docs/FAD108_presentation_orale.pdf" target="_blank">
-            <i class="fa fa-file-pdf-o" aria-hidden="true"></i> PDF
+          <a href="https://boussole.elafrit.com/methode" target="_blank" rel="noopener">
+            <i class="fa fa-external-link" aria-hidden="true"></i> Description (méthode)
           </a>
         </div>
       </div>
     </div>
-	<!-- Section de la bibliographie -->
-    <!-- <div class="section">
-      <h2>Bibliographie</h2>
+
+    <!-- Section de l'application Boussole -->
+    <div class="section">
+      <h2>Application Boussole</h2>
+      <p class="section-intro">« Boussole » opérationnalise la méthode d'accompagnement : entretien guidé, comptes rendus et auto-évaluation de la posture d'accompagnateur.</p>
       <div class="item">
-        <span>Bibliographie</span>
+        <span>Application Boussole (mode démonstration)</span>
         <div class="file-links">
-          <a href="Bibliographie_rapport_FAD141.rdf" target="_blank">
-            <i class="fa fa-book" aria-hidden="true"></i> RDF
-          </a>          
+          <a href="https://boussole.elafrit.com" target="_blank" rel="noopener">
+            <i class="fa fa-external-link" aria-hidden="true"></i> Ouvrir l'application
+          </a>
         </div>
       </div>
-    </div> -->
+      <div class="demo">
+        <p class="demo-title"><i class="fa fa-key" aria-hidden="true"></i> Se connecter en mode démonstration</p>
+        <ul>
+          <li><strong>Accompagnateur</strong> — identifiant : <code>elafrit.mohamed@gmail.com</code> · mot de passe : <code>BoussoleDemo2026</code></li>
+          <li><strong>Accompagné</strong> — identifiant : <code>afrit_mohamed@yahoo.fr</code> · mot de passe : <code>BoussoleDemo2026</code></li>
+        </ul>
+      </div>
+    </div>
   </div>
 </body>
 </html>
