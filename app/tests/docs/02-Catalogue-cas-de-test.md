@@ -1,6 +1,6 @@
 # Catalogue de cas de test — Boussole
 
-> Généré automatiquement à partir de la conception ISTQB. 1274 cas de test sur 28 domaines.
+> Généré automatiquement à partir de la conception ISTQB. 1280 cas de test sur 28 domaines.
 > Identifiant : BOUSSOLE-CAT-001 · Voir le plan : [01-Plan-de-test.md](01-Plan-de-test.md) · La matrice : [03-Matrice-tracabilite.md](03-Matrice-tracabilite.md)
 
 ## Domaine AUTH — 69 cas
@@ -19247,7 +19247,7 @@
 - **Traçabilité :** GET /api/monitoring/business — fonctions businessKpis()/snapshot() (api/src/monitoring.ts)
 - **Automatisation :** ✅ api/monitoring.test.ts
 
-## Domaine A11Y — 8 cas
+## Domaine A11Y — 9 cas
 
 ### TC-A11Y-001 — Accessibilité : / (accueil) sans violation critique/sérieuse (axe WCAG 2.1 AA)
 
@@ -19327,6 +19327,22 @@
   3. Analyser la page avec axe-core (tags wcag2a/wcag2aa/wcag21a/wcag21aa).
 - **Résultat attendu :** Aucune violation d impact « critical » ou « serious ».
 - **Traçabilité :** UI /accessibilite — accessibilité
+- **Automatisation :** ✅ ui/accessibility.spec.ts
+
+### TC-A11Y-007 — /guide sans violation critique ou sérieuse (WCAG 2.1 AA)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | haute | audit automatisé axe-core (tags wcag2a, wcag2aa, wcag21a, wcag21aa) |
+
+- **Préconditions :** Aucune : page publique.
+- **Données :** Aucune.
+- **Étapes :**
+  1. Ouvrir /guide.
+  2. Attendre la fin des chargements réseau.
+  3. Lancer l'analyse axe-core et filtrer les impacts critical/serious.
+- **Résultat attendu :** Aucune violation d'impact critique ou sérieux (contrôle notamment l'alternative des captures et le nom accessible de la barre de progression).
+- **Traçabilité :** pages/Guide.tsx ; ui/accessibility.spec.ts (tableau PUBLIC)
 - **Automatisation :** ✅ ui/accessibility.spec.ts
 
 ### TC-A11Y-010 — Accessibilité : /espace sans violation critique/sérieuse (axe WCAG 2.1 AA)
@@ -19441,7 +19457,7 @@
 - **Traçabilité :** PATCH /api/admin/settings (setFlag) + /api/context (publicFlags)
 - **Automatisation :** ✅ api/settings.test.ts
 
-## Domaine UI_DIVERS — 4 cas
+## Domaine UI_DIVERS — 9 cas
 
 ### TC-UI-370 — Modale non coupée quand la page est scrollée (Dossier)
 
@@ -19503,4 +19519,82 @@
 - **Résultat attendu :** Les 3 critères officiels s'affichent ; la note est exprimée /20 avec la mention « barème 7/7/6 » ; le critère 3 (6 points) affiche « /6 ».
 - **Traçabilité :** AutoEvaluation.tsx (sous-scores 7/7/6, note /20) ; grille.ts / autoeval.ts
 - **Automatisation :** ✅ ui/accompagnateur.spec.ts
+
+### TC-UI-374 — Guide de prise en main accessible sans connexion (deux parcours)
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | acces | moyenne | test d'accès anonyme (la route est hors <Protected>) |
+
+- **Préconditions :** Aucune : visiteur non authentifié.
+- **Données :** Aucune.
+- **Étapes :**
+  1. Ouvrir /guide sans être connecté.
+  2. Observer le titre de page et les onglets de rôle.
+- **Résultat attendu :** La page s'affiche sans redirection vers /connexion ; le titre de niveau 1 « Guide d'utilisation de Boussole » est visible ; deux onglets sont proposés, celui de l'accompagnateur étant sélectionné par défaut.
+- **Traçabilité :** Route publique /guide (App.tsx) → pages/Guide.tsx
+- **Automatisation :** ✅ ui/guide.spec.ts
+
+### TC-UI-375 — Parcours accompagnateur : progression étape par étape
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | fonctionnel | moyenne | test de navigation séquentielle + exposition ARIA de la progression |
+
+- **Préconditions :** Page /guide ouverte, onglet accompagnateur actif.
+- **Données :** 7 étapes déclarées dans PARCOURS[0].
+- **Étapes :**
+  1. Vérifier le compteur « 1 / 7 » et le bouton Précédent désactivé.
+  2. Cliquer sur « Suivant → ».
+  3. Contrôler le compteur, le titre d'étape et l'attribut aria-valuenow de la barre de progression.
+- **Résultat attendu :** Le compteur passe à « 2 / 7 », l'étape affichée devient « Tes disponibilités » et la barre de progression expose aria-valuenow=2.
+- **Traçabilité :** pages/Guide.tsx (.phase-panel-nav, role=progressbar)
+- **Automatisation :** ✅ ui/guide.spec.ts
+
+### TC-UI-376 — Bascule d'onglet de rôle : le parcours change et l'étape est réinitialisée
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | fonctionnel | moyenne | test de changement d'état (onglets ARIA) + réinitialisation |
+
+- **Préconditions :** Page /guide ouverte, avancée à l'étape 2 du parcours accompagnateur.
+- **Données :** Parcours accompagné : 6 étapes.
+- **Étapes :**
+  1. Cliquer sur l'onglet « Je suis accompagné ».
+  2. Contrôler aria-selected, le compteur et l'étape affichée.
+- **Résultat attendu :** L'onglet accompagné porte aria-selected=true, le compteur affiche « 1 / 6 » et l'étape revient à la première du parcours.
+- **Traçabilité :** pages/Guide.tsx (role=tablist/tab/tabpanel, setEtapeIdx(0))
+- **Automatisation :** ✅ ui/guide.spec.ts
+
+### TC-UI-377 — Chaque étape illustre l'écran par une capture pourvue d'une alternative textuelle
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | accessibilité | haute | contrôle de l'attribut alt et du chargement effectif de l'image |
+
+- **Préconditions :** Page /guide ouverte.
+- **Données :** Captures servies depuis /captures/*.png (app/web/public).
+- **Étapes :**
+  1. Localiser l'image de l'étape courante.
+  2. Lire son attribut alt.
+  3. Vérifier naturalWidth > 0.
+- **Résultat attendu :** L'image porte une alternative descriptive de plus de 20 caractères et est réellement servie (image non cassée) — axe-core « image-alt » est bloquant.
+- **Traçabilité :** pages/Guide.tsx (.guide-shot) ; app/web/public/captures/
+- **Automatisation :** ✅ ui/guide.spec.ts
+
+### TC-UI-378 — Points d'entrée du guide depuis la navigation principale et le pied de page
+
+| Niveau | Type | Priorité | Technique |
+|---|---|---|---|
+| UI | non-régression | moyenne | test de navigation par les liens de layout |
+
+- **Préconditions :** Page d'accueil ouverte, visiteur non authentifié.
+- **Données :** Aucune.
+- **Étapes :**
+  1. Cliquer sur « Guide » dans la navigation principale.
+  2. Revenir à l'accueil.
+  3. Cliquer sur « Guide » dans le pied de page.
+- **Résultat attendu :** Les deux liens conduisent à /guide et la page affiche son titre de niveau 1.
+- **Traçabilité :** App.tsx — Header (NavLink /guide) et Footer (Link /guide)
+- **Automatisation :** ✅ ui/guide.spec.ts
 

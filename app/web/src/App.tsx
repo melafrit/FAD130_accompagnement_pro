@@ -14,6 +14,7 @@ import MentionsLegales from './pages/MentionsLegales'
 import CGU from './pages/CGU'
 import Confidentialite from './pages/Confidentialite'
 import Methode from './pages/Methode'
+import Guide from './pages/Guide'
 import Accessibilite from './pages/Accessibilite'
 import RessourcePublique from './pages/RessourcePublique'
 import Espace from './pages/Espace'
@@ -65,6 +66,7 @@ function Header() {
       <nav className="nav" aria-label="Navigation principale">
         <NavLink to="/" end>{t('nav.home')}</NavLink>
         <NavLink to="/methode">{t('nav.presentation')}</NavLink>
+        <NavLink to="/guide">{t('nav.guide')}</NavLink>
         {user && <NavLink to="/espace" data-tour="espace">{t('nav.space')}</NavLink>}
         <FalcToggle />
         {darkMode && <ThemeToggle />}
@@ -80,7 +82,9 @@ function Footer() {
   const { t } = useTranslation()
   return (
     <footer className="footer">
-      <nav className="footer-links" aria-label="Liens légaux">
+      <nav className="footer-links" aria-label="Liens de bas de page">
+        <Link to="/guide">Guide</Link>
+        <span aria-hidden="true">·</span>
         <Link to="/mentions-legales">Mentions légales</Link>
         <span aria-hidden="true">·</span>
         <Link to="/cgu">CGU</Link>
@@ -131,6 +135,8 @@ export default function App() {
             <Route path="/methode" element={<Methode />} />
             {/* Ancienne page Présentation fusionnée dans Méthode (renommée « Présentation ») */}
             <Route path="/presentation" element={<Navigate to="/methode" replace />} />
+            {/* Guide de prise en main : public, aucune connexion requise */}
+            <Route path="/guide" element={<Guide />} />
             <Route path="/accessibilite" element={<Accessibilite />} />
             <Route path="/ressource/:token" element={<RessourcePublique />} />
             <Route path="/espace" element={<Protected><Espace /></Protected>} />

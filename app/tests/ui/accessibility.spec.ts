@@ -20,6 +20,7 @@ test.describe('A11Y — accessibilité (axe-core, WCAG 2.1 AA)', () => {
     ['TC-A11Y-003', '/inscription'],
     ['TC-A11Y-004', '/methode'], // inclut désormais la section « Présentation » fusionnée
     ['TC-A11Y-006', '/accessibilite'],
+    ['TC-A11Y-007', '/guide'], // guide de prise en main (onglets ARIA + captures d'écran)
   ]
   for (const [id, path] of PUBLIC) {
     test(`${id} — ${path} sans violation critique/sérieuse`, async ({ page }) => {

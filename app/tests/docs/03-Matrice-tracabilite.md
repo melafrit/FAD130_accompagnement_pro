@@ -1,6 +1,6 @@
 # Matrice de traçabilité — Boussole
 
-> Identifiant : BOUSSOLE-MAT-001 · 1274 cas · 1079 automatisés (85%).
+> Identifiant : BOUSSOLE-MAT-001 · 1280 cas · 1085 automatisés (85%).
 > Régénérée à chaque exécution (un cas est « automatisé » dès que son ID apparaît dans le code de test).
 
 ## Synthèse de couverture par domaine
@@ -32,10 +32,10 @@
 | CSRF | 4 | 4 | 100% |
 | OBS | 6 | 6 | 100% |
 | MON | 6 | 6 | 100% |
-| A11Y | 8 | 8 | 100% |
+| A11Y | 9 | 9 | 100% |
 | SETTINGS | 4 | 4 | 100% |
-| UI_DIVERS | 4 | 4 | 100% |
-| **Total** | **1274** | **1079** | **85%** |
+| UI_DIVERS | 9 | 9 | 100% |
+| **Total** | **1280** | **1085** | **85%** |
 
 ## Détail (cas ↔ fonctionnalité/endpoint ↔ test automatisé)
 
@@ -1304,6 +1304,7 @@
 | TC-A11Y-003 | UI | moyenne | UI /inscription — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-004 | UI | moyenne | UI /methode — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-006 | UI | moyenne | UI /accessibilite — accessibilité | ✅ ui/accessibility.spec.ts |
+| TC-A11Y-007 | UI | haute | pages/Guide.tsx ; ui/accessibility.spec.ts (tableau PUBLIC) | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-010 | UI | moyenne | UI /espace — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-011 | UI | moyenne | UI /admin — accessibilité | ✅ ui/accessibility.spec.ts |
 | TC-A11Y-012 | UI | moyenne | UI /admin/wiki — accessibilité | ✅ ui/accessibility.spec.ts |
@@ -1315,3 +1316,8 @@
 | TC-UI-371 | UI | moyenne | AuthMenu (événement boussole:tour) → OnboardingManager.launchCurrent → tours.ts | ✅ ui/tour.spec.ts |
 | TC-UI-372 | UI | moyenne | OnboardingManager (prompt 1re visite, localStorage boussole_tour_<clé>) ; tours.ts | ✅ ui/tour.spec.ts |
 | TC-UI-373 | UI | moyenne | AutoEvaluation.tsx (sous-scores 7/7/6, note /20) ; grille.ts / autoeval.ts | ✅ ui/accompagnateur.spec.ts |
+| TC-UI-374 | UI | moyenne | Route publique /guide (App.tsx) → pages/Guide.tsx | ✅ ui/guide.spec.ts |
+| TC-UI-375 | UI | moyenne | pages/Guide.tsx (.phase-panel-nav, role=progressbar) | ✅ ui/guide.spec.ts |
+| TC-UI-376 | UI | moyenne | pages/Guide.tsx (role=tablist/tab/tabpanel, setEtapeIdx(0)) | ✅ ui/guide.spec.ts |
+| TC-UI-377 | UI | haute | pages/Guide.tsx (.guide-shot) ; app/web/public/captures/ | ✅ ui/guide.spec.ts |
+| TC-UI-378 | UI | moyenne | App.tsx — Header (NavLink /guide) et Footer (Link /guide) | ✅ ui/guide.spec.ts |

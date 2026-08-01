@@ -57,6 +57,7 @@ export default function AuthMenu() {
                   <Link className="authmenu-item" to="/admin/supervision" role="menuitem" onClick={() => setOpen(false)}>📊 Supervision</Link>
                 </>
               )}
+              <Link className="authmenu-item" to="/guide" role="menuitem" onClick={() => setOpen(false)}>📖 Guide de prise en main</Link>
               <button
                 type="button"
                 className="authmenu-item authmenu-item-btn"
@@ -68,10 +69,13 @@ export default function AuthMenu() {
               </div>
             </>
           ) : (
-            <div className="authmenu-foot authmenu-foot-out">
-              <Link className="btn btn-primary" role="menuitem" to="/connexion" onClick={() => setOpen(false)}>Connexion</Link>
-              <Link className="btn btn-ghost" role="menuitem" to="/inscription" onClick={() => setOpen(false)}>Inscription</Link>
-            </div>
+            <>
+              <Link className="authmenu-item" to="/guide" role="menuitem" onClick={() => setOpen(false)}>📖 Guide de prise en main</Link>
+              <div className="authmenu-foot authmenu-foot-out">
+                <Link className="btn btn-primary" role="menuitem" to="/connexion" onClick={() => setOpen(false)}>Connexion</Link>
+                <Link className="btn btn-ghost" role="menuitem" to="/inscription" onClick={() => setOpen(false)}>Inscription</Link>
+              </div>
+            </>
           )}
         </div>
       )}

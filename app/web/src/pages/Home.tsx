@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function Home() {
   return (
     <>
@@ -69,6 +71,9 @@ export default function Home() {
             </div>
           </li>
         </ol>
+        <p className="steps-cta">
+          <Link className="btn btn-primary" to="/guide">📖 Découvrir le guide de prise en main</Link>
+        </p>
       </section>
     </>
   )

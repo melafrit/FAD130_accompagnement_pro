@@ -22121,8 +22121,18 @@
     {
       "area": "Supervision — santé technique des dépendances & KPI métier",
       "endpoints": [
-        { "method": "GET", "path": "/api/monitoring/health", "role": "admin", "summary": "État temps réel des dépendances (Claude, Brevo, base, sauvegardes, taux d'erreur)" },
-        { "method": "GET", "path": "/api/monitoring/business", "role": "admin", "summary": "KPI métier courants, taux dérivés et séries historiques (tendances)" }
+        {
+          "method": "GET",
+          "path": "/api/monitoring/health",
+          "role": "admin",
+          "summary": "État temps réel des dépendances (Claude, Brevo, base, sauvegardes, taux d'erreur)"
+        },
+        {
+          "method": "GET",
+          "path": "/api/monitoring/business",
+          "role": "admin",
+          "summary": "KPI métier courants, taux dérivés et séries historiques (tendances)"
+        }
       ],
       "cases": [
         {
@@ -22316,6 +22326,23 @@
           "tracabilite": "UI /accessibilite — accessibilité"
         },
         {
+          "id": "TC-A11Y-007",
+          "titre": "/guide sans violation critique ou sérieuse (WCAG 2.1 AA)",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "haute",
+          "technique": "audit automatisé axe-core (tags wcag2a, wcag2aa, wcag21a, wcag21aa)",
+          "preconditions": "Aucune : page publique.",
+          "donnees": "Aucune.",
+          "etapes": [
+            "Ouvrir /guide.",
+            "Attendre la fin des chargements réseau.",
+            "Lancer l'analyse axe-core et filtrer les impacts critical/serious."
+          ],
+          "attendu": "Aucune violation d'impact critique ou sérieux (contrôle notamment l'alternative des captures et le nom accessible de la barre de progression).",
+          "tracabilite": "pages/Guide.tsx ; ui/accessibility.spec.ts (tableau PUBLIC)"
+        },
+        {
           "id": "TC-A11Y-010",
           "titre": "Accessibilité : /espace sans violation critique/sérieuse (axe WCAG 2.1 AA)",
           "niveau": "ui",
@@ -22372,8 +22399,18 @@
     {
       "area": "Réglages généraux globaux (bascules transversales admin)",
       "endpoints": [
-        { "method": "GET", "path": "/api/admin/settings", "role": "admin", "summary": "Lit les drapeaux globaux (FALC, multilingue)" },
-        { "method": "PATCH", "path": "/api/admin/settings", "role": "admin", "summary": "Met à jour un ou plusieurs drapeaux globaux" }
+        {
+          "method": "GET",
+          "path": "/api/admin/settings",
+          "role": "admin",
+          "summary": "Lit les drapeaux globaux (FALC, multilingue)"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/admin/settings",
+          "role": "admin",
+          "summary": "Met à jour un ou plusieurs drapeaux globaux"
+        }
       ],
       "cases": [
         {
@@ -22385,7 +22422,9 @@
           "technique": "test de contrôle d'accès (non authentifié)",
           "preconditions": "API démarrée ; aucune session.",
           "donnees": "Aucune.",
-          "etapes": ["GET /api/admin/settings sans cookie."],
+          "etapes": [
+            "GET /api/admin/settings sans cookie."
+          ],
           "attendu": "HTTP 401.",
           "tracabilite": "GET /api/admin/settings (requireRole admin)"
         },
@@ -22398,7 +22437,9 @@
           "technique": "test de contrôle d'accès basé sur les rôles",
           "preconditions": "Compte de démo accompagnateur (camille) connectable.",
           "donnees": "Session accompagnateur.",
-          "etapes": ["GET /api/admin/settings avec un cookie accompagnateur."],
+          "etapes": [
+            "GET /api/admin/settings avec un cookie accompagnateur."
+          ],
           "attendu": "HTTP 403.",
           "tracabilite": "GET /api/admin/settings (requireRole admin)"
         },
@@ -22411,7 +22452,9 @@
           "technique": "test du contrat (structure / types de la réponse)",
           "preconditions": "Compte admin connectable.",
           "donnees": "Session admin.",
-          "etapes": ["GET /api/admin/settings avec un cookie admin."],
+          "etapes": [
+            "GET /api/admin/settings avec un cookie admin."
+          ],
           "attendu": "HTTP 200 ; settings.falc_enabled et settings.multilingue_enabled de type boolean.",
           "tracabilite": "GET /api/admin/settings — allSettings() (settings.ts)"
         },
@@ -22435,7 +22478,7 @@
       "areaKey": "settings"
     },
     {
-      "area": "UI transverse — modales & visite guidée",
+      "area": "UI transverse — modales, visite guidée & guide de prise en main",
       "endpoints": [],
       "cases": [
         {
@@ -22502,6 +22545,89 @@
           ],
           "attendu": "Les 3 critères officiels s'affichent ; la note est exprimée /20 avec la mention « barème 7/7/6 » ; le critère 3 (6 points) affiche « /6 ».",
           "tracabilite": "AutoEvaluation.tsx (sous-scores 7/7/6, note /20) ; grille.ts / autoeval.ts"
+        },
+        {
+          "id": "TC-UI-374",
+          "titre": "Guide de prise en main accessible sans connexion (deux parcours)",
+          "niveau": "ui",
+          "type": "acces",
+          "priorite": "moyenne",
+          "technique": "test d'accès anonyme (la route est hors <Protected>)",
+          "preconditions": "Aucune : visiteur non authentifié.",
+          "donnees": "Aucune.",
+          "etapes": [
+            "Ouvrir /guide sans être connecté.",
+            "Observer le titre de page et les onglets de rôle."
+          ],
+          "attendu": "La page s'affiche sans redirection vers /connexion ; le titre de niveau 1 « Guide d'utilisation de Boussole » est visible ; deux onglets sont proposés, celui de l'accompagnateur étant sélectionné par défaut.",
+          "tracabilite": "Route publique /guide (App.tsx) → pages/Guide.tsx"
+        },
+        {
+          "id": "TC-UI-375",
+          "titre": "Parcours accompagnateur : progression étape par étape",
+          "niveau": "ui",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test de navigation séquentielle + exposition ARIA de la progression",
+          "preconditions": "Page /guide ouverte, onglet accompagnateur actif.",
+          "donnees": "7 étapes déclarées dans PARCOURS[0].",
+          "etapes": [
+            "Vérifier le compteur « 1 / 7 » et le bouton Précédent désactivé.",
+            "Cliquer sur « Suivant → ».",
+            "Contrôler le compteur, le titre d'étape et l'attribut aria-valuenow de la barre de progression."
+          ],
+          "attendu": "Le compteur passe à « 2 / 7 », l'étape affichée devient « Tes disponibilités » et la barre de progression expose aria-valuenow=2.",
+          "tracabilite": "pages/Guide.tsx (.phase-panel-nav, role=progressbar)"
+        },
+        {
+          "id": "TC-UI-376",
+          "titre": "Bascule d'onglet de rôle : le parcours change et l'étape est réinitialisée",
+          "niveau": "ui",
+          "type": "fonctionnel",
+          "priorite": "moyenne",
+          "technique": "test de changement d'état (onglets ARIA) + réinitialisation",
+          "preconditions": "Page /guide ouverte, avancée à l'étape 2 du parcours accompagnateur.",
+          "donnees": "Parcours accompagné : 6 étapes.",
+          "etapes": [
+            "Cliquer sur l'onglet « Je suis accompagné ».",
+            "Contrôler aria-selected, le compteur et l'étape affichée."
+          ],
+          "attendu": "L'onglet accompagné porte aria-selected=true, le compteur affiche « 1 / 6 » et l'étape revient à la première du parcours.",
+          "tracabilite": "pages/Guide.tsx (role=tablist/tab/tabpanel, setEtapeIdx(0))"
+        },
+        {
+          "id": "TC-UI-377",
+          "titre": "Chaque étape illustre l'écran par une capture pourvue d'une alternative textuelle",
+          "niveau": "ui",
+          "type": "accessibilité",
+          "priorite": "haute",
+          "technique": "contrôle de l'attribut alt et du chargement effectif de l'image",
+          "preconditions": "Page /guide ouverte.",
+          "donnees": "Captures servies depuis /captures/*.png (app/web/public).",
+          "etapes": [
+            "Localiser l'image de l'étape courante.",
+            "Lire son attribut alt.",
+            "Vérifier naturalWidth > 0."
+          ],
+          "attendu": "L'image porte une alternative descriptive de plus de 20 caractères et est réellement servie (image non cassée) — axe-core « image-alt » est bloquant.",
+          "tracabilite": "pages/Guide.tsx (.guide-shot) ; app/web/public/captures/"
+        },
+        {
+          "id": "TC-UI-378",
+          "titre": "Points d'entrée du guide depuis la navigation principale et le pied de page",
+          "niveau": "ui",
+          "type": "non-régression",
+          "priorite": "moyenne",
+          "technique": "test de navigation par les liens de layout",
+          "preconditions": "Page d'accueil ouverte, visiteur non authentifié.",
+          "donnees": "Aucune.",
+          "etapes": [
+            "Cliquer sur « Guide » dans la navigation principale.",
+            "Revenir à l'accueil.",
+            "Cliquer sur « Guide » dans le pied de page."
+          ],
+          "attendu": "Les deux liens conduisent à /guide et la page affiche son titre de niveau 1.",
+          "tracabilite": "App.tsx — Header (NavLink /guide) et Footer (Link /guide)"
         }
       ],
       "areaKey": "ui_divers"

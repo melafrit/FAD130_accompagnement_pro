@@ -1013,3 +1013,29 @@ html[data-falc="on"] .btn { padding: 10px 16px; }
 
 @media (prefers-reduced-motion: reduce) { .dicta-mic.on { animation: none !important; } }
 
+
+/* === Guide de prise en main (/guide) — page publique, deux parcours en onglets ===
+   Réutilise .sup-tabs/.sup-tab (onglets), .phase-tabs/.phase-panel (étapes) et
+   .bartrack/.barfill (progression). Ne sont définis ici que les compléments propres à la page. */
+.guide .hint { color: var(--sauge-texte); font-size: 13px; font-style: italic; margin: 10px 0 0; }
+.guide-roles { margin-bottom: 18px; }
+.guide-roles .sup-tab { font-size: 16px; padding: 10px 16px; }
+.guide-intro { color: var(--texte-doux); margin: 0 0 16px; }
+.guide-bar { margin: 14px 0 18px; }
+.guide-barfill { background: var(--bleu-profond); }
+.guide-etape:focus-visible { outline: 2px solid var(--sauge); outline-offset: 3px; }
+
+/* Cadre de capture : l'image est présentée comme un « écran » inséré dans la page. */
+.guide-figure { margin: 0 0 16px; }
+.guide-shot {
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--bordure); border-radius: var(--radius);
+  background: var(--blanc); box-shadow: var(--ombre);
+}
+.guide-legende { margin: 8px 0 0; font-size: 13px; color: var(--texte-doux); font-style: italic; text-align: center; }
+.guide-points { margin: 0; }
+.guide-fin { margin-top: 28px; }
+.guide-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+
+@media (prefers-reduced-motion: reduce) { .guide-barfill { transition: none !important; } }
+.steps-cta { text-align: center; margin: 22px 0 0; }
