@@ -1,4 +1,4 @@
-# Batterie de non-régression Boussole — exécution complète (Windows / PowerShell).
+﻿# Batterie de non-régression Boussole — exécution complète (Windows / PowerShell).
 # 1) base propre (reseed)  2) unitaire  3) API  4) UI  5) rapport.
 $ErrorActionPreference = 'Continue'
 Set-Location -Path $PSScriptRoot
